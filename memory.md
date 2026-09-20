@@ -369,3 +369,14 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Validation**: pytest tests/engine/test_session.py -q → 11 passed; session.py 100/100 (≥92/85 MET); mypy src 0; ruff clean; full suite 493 passed, 3 skipped; coverage_gate exit 0.
 - **Design note**: id format {unix_ns}-{ns16} with monotonic guard (time.time_ns() can repeat within a millisecond — first version failed the sortable test; fixed with _last_ns bump under lock).
 - **Next**: 5.3 engine/commands.py (START_SESSION/ATTACH/DETACH/STATUS/SHUTDOWN typed responses; unknown → UnknownCommandError, connection stays open).
+
+## P5 SESSION S3 - 5.3-5.6 DONE (2026-09-20)
+
+- **Session**: S3, tasks 5.3-5.6, context ~45%.
+- **5.3 implemented**: src/dev_harness/engine/commands.py - command surface (START_SESSION/ATTACH/DETACH/STATUS/SHUTDOWN typed responses, discriminated union on command Literal tag), framing functions (encode_command/encode_response/decode_command_frame/decode_response_frame/read_command_frame/read_response_frame, 4-byte BE length prefix, MAX_COMMAND_FRAME 1 MiB), CommandHandler. Added version field to StatusResponse for handshake. Tests: tests/engine/test_commands.py (22 tests incl. 8 framing round-trips).
+- **5.4 implemented**: src/dev_harness/engine/fanout.py - multi-client attach with independent detach. Tests: tests/engine/test_fanout.py.
+- **5.5 implemented**: src/dev_harness/engine/provider_gateway.py - all provider calls routed through broker client; AST guard test enforces no direct adapter calls. Tests: tests/engine/test_provider_gateway.py.
+- **5.6 implemented**: src/dev_harness/engine/bootstrap.py - CommandClient (socket connect + request/response), EngineBootstrap (handshake with version check, ensure_daemon with spawn), EngineUnreachableError, main() CLI with --workspace/--self-check. Added dev-harness-engine entry point to pyproject.toml. Tests: tests/engine/test_bootstrap.py (18 tests, FakeSocket/FakeSocketFactory/FakeClock).
+- **Validation**: pytest tests/engine tests/support -q -> 104 passed; full suite 559 passed, 3 skipped; mypy src 0 (70 files); ruff clean on new files; coverage_gate.py exit 0. bootstrap.py 98.3% line (>=92/85 MET).
+- **Debugging notes**: FakeSocketFactory needed pending-reply queue (replies queued before client connects); FakeSocket needed read() for BinaryIO framing; frozen clock lambda: 0.0 causes infinite retry loops - use advancing FakeClock; CRLF files break edit tool - use Python scripts with p.write_bytes().
+- **Next**: 5.7 engine/shutdown.py (graceful shutdown: drain, seal checkpoint is_paused=True, unlink socket).

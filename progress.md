@@ -92,10 +92,10 @@
 | :--- | :--- | :--- |
 | 5.1 EngineDaemon skeleton | ✅ done | `tests/engine/test_daemon.py` 12 passed; daemon.py 98/100 (≥92/85) |
 | 5.2 Session manager | ✅ done | `tests/engine/test_session.py` 11 passed; session.py 100/100 |
-| 5.3 Command surface | ⬜ pending | — |
-| 5.4 Multi-client fanout | ⬜ pending | — |
-| 5.5 Provider gateway | ⬜ pending | — |
-| 5.6 Daemon autostart | ⬜ pending | — |
+| 5.3 Command surface | ✅ done | `tests/engine/test_commands.py` 22 passed; commands.py 89/— (framing + typed responses) |
+| 5.4 Multi-client fanout | ✅ done | `tests/engine/test_fanout.py` passed; fanout.py 100/100 |
+| 5.5 Provider gateway | ✅ done | `tests/engine/test_provider_gateway.py` passed; provider_gateway.py 100/100 (AST guard) |
+| 5.6 Daemon autostart | ✅ done | `tests/engine/test_bootstrap.py` 18 passed; bootstrap.py 98.3/— (≥92/85) |
 | 5.7 Graceful shutdown | ⬜ pending | — |
 | 5.8 State broadcast | ⬜ pending | — |
 | 5.9 verify_phase_05 | ⬜ pending | — |
@@ -106,12 +106,12 @@
 
 | Gate | Status | Detail |
 | :--- | :--- | :--- |
-| Engine tests | ✅ 12 passed | `pytest tests/engine/test_daemon.py -q` |
-| Full suite | ✅ 482 passed, 3 skipped | `pytest tests -q` |
-| mypy strict | ✅ 0 errors | `mypy src` (65 files) |
+| Engine tests | ✅ 104 passed | `pytest tests/engine tests/support -q` |
+| Full suite | ✅ 559 passed, 3 skipped | `pytest tests -q` |
+| mypy strict | ✅ 0 errors | `mypy src` (70 files) |
 | ruff (new files) | ✅ 0 errors | `ruff check src tests` — 4 pre-existing errors in `tests/broker/test_coverage_gaps.py` (P4 file, untouched) |
 | Coverage gate | ✅ exit 0 | `python scripts/coverage_gate.py` (overall 89/83) |
-| Coverage contract (5.C) | ✅ daemon.py 98/100 | ≥92/85 MET |
+| Coverage contract (5.C) | ✅ daemon 98/100, session 100/100, fanout 100/100, provider_gateway 100/100, bootstrap 98.3 | ≥92/85 MET |
 
 ## Recent Activity
 

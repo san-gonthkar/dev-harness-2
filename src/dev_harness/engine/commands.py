@@ -9,11 +9,13 @@ An unknown command raises UnknownCommandError but the connection stays open
 
 from __future__ import annotations
 
+import struct
 from collections.abc import Callable
-from typing import Annotated, Literal
+from typing import Annotated, BinaryIO, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from dev_harness import __version__
 from dev_harness.contracts.enums import ExecutionState
 from dev_harness.contracts.errors import SessionExistsError, UnknownCommandError
 from dev_harness.engine.session import SessionManager
@@ -120,6 +122,7 @@ class StatusResponse(BaseModel):
     ok: bool = True
     thread_id: str | None
     state: ExecutionState
+    version: str = ""
 
 
 class ShutdownResponse(BaseModel):
@@ -151,6 +154,113 @@ CommandResponse = Annotated[
     | ErrorResponse,
     Field(discriminator="command"),
 ]
+
+
+# --- framing ----------------------------------------------------------------
+
+_PREFIX = struct.Struct(">I")
+PREFIX_LEN = _PREFIX.size
+MAX_COMMAND_FRAME = 1 * 1024 * 1024  # 1 MiB
+
+
+def encode_command(command: Command) -> bytes:
+    """Encode a command as a length-prefixed JSON frame."""
+    body = command.model_dump_json().encode("utf-8")
+    frame = _PREFIX.pack(len(body)) + body
+    if len(frame) > MAX_COMMAND_FRAME:
+        raise ValueError(f"command frame of {len(frame)} bytes exceeds {MAX_COMMAND_FRAME}")
+    return frame
+
+
+def encode_response(response: CommandResponse) -> bytes:
+    """Encode a response as a length-prefixed JSON frame."""
+    body = response.model_dump_json().encode("utf-8")
+    frame = _PREFIX.pack(len(body)) + body
+    if len(frame) > MAX_COMMAND_FRAME:
+        raise ValueError(f"response frame of {len(frame)} bytes exceeds {MAX_COMMAND_FRAME}")
+    return frame
+
+
+def decode_command_frame(data: bytes) -> Command:
+    """Decode a single complete command frame (prefix + body)."""
+    if len(data) < PREFIX_LEN:
+        raise ValueError("frame shorter than 4-byte prefix")
+    (length,) = _PREFIX.unpack_from(data)
+    if length > MAX_COMMAND_FRAME:
+        raise ValueError(f"frame body of {length} bytes exceeds ceiling")
+    if len(data) < PREFIX_LEN + length:
+        raise ValueError(
+            f"declared {length} body bytes but only {len(data) - PREFIX_LEN} available"
+        )
+    body = data[PREFIX_LEN : PREFIX_LEN + length]
+    return _command_from_json(body)
+
+
+def decode_response_frame(data: bytes) -> CommandResponse:
+    """Decode a single complete response frame (prefix + body)."""
+    if len(data) < PREFIX_LEN:
+        raise ValueError("frame shorter than 4-byte prefix")
+    (length,) = _PREFIX.unpack_from(data)
+    if length > MAX_COMMAND_FRAME:
+        raise ValueError(f"frame body of {length} bytes exceeds ceiling")
+    if len(data) < PREFIX_LEN + length:
+        raise ValueError(
+            f"declared {length} body bytes but only {len(data) - PREFIX_LEN} available"
+        )
+    body = data[PREFIX_LEN : PREFIX_LEN + length]
+    return _response_from_json(body)
+
+
+def read_command_frame(stream: BinaryIO) -> Command:
+    """Read one command frame from a binary stream, blocking until complete."""
+    prefix = stream.read(PREFIX_LEN)
+    if not prefix:
+        raise ValueError("EOF before any frame")
+    if len(prefix) < PREFIX_LEN:
+        raise ValueError("EOF inside the length prefix")
+    (length,) = _PREFIX.unpack(prefix)
+    if length > MAX_COMMAND_FRAME:
+        raise ValueError(f"declared body of {length} bytes exceeds ceiling")
+    body = stream.read(length)
+    if len(body) < length:
+        raise ValueError(f"EOF inside frame body: {len(body)} of {length} bytes")
+    return _command_from_json(body)
+
+
+def read_response_frame(stream: BinaryIO) -> CommandResponse:
+    """Read one response frame from a binary stream, blocking until complete."""
+    prefix = stream.read(PREFIX_LEN)
+    if not prefix:
+        raise ValueError("EOF before any frame")
+    if len(prefix) < PREFIX_LEN:
+        raise ValueError("EOF inside the length prefix")
+    (length,) = _PREFIX.unpack(prefix)
+    if length > MAX_COMMAND_FRAME:
+        raise ValueError(f"declared body of {length} bytes exceeds ceiling")
+    body = stream.read(length)
+    if len(body) < length:
+        raise ValueError(f"EOF inside frame body: {len(body)} of {length} bytes")
+    return _response_from_json(body)
+
+
+def _command_from_json(body: bytes) -> Command:
+    """Validate a command body against the Command union."""
+    import json
+
+    from pydantic import TypeAdapter
+
+    data = json.loads(body)
+    return TypeAdapter(Command).validate_python(data)
+
+
+def _response_from_json(body: bytes) -> CommandResponse:
+    """Validate a response body against the CommandResponse union."""
+    import json
+
+    from pydantic import TypeAdapter
+
+    data = json.loads(body)
+    return TypeAdapter(CommandResponse).validate_python(data)
 
 
 # --- handler ----------------------------------------------------------------
@@ -228,10 +338,15 @@ class CommandHandler:
     def _status(self, command: StatusCommand) -> StatusResponse:
         session = self._sessions.get(command.workspace)
         if session is None:
-            return StatusResponse(thread_id=None, state=ExecutionState.READY)
+            return StatusResponse(
+                thread_id=None,
+                state=ExecutionState.READY,
+                version=__version__,
+            )
         return StatusResponse(
             thread_id=session.thread_id,
             state=session.state.tui_state.critic_gatekeeper_status,
+            version=__version__,
         )
 
     def _shutdown(self) -> ShutdownResponse:

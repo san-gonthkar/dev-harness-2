@@ -192,3 +192,114 @@ def test_commands_are_typed_models() -> None:
             "STATUS",
             "SHUTDOWN",
         }
+
+
+# --- framing round-trips ----------------------------------------------------
+
+
+@pytest.mark.unit
+def test_command_frame_round_trip() -> None:
+    """encode_command/decode_command_frame round-trip a command."""
+    from dev_harness.engine.commands import (
+        decode_command_frame,
+        encode_command,
+    )
+
+    cmd = StartSessionCommand(workspace="/tmp/w")
+    decoded = decode_command_frame(encode_command(cmd))
+    assert isinstance(decoded, StartSessionCommand)
+    assert decoded.workspace == "/tmp/w"
+
+
+@pytest.mark.unit
+def test_response_frame_round_trip() -> None:
+    """encode_response/decode_response_frame round-trip a response."""
+    from dev_harness.engine.commands import (
+        decode_response_frame,
+        encode_response,
+    )
+
+    resp = StatusResponse(thread_id="t1", state=ExecutionState.READY)
+    decoded = decode_response_frame(encode_response(resp))
+    assert isinstance(decoded, StatusResponse)
+    assert decoded.thread_id == "t1"
+    assert decoded.state == ExecutionState.READY
+
+
+@pytest.mark.unit
+def test_read_command_frame_from_stream() -> None:
+    """read_command_frame reads a command from a binary stream."""
+    import io
+
+    from dev_harness.engine.commands import encode_command, read_command_frame
+
+    cmd = StatusCommand(workspace="/tmp/w")
+    stream = io.BytesIO(encode_command(cmd))
+    decoded = read_command_frame(stream)
+    assert isinstance(decoded, StatusCommand)
+
+
+@pytest.mark.unit
+def test_read_response_frame_from_stream() -> None:
+    """read_response_frame reads a response from a binary stream."""
+    import io
+
+    from dev_harness.engine.commands import encode_response, read_response_frame
+
+    resp = ShutdownResponse()
+    stream = io.BytesIO(encode_response(resp))
+    decoded = read_response_frame(stream)
+    assert isinstance(decoded, ShutdownResponse)
+
+
+@pytest.mark.unit
+def test_decode_command_frame_rejects_unknown() -> None:
+    """decode_command_frame rejects an unknown command tag."""
+    import struct
+
+    from dev_harness.engine.commands import (
+        MAX_COMMAND_FRAME,
+        PREFIX_LEN,
+        decode_command_frame,
+    )
+
+    body = b'{"command": "BOGUS", "workspace": "/tmp/w"}'
+    frame = struct.pack(">I", len(body)) + body
+    assert len(frame) <= MAX_COMMAND_FRAME
+    with pytest.raises(ValueError):
+        decode_command_frame(frame[:PREFIX_LEN])
+
+
+@pytest.mark.unit
+def test_decode_command_frame_short_prefix() -> None:
+    """decode_command_frame rejects a frame shorter than the prefix."""
+    from dev_harness.engine.commands import decode_command_frame
+
+    with pytest.raises(ValueError):
+        decode_command_frame(b"\x00\x00")
+
+
+@pytest.mark.unit
+def test_decode_command_frame_oversized() -> None:
+    """decode_command_frame rejects an oversized body."""
+    import struct
+
+    from dev_harness.engine.commands import (
+        MAX_COMMAND_FRAME,
+        decode_command_frame,
+    )
+
+    frame = struct.pack(">I", MAX_COMMAND_FRAME + 1) + b"x"
+    with pytest.raises(ValueError):
+        decode_command_frame(frame)
+
+
+@pytest.mark.unit
+def test_read_command_frame_eof() -> None:
+    """read_command_frame raises on EOF before any frame."""
+    import io
+
+    from dev_harness.engine.commands import read_command_frame
+
+    with pytest.raises(ValueError):
+        read_command_frame(io.BytesIO(b""))

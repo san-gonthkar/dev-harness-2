@@ -45,3 +45,4 @@ where = ["src"]
 [project.scripts]
 dev-harness-broker = "dev_harness.broker.daemon:main"
 dev-harness-broker-cli = "dev_harness.broker.cli:main"
+dev-harness-engine = "dev_harness.engine.bootstrap:main"
