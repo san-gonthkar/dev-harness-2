@@ -35,3 +35,10 @@ The authoritative plan is `requirements/Dev_Harness_Implementation_Plan_V11_Fina
 - **Mutation gates** apply to `storage/`, `vcs/`, `broker/`, `core/`, and the four engine concurrency modules (`dag.py`, `worker_pool.py`, `worker_workspace.py`, `integrator.py`). A surviving mutant in a named focus set fails the gate.
 - **Acceptance protocols are scripted**, not remembered: `scripts/verify_phase_{NN}.sh`. The implementing worker may not sign its own phase report.
 - **Documentation lives in `requirements/` and `docs/`.** Do not create new top-level doc folders.
+
+## Progress Monitoring & Git Workflow
+
+- **`memory.md`** is the single shared memory file for agents (append-only history). **`progress.md`** is the human-readable monitoring dashboard — the orchestrator mirrors every state change into it (phase table, current task progress, quality gates, recent activity, git/push log) so the user can track progress remotely.
+- **Commit at regular meaningful intervals**: after each task's validation passes (or a small batch of 2–3 tasks), after each quality gate, and after each phase closes. Use the `Task-Id: {id}` trailer. Never commit broken state or stray artifacts (`*.log`, `coverage.json`, temp files).
+- **Push to `origin`/`main` after every commit** (or batch). The GitHub repository is set up; if a push fails, record it in `progress.md` and continue — never block the loop on push.
+- **The orchestrator** (`phase-orchestrator` agent + skill) is the keeper of phase state, the progress dashboard, and the commit/push cadence. Implementing agents commit their own task work; the orchestrator pushes.

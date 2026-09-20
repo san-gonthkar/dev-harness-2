@@ -20,9 +20,9 @@ class FakeProviderServer:
 
     scripted: dict[str, str] = field(default_factory=dict)
     fault: str | None = None  # "429" | "500" | "529" | "401" | "timeout"
-    requests: list[dict] = field(default_factory=list)
+    requests: list[dict[str, object]] = field(default_factory=list)
 
-    async def __call__(self, scope: dict, receive: object, send: object) -> None:
+    async def __call__(self, scope: dict[str, object], receive: object, send: object) -> None:
         """ASGI application entry point."""
         if scope["type"] != "http":
             return
@@ -57,7 +57,7 @@ class FakeProviderServer:
         return httpx.AsyncClient(transport=transport, base_url="http://fake")
 
 
-async def _read_body(receive: object) -> dict:
+async def _read_body(receive: object) -> dict[str, object]:
     """Read the request body from the ASGI receive callable."""
     message = await receive()
     body = message.get("body", b"")
@@ -71,7 +71,7 @@ async def _read_body(receive: object) -> dict:
         return {"raw": body}
 
 
-def _extract_prompt(body: dict) -> str:
+def _extract_prompt(body: dict[str, object]) -> str:
     """Extract the prompt from a provider request body."""
     if isinstance(body, dict):
         for key in ("prompt", "messages", "input"):
@@ -83,7 +83,7 @@ def _extract_prompt(body: dict) -> str:
     return json.dumps(body)
 
 
-async def _send_json(send: object, status: int, payload: dict) -> None:
+async def _send_json(send: object, status: int, payload: dict[str, object]) -> None:
     """Send a JSON response via the ASGI send callable."""
     data = json.dumps(payload).encode("utf-8")
     await send(

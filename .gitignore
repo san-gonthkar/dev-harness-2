@@ -8,6 +8,8 @@ dist/
 .mypy_cache/
 .ruff_cache/
 .coverage
+coverage.json
+*.log
 htmlcov/
 reports/*.json
 reports/*.csv

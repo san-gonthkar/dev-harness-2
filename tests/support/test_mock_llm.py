@@ -71,7 +71,8 @@ async def test_fake_provider_completion() -> None:
     async with server.client() as client:
         resp = await client.post("/v1/complete", json={"prompt": "ping"})
     assert resp.status_code == 200
-    assert resp.json()["content"] == "pong"
+    # The generic path returns the OpenRouter shape (choices[0].message.content).
+    assert resp.json()["choices"][0]["message"]["content"] == "pong"
     assert server.requests[0]["path"] == "/v1/complete"
 
 

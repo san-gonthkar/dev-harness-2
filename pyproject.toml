@@ -41,3 +41,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "dev_harness" = ["py.typed"]
+
+[project.scripts]
+dev-harness-broker = "dev_harness.broker.daemon:main"
+dev-harness-broker-cli = "dev_harness.broker.cli:main"
