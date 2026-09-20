@@ -12,12 +12,12 @@
 | Metric | Value |
 | :--- | :--- |
 | Phases closed | **4 / 11** (P0, P1, P2, P3, P4) |
-| Phases in progress | **0** |
-| Phases remaining | **7** (P5–P10) |
-| Current phase | **P4 — Rate-Limit Broker & Cost Governor (closed)** |
-| Current task | P4 closed → P5 (human sign-off required) |
-| Last commit | `dc1d3eb` — P4.11 verify_phase_04 acceptance protocol |
-| Last push | ✅ `dc1d3eb` → origin/main (2026-09-20) |
+| Phases in progress | **1** (P5) |
+| Phases remaining | **6** (P6–P10) |
+| Current phase | **P5 — Execution Engine Daemon & Session Lifecycle** |
+| Current task | 5.1 EngineDaemon skeleton |
+| Last commit | `1a825c9` — Close P4 (reviewer-agent ACCEPTED) |
+| Last push | ✅ `1a825c9` → origin/main (2026-09-20) |
 
 ## Resume Point
 
@@ -25,11 +25,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Last known step | P4 CLOSED — all 13 tasks green, coverage contract MET (broker ≥80/80), acceptance ACCEPTED (reviewer-agent) |
-| Next action | P5 — Execution Engine Daemon (prereq: P1, P2, P4 green; **human sign-off required**) |
-| Last commit | `dc1d3eb` (pushed to `origin/main`) |
+| Last known step | P5 STARTED — human sign-off granted 2026-09-20; 11 tasks (5.1–5.11), 29h, lane D |
+| Next action | Dispatch 5.1 EngineDaemon skeleton → 5.2 session → ... → 5.11 watcher |
+| Last commit | `1a825c9` (pushed to `origin/main`) |
 | Working tree | clean except 15 `.github/` files (BOM corruption — excluded) |
-| Prereqs | P3 closed (providers 94.4/88.5), P4 closed (broker 94.0/86.7) — green |
+| Prereqs | P4 closed (broker 94.0/86.7); 1.11, 2.5, 2.6, 4.9 all green — verified |
 
 ## Phase Status
 
@@ -40,7 +40,7 @@
 | P2 IPC Transport & Event Bus | ✅ closed | ipc 94.2/91.2 | `verify_phase_02` | reviewer-agent |
 | P3 LLM Provider Abstraction | ✅ closed | providers 94.4/88.5 | `verify_phase_03` | reviewer-agent |
 | P4 Rate-Limit Broker & Cost Governor | ✅ closed | broker 94.0/86.7 · cost+kill_switch 100/100 | `verify_phase_04` | reviewer-agent |
-| P5 Execution Engine Daemon | ⬜ not started | — | `verify_phase_05` | human required |
+| P5 Execution Engine Daemon | 🔄 in progress | — | `verify_phase_05` | human required |
 | P6 Critic Gatekeeper & Interrupt Engine | ⬜ not started | — | `verify_phase_06` | — |
 | P7 Hermes TUI Core Subsystem | ⬜ not started | — | `verify_phase_07` | — |
 | P8 SDLC Pipeline & Worker Pool | ⬜ not started | — | `verify_phase_08` | human required |

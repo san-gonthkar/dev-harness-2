@@ -30,7 +30,7 @@ The orchestrator (`phase-orchestrator`) is the keeper of phase state and updates
 | P2 IPC Transport & Event Bus | closed | `scripts/verify_phase_02.sh` | reviewer-agent |
 | P3 LLM Provider Abstraction | closed | `scripts/verify_phase_03.sh` | reviewer-agent |
 | P4 Rate-Limit Broker & Cost Governor | closed | `scripts/verify_phase_04.sh` | reviewer-agent |
-| P5 Execution Engine Daemon | not started | `scripts/verify_phase_05.sh` | human required |
+| P5 Execution Engine Daemon | in progress | `scripts/verify_phase_05.sh` | human required |
 | P6 Critic Gatekeeper & Interrupt Engine | not started | `scripts/verify_phase_06.sh` | — |
 | P7 Hermes TUI Core Subsystem | not started | `scripts/verify_phase_07.sh` | — |
 | P8 SDLC Pipeline & Worker Pool | not started | `scripts/verify_phase_08.sh` | human required |
@@ -59,11 +59,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P4 — Rate-Limit Broker & Cost Governor (closed 2026-09-20)
-- **Lane**: B
-- **Current task**: P4 CLOSED — all 13 tasks green, coverage contract MET (broker ≥80/80), acceptance ACCEPTED (reviewer-agent)
-- **Last completed task**: 4.11 verify_phase_04 + reviewer sign-off
-- **Next task**: P5 — Execution Engine Daemon (prereq: P1, P2, P4 green; **human sign-off required**)
+- **Phase**: P5 — Execution Engine Daemon & Session Lifecycle (in progress, human sign-off granted 2026-09-20)
+- **Lane**: D
+- **Current task**: 5.1 EngineDaemon skeleton
+- **Last completed task**: P4 CLOSED (reviewer-agent ACCEPTED)
+- **Next task**: 5.1 → 5.11 (11 tasks, 29h); human sign-off required at phase close
 
 ## Phase 0 — Scaffolding, Shared Contracts & Test Infrastructure
 
