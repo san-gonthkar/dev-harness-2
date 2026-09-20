@@ -30,7 +30,6 @@ class RetentionPolicy:
         if row is None:
             # Fewer than ``keep`` non-seal rows: nothing to prune.
             return 0
-        cutoff = row["checkpoint_id"]
         deleted = conn.execute(
             "DELETE FROM checkpoints "
             "WHERE project_id=? AND thread_id=? AND is_paused=0 "
