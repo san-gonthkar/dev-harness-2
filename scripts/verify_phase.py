@@ -1,4 +1,4 @@
-﻿"""Shared phase verification runner (V11 0.18).
+"""Shared phase verification runner (V11 0.18).
 
 Executes a phase's acceptance steps and emits reports/phase_NN_acceptance.json.
 Usage:

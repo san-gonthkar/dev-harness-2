@@ -1,4 +1,4 @@
-﻿"""Marker enforcement helper (V11 0.18).
+"""Marker enforcement helper (V11 0.18).
 
 Every test must declare exactly one marker. This pytest plugin fails collection
 for unmarked or multi-marked tests. Module-level ``pytestmark`` counts toward

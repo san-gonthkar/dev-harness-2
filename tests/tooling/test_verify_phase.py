@@ -1,4 +1,4 @@
-﻿"""Phase verification runner + marker enforcement tests (V11 0.18)."""
+"""Phase verification runner + marker enforcement tests (V11 0.18)."""
 
 from __future__ import annotations
 
