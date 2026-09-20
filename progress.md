@@ -26,9 +26,9 @@
 | Field | Value |
 | :--- | :--- |
 | Last known step | P4 — tasks 4.1–4.10, 4.12 done; 4.11 (`verify_phase_04`) pending |
-| Next action | Run coverage contract (broker ≥95/90, cost.py + kill_switch.py 100/95) → `scripts/verify_phase_04.ps1` → close P4 |
-| Last commit | `c8e9ece` (pushed to `origin/main`) |
-| Working tree | clean |
+| Next action | Coverage-gap tests dispatched (broker 81.9/69.9 — need ≥95/90) → then `scripts/verify_phase_04.ps1` → close P4 |
+| Last commit | `538ba75` (pushed to `origin/main`) |
+| Working tree | clean (coverage-gap tests in flight) |
 | Prereqs | P3 closed (providers 94.4/88.5) — green |
 
 ## Phase Status
@@ -76,7 +76,7 @@
 | Full suite | ✅ 436 passed, 3 skipped | `pytest tests -q` |
 | mypy strict | ✅ 0 errors | `mypy src` (63 files) |
 | ruff | ✅ 0 errors | `ruff check src tests` |
-| Coverage contract (broker ≥95/90) | ⬜ pending | needs full-suite coverage run |
+| Coverage contract (broker ≥95/90) | ⚠ FAILING | broker 81.9/69.9; coverage-gap tests dispatched |
 | cost.py + kill_switch.py (100/95) | ⬜ pending | needs coverage run |
 | Acceptance protocol | ⬜ pending | `scripts/verify_phase_04.ps1` |
 
@@ -91,6 +91,7 @@
 
 | When | Commit | What | Pushed |
 | :--- | :--- | :--- | :--- |
+| 2026-09-20 | `538ba75` | orchestrator guardrails + memory.md P4 reconcile | ✅ pushed |
 | 2026-09-20 | `c8e9ece` | P4 broker tasks 4.1–4.10, 4.12 + orchestration upgrade | ✅ pushed |
 | 2026-09-20 | `1fe8197` | Close P3: LLM Provider Abstraction | ✅ pushed (in c8e9ece push) |
 | 2026-09-20 | `70254bf` | P2 closed: coverage contract met, acceptance ACCEPTED | ✅ pushed (in c8e9ece push) |
