@@ -29,7 +29,7 @@ The orchestrator (`phase-orchestrator`) is the keeper of phase state and updates
 | P1 Persistence & Workspace Isolation | closed | `scripts/verify_phase_01.sh` | reviewer-agent |
 | P2 IPC Transport & Event Bus | closed | `scripts/verify_phase_02.sh` | reviewer-agent |
 | P3 LLM Provider Abstraction | closed | `scripts/verify_phase_03.sh` | reviewer-agent |
-| P4 Rate-Limit Broker & Cost Governor | not started | `scripts/verify_phase_04.sh` | — |
+| P4 Rate-Limit Broker & Cost Governor | in progress | `scripts/verify_phase_04.sh` | — |
 | P5 Execution Engine Daemon | not started | `scripts/verify_phase_05.sh` | human required |
 | P6 Critic Gatekeeper & Interrupt Engine | not started | `scripts/verify_phase_06.sh` | — |
 | P7 Hermes TUI Core Subsystem | not started | `scripts/verify_phase_07.sh` | — |
@@ -58,11 +58,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P4 — Rate-Limit Broker & Cost Governor (next)
+- **Phase**: P4 — Rate-Limit Broker & Cost Governor (in progress)
 - **Lane**: B
-- **Current task**: none started yet
-- **Last completed task**: 3.13 spike (skipped: no_local_ollama)
-- **Next task**: 4.1 token bucket
+- **Current task**: coverage contract (broker ≥95/90) — coverage-gap tests
+- **Last completed task**: 4.12 broker CLI + loadgen
+- **Next task**: 4.11 verify_phase_04 (after coverage contract met)
 
 ## Phase 0 — Scaffolding, Shared Contracts & Test Infrastructure
 
@@ -293,3 +293,30 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Session Registry
 | S1 | orchestrator | P3 closed | ~85% | active |
+
+
+## P4 IN PROGRESS (2026-09-20)
+
+### Task Log
+| Task | Status | Notes |
+| :--- | :--- | :--- |
+| 4.1 Token bucket | done | tests/broker/test_bucket.py 8 passed |
+| 4.2 Policy registry | done | tests/broker/test_policies.py 7 passed |
+| 4.3 Reservation protocol | done | tests/broker/test_reservation.py 7 passed |
+| 4.4 Local limiter | done | tests/broker/test_local_limiter.py 5 passed |
+| 4.5 Backoff | done | tests/broker/test_backoff.py 6 passed |
+| 4.6 Cost governor | done | tests/broker/test_cost.py 7 passed |
+| 4.7 Kill-switch | done | tests/broker/test_kill_switch.py 4 passed |
+| 4.8 Broker daemon | done | tests/broker/test_daemon.py 8 passed |
+| 4.9 Client SDK (fail-closed) | done | tests/broker/test_client.py 7 passed |
+| 4.10 Metrics feed | done | tests/broker/test_metrics_feed.py 3 passed |
+| 4.11 verify_phase_04 | pending | " + EMD + " |
+| 4.12 Broker CLI + loadgen | done | tests/broker/test_cli.py 6 passed |
+
+### Gate Status
+- Broker tests: 76 passed; full suite 436 passed, 3 skipped; mypy strict 0; ruff 0
+- Coverage contract: FAILING " + EMD + " broker 81.9% line / 69.9% branch (need " + GE + "95/90); cost.py + kill_switch.py already 100/95
+- Coverage-gap work dispatched (daemon.py 56% line is the main offender; cli.py subprocess tests not instrumented)
+
+## Session Registry
+| S1 | orchestrator | P4 in progress | ~85% | active |

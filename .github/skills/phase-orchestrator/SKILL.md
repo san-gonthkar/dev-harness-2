@@ -115,6 +115,31 @@ Every session — orchestrator or subagent — registers on start and closes on 
 4. **Never lose work** — a session that fills mid-task must checkpoint and return control. The orchestrator dispatches a fresh session with the checkpoint as the starting point.
 5. **Session budget** — include a session budget in each task brief (estimated tool calls / context). If the agent exceeds it, it checkpoints and returns rather than pushing on.
 
+## Strict Loop/Token Guardrail (Hard Stop)
+
+Prevent orchestration loops that consume tokens without producing output. This guardrail is mandatory.
+
+### Detection Signals (any one triggers)
+
+1. **Repeated invalid tool-input errors** — the same tool name appears with validation/input errors **2 times in a row** or **3 times within one session turn window**.
+2. **Meta-only churn** — **8 or more** consecutive orchestrator/meta actions (session listing, context fetching, log reading, permission retries) with no output-producing action.
+3. **No-output execution cycle** — a full orchestrator cycle completes with **no** task dispatch, **no** `memory.md` append, **no** `progress.md` mirror, and **no** commit/push attempt.
+
+### Required Response (no retries)
+
+If any signal is detected, the orchestrator must immediately:
+
+1. **Abort the current loop** (do not continue autonomous execution in that turn).
+2. **Report directly to the user** with:
+   - trigger signal(s),
+   - last 5 relevant actions,
+   - why output was not produced,
+   - the exact next safe step.
+3. **Record the abort** in `memory.md` and mirror it in `progress.md` as a guardrail event.
+4. **Mark phase state** as `blocked` only if work cannot continue without a user decision; otherwise keep phase state unchanged and wait for user direction.
+
+This guardrail has higher priority than the autonomous loop and failure-retry logic.
+
 ## Autonomous Execution Loop
 
 Run **continuously** until the plan is complete. Do not stop after one phase. **On every invocation, resume from the last known step (see The Resume Protocol) — never start over.**

@@ -30,6 +30,8 @@ Then continue the loop from there. **Never re-dispatch done tasks, never re-open
 
 Key invariants (from the skill):
 
+- **Strict guardrail (hard stop):** if loop/token-waste signals are detected (repeated tool-input validation errors, 8+ meta-only actions, or no-output cycle), abort immediately and report directly instead of continuing.
+
 - **Resume, never restart** (see above).
 - Run continuously: `while any phase is not closed: dispatch tasks → verify gates → close phase → advance`.
 - **Quality gates (non-negotiable, every phase):** (1) every task's validation row green, (2) coverage contract met, (3) acceptance protocol signed by `reviewer-agent` (phases 5/8/10 need a human).
