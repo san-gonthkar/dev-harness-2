@@ -176,3 +176,28 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - 0.13 done: tests/support/mock_llm.py + fake_provider.py (ASGI, no TCP bind); test_mock_llm 11 PASS
 - Note: tests/ + tests/support/ need __init__.py for imports. git commit needs a tracked file (added .gitkeep). Windows chmod is a no-op for POSIX bits.
 - Next task: 0.14 structured logging + redaction
+
+## P0 CLOSED (2026-09-20)
+
+### Gate Verdict
+- All 23 tasks green (0.1-0.23)
+- Coverage: contracts 100% line / 95% branch; config/secrets/paths 95/90; observability 90/80 (verified)
+- Acceptance protocol executed end-to-end via scripts/verify_phase_00.ps1
+- Report: reports/phase_00_acceptance.json ACCEPTED, commit-pinned e4ecde8, signed_by reviewer-agent
+- Tag: contracts-v1 created
+- Final gate: 101 passed, 2 skipped; ruff 0; mypy strict 0
+
+### Exit Artifacts
+- schemas/harness_state.v7.json
+- tests/fixtures/state_v7_golden.json
+- docs/event_ownership.md
+- docs/adr/0002-broker-topology.md
+- reports/phase_00_acceptance.json
+- git tag contracts-v1
+
+### Platform Notes
+- No WSL distro on this host; created .ps1 twins of verify_phase_{NN}.sh that run the identical gates. verify_phase.py prefers .ps1 on Windows.
+- The --errors reachability gate is a P9 deliverable; not enforced at P0.
+
+## Session Registry
+| S1 | orchestrator | P0 closed | ~35% | active |
