@@ -21,13 +21,13 @@ class RunArtifactStore:
         self.cap_bytes = cap_bytes
         path.parent.mkdir(parents=True, exist_ok=True)
 
-    def _load(self) -> list[dict]:
+    def _load(self) -> list[dict[str, Any]]:
         if not self.path.exists():
             return []
         with self.path.open("r", encoding="utf-8") as f:
             return [json.loads(line) for line in f if line.strip()]
 
-    def _write(self, entries: list[dict]) -> None:
+    def _write(self, entries: list[dict[str, Any]]) -> None:
         with self.path.open("w", encoding="utf-8") as f:
             for e in entries:
                 f.write(json.dumps(e) + "\n")
@@ -50,5 +50,5 @@ class RunArtifactStore:
             entries.pop(0)
         self._write(entries)
 
-    def entries(self) -> list[dict]:
+    def entries(self) -> list[dict[str, Any]]:
         return self._load()
