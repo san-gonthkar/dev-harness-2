@@ -27,11 +27,12 @@ class SqliteSaver:
     """Write/read checkpoints in SQLite, newest-first."""
 
     def __init__(self, db_path: str | Path) -> None:
-        self.db_path = db_path
-        self._conn = connect(db_path)
+        self.db_path = Path(db_path)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._conn = connect(self.db_path)
         from dev_harness.storage.migrate import migrate_up
 
-        migrate_up(db_path)
+        migrate_up(self.db_path)
 
     def _sha256(self, state_json: str) -> str:
         return hashlib.sha256(state_json.encode("utf-8")).hexdigest()
