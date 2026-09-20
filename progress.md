@@ -16,8 +16,8 @@
 | Phases remaining | **7** (P5–P10) |
 | Current phase | **P4 — Rate-Limit Broker & Cost Governor** |
 | Current task | 4.8 daemon (tests green) → 4.9 client → 4.10 metrics → 4.11 verify → 4.12 CLI |
-| Last commit | `1fe8197` — Close P3: LLM Provider Abstraction |
-| Last push | pending (remote not yet configured) |
+| Last commit | `c8e9ece` — P4 broker tasks 4.1-4.10, 4.12 + orchestration upgrade |
+| Last push | ✅ `c8e9ece` → origin/main (2026-09-20) |
 
 ## Phase Status
 
@@ -79,12 +79,12 @@
 
 | When | Commit | What | Pushed |
 | :--- | :--- | :--- | :--- |
-| 2026-09-20 | (pending) | P4 broker tasks 4.1–4.10, 4.12 + orchestration upgrade | pending |
-| 2026-09-20 | `1fe8197` | Close P3: LLM Provider Abstraction | pending |
-| 2026-09-20 | `70254bf` | P2 closed: coverage contract met, acceptance ACCEPTED | pending |
-| 2026-09-20 | `fe80899` | P2: IPC transport & event bus | pending |
-| 2026-09-20 | `fd6e507` | P1 closed: coverage contract met, acceptance ACCEPTED | pending |
-| 2026-09-20 | `4126131` | P1: coverage contract met | pending |
+| 2026-09-20 | `c8e9ece` | P4 broker tasks 4.1–4.10, 4.12 + orchestration upgrade | ✅ pushed |
+| 2026-09-20 | `1fe8197` | Close P3: LLM Provider Abstraction | ✅ pushed (in c8e9ece push) |
+| 2026-09-20 | `70254bf` | P2 closed: coverage contract met, acceptance ACCEPTED | ✅ pushed (in c8e9ece push) |
+| 2026-09-20 | `fe80899` | P2: IPC transport & event bus | ✅ pushed (in c8e9ece push) |
+| 2026-09-20 | `fd6e507` | P1 closed: coverage contract met, acceptance ACCEPTED | ✅ pushed (in c8e9ece push) |
+| 2026-09-20 | `4126131` | P1: coverage contract met | ✅ pushed (in c8e9ece push) |
 
 ## How the Orchestrator Updates This File
 
