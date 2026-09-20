@@ -1,4 +1,3 @@
-﻿#!/usr/bin/env python3
 """Handoff enforcement: verify a commit/range carries Task-Id trailers (V11 0.11).
 
 Usage:

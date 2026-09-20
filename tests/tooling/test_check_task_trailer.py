@@ -1,4 +1,4 @@
-﻿"""Handoff enforcement tests (V11 0.11)."""
+"""Handoff enforcement tests (V11 0.11)."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "check_task_trailer.p
 
 def _git(cwd: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["git", *args], cwd=cwd, capture_output=True, text=True
+        ["git", *args], cwd=cwd, capture_output=True, text=True, check=False
     )
 
 
@@ -40,7 +40,7 @@ def _commit(repo: Path, message: str) -> None:
 def _run(repo: Path, *extra: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(SCRIPT), *extra],
-        cwd=repo, capture_output=True, text=True,
+        cwd=repo, capture_output=True, text=True, check=False,
     )
 
 

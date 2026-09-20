@@ -1,4 +1,4 @@
-﻿"""Path derivation tests (V11 0.10)."""
+"""Path derivation tests (V11 0.10)."""
 
 from __future__ import annotations
 
