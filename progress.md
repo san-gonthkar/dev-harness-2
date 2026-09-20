@@ -15,7 +15,7 @@
 | Phases in progress | **1** (P5) |
 | Phases remaining | **6** (P6–P10) |
 | Current phase | **P5 — Execution Engine Daemon & Session Lifecycle** |
-| Current task | 5.2 Session manager |
+| Current task | 5.3 Command surface |
 | Last commit | `1a825c9` — Close P4 (reviewer-agent ACCEPTED) |
 | Last push | ✅ `1a825c9` → origin/main (2026-09-20) |
 
@@ -26,7 +26,7 @@
 | Field | Value |
 | :--- | :--- |
 | Last known step | P5 STARTED — human sign-off granted 2026-09-20; 11 tasks (5.1–5.11), 29h, lane D |
-| Next action | 5.2 session manager (id gen, registry, one active session per workspace) → 5.3 commands → ... → 5.11 watcher |
+| Next action | 5.3 command surface (START_SESSION/ATTACH/DETACH/STATUS/SHUTDOWN) → 5.4 fanout → ... → 5.11 watcher |
 | Last commit | `1a825c9` (pushed to `origin/main`) |
 | Working tree | clean except 15 `.github/` files (BOM corruption — excluded) |
 | Prereqs | P4 closed (broker 94.0/86.7); 1.11, 2.5, 2.6, 4.9 all green — verified |
@@ -91,7 +91,7 @@
 | Task | State | Notes |
 | :--- | :--- | :--- |
 | 5.1 EngineDaemon skeleton | ✅ done | `tests/engine/test_daemon.py` 12 passed; daemon.py 98/100 (≥92/85) |
-| 5.2 Session manager | ⬜ pending | — |
+| 5.2 Session manager | ✅ done | `tests/engine/test_session.py` 11 passed; session.py 100/100 |
 | 5.3 Command surface | ⬜ pending | — |
 | 5.4 Multi-client fanout | ⬜ pending | — |
 | 5.5 Provider gateway | ⬜ pending | — |

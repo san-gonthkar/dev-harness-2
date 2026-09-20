@@ -362,3 +362,10 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Validation**: pytest tests/engine/test_daemon.py -q → 12 passed; coverage daemon.py 98% line / 100% branch (≥92/85 contract MET); mypy src 0; ruff clean on new files; full suite 482 passed, 3 skipped; coverage_gate.py exit 0.
 - **Pre-existing ruff debt (NOT mine)**: tests/broker/test_coverage_gaps.py has 4 ruff errors (I001, F401, PYI034, F811) — verified present in committed HEAD version; out of P5 scope, left untouched.
 - **Next**: 5.2 engine/session.py (SessionManager: id gen, registry, one active session per workspace).
+
+## P5 SESSION S3 — 5.2 DONE (2026-09-20)
+
+- **5.2 implemented**: src/dev_harness/engine/session.py — SessionManager (one active session per workspace), Session dataclass with full HarnessState, new_thread_id() monotonic ns-prefixed ids (strictly increasing, sortable), project_id_for() sha256-derived stable project id. Tests: tests/engine/test_session.py (11 tests).
+- **Validation**: pytest tests/engine/test_session.py -q → 11 passed; session.py 100/100 (≥92/85 MET); mypy src 0; ruff clean; full suite 493 passed, 3 skipped; coverage_gate exit 0.
+- **Design note**: id format {unix_ns}-{ns16} with monotonic guard (time.time_ns() can repeat within a millisecond — first version failed the sortable test; fixed with _last_ns bump under lock).
+- **Next**: 5.3 engine/commands.py (START_SESSION/ATTACH/DETACH/STATUS/SHUTDOWN typed responses; unknown → UnknownCommandError, connection stays open).
