@@ -6,7 +6,6 @@ Tests must never use time.sleep(); they advance this clock with tick().
 from __future__ import annotations
 
 import time
-from collections.abc import Callable
 
 
 class FrozenClock:
