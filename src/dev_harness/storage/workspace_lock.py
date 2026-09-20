@@ -10,6 +10,7 @@ import os
 import socket
 import time
 from pathlib import Path
+from typing import IO, Self
 
 import portalocker
 
@@ -22,7 +23,7 @@ class WorkspaceLock:
     def __init__(self, lock_path: str | Path, *, timeout: float = 10.0) -> None:
         self.lock_path = Path(lock_path)
         self.timeout = timeout
-        self._fh = None
+        self._fh: IO[str] | None = None
 
     def _write_owner(self) -> None:
         owner = f"{os.getpid()}:{socket.gethostname()}"
@@ -34,7 +35,8 @@ class WorkspaceLock:
         deadline = time.monotonic() + self.timeout
         while True:
             try:
-                self._fh = open(self.lock_path, "a+", encoding="utf-8")
+                # portalocker needs the handle kept open for the lock lifetime.
+                self._fh = open(self.lock_path, "a+", encoding="utf-8")  # noqa: SIM115
                 portalocker.lock(self._fh, portalocker.LOCK_EX | portalocker.LOCK_NB)
                 self._write_owner()
                 return
@@ -42,7 +44,6 @@ class WorkspaceLock:
                 if self._fh is not None:
                     self._fh.close()
                     self._fh = None
-                # Stale detection: if the recorded PID is dead, reclaim.
                 if self._reclaim_stale():
                     continue
                 if time.monotonic() >= deadline:
@@ -56,8 +57,7 @@ class WorkspaceLock:
         """Reclaim the lock if the recorded owner PID is dead."""
         try:
             content = self.lock_path.read_text(encoding="utf-8").strip()
-            pid_str = content.split(":")[0]
-            pid = int(pid_str)
+            pid = int(content.split(":")[0])
             if not _pid_alive(pid):
                 self.lock_path.unlink(missing_ok=True)
                 return True
@@ -74,11 +74,11 @@ class WorkspaceLock:
                 self._fh = None
         self.lock_path.unlink(missing_ok=True)
 
-    def __enter__(self) -> WorkspaceLock:
+    def __enter__(self) -> Self:
         self.acquire()
         return self
 
-    def __exit__(self, *exc) -> None:
+    def __exit__(self, *exc: object) -> None:
         self.release()
 
 
