@@ -1,0 +1,364 @@
+{
+  "$defs": {
+    "Chunk": {
+      "additionalProperties": false,
+      "description": "A chunk in the DAG (V7 schema).",
+      "properties": {
+        "chunk_id": {
+          "title": "Chunk Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "dependencies": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/ChunkStatus",
+          "default": "PENDING"
+        },
+        "assigned_worker_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assigned Worker Id"
+        }
+      },
+      "required": [
+        "chunk_id",
+        "title"
+      ],
+      "title": "Chunk",
+      "type": "object"
+    },
+    "ChunkStatus": {
+      "description": "Status of a chunk in the DAG (V7 schema).",
+      "enum": [
+        "PENDING",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "FAILED"
+      ],
+      "title": "ChunkStatus",
+      "type": "string"
+    },
+    "E2EReport": {
+      "additionalProperties": false,
+      "description": "End-to-end test report (V7 schema).",
+      "properties": {
+        "classification": {
+          "anyOf": [
+            {
+              "enum": [
+                "CHUNK_IMPLEMENTATION_BUG",
+                "INTEGRATION_SPEC_MISMATCH"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Classification"
+        },
+        "stack_trace": {
+          "default": "",
+          "title": "Stack Trace",
+          "type": "string"
+        },
+        "failed_chunk_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Failed Chunk Id"
+        }
+      },
+      "title": "E2EReport",
+      "type": "object"
+    },
+    "ExecutionState": {
+      "description": "Lifecycle state of a session (V7 schema, reconciled to 4 values).",
+      "enum": [
+        "READY",
+        "RUNNING",
+        "PAUSED",
+        "STOPPED"
+      ],
+      "title": "ExecutionState",
+      "type": "string"
+    },
+    "GitState": {
+      "additionalProperties": false,
+      "description": "Git state (V7 schema).",
+      "properties": {
+        "active_branch": {
+          "default": "main",
+          "title": "Active Branch",
+          "type": "string"
+        },
+        "last_checkpoint_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Checkpoint Commit"
+        }
+      },
+      "title": "GitState",
+      "type": "object"
+    },
+    "GroomedRequirements": {
+      "additionalProperties": false,
+      "description": "Locked groomed requirements (V7 schema).",
+      "properties": {
+        "status": {
+          "const": "LOCKED",
+          "default": "LOCKED",
+          "title": "Status",
+          "type": "string"
+        },
+        "prd_content": {
+          "title": "Prd Content",
+          "type": "string"
+        },
+        "version": {
+          "default": "V7",
+          "title": "Version",
+          "type": "string"
+        },
+        "locked_at_timestamp": {
+          "title": "Locked At Timestamp",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "prd_content",
+        "locked_at_timestamp"
+      ],
+      "title": "GroomedRequirements",
+      "type": "object"
+    },
+    "InterfaceContracts": {
+      "additionalProperties": false,
+      "description": "OpenAPI spec and DB schema produced by the architect.",
+      "properties": {
+        "openapi_spec": {
+          "default": "",
+          "title": "Openapi Spec",
+          "type": "string"
+        },
+        "db_schema": {
+          "default": "",
+          "title": "Db Schema",
+          "type": "string"
+        }
+      },
+      "title": "InterfaceContracts",
+      "type": "object"
+    },
+    "PanelId": {
+      "description": "The four TUI panels (V7 schema).",
+      "enum": [
+        "WORKSPACE",
+        "CANVAS",
+        "REGISTRY",
+        "CRITIC"
+      ],
+      "title": "PanelId",
+      "type": "string"
+    },
+    "RateLimiting": {
+      "additionalProperties": false,
+      "description": "Rate-limit state (V7 schema).",
+      "properties": {
+        "allocated_tokens_tpm": {
+          "default": 0,
+          "title": "Allocated Tokens Tpm",
+          "type": "integer"
+        },
+        "current_rpm_count": {
+          "default": 0,
+          "title": "Current Rpm Count",
+          "type": "integer"
+        }
+      },
+      "title": "RateLimiting",
+      "type": "object"
+    },
+    "TechnicalDesign": {
+      "additionalProperties": false,
+      "description": "Architect output (V7 schema).",
+      "properties": {
+        "architecture_spec": {
+          "default": "",
+          "title": "Architecture Spec",
+          "type": "string"
+        },
+        "interface_contracts": {
+          "$ref": "#/$defs/InterfaceContracts"
+        },
+        "status": {
+          "default": "PENDING",
+          "enum": [
+            "APPROVED",
+            "PENDING",
+            "REJECTED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "title": "TechnicalDesign",
+      "type": "object"
+    },
+    "TuiState": {
+      "additionalProperties": false,
+      "description": "TUI display state (V7 schema).",
+      "properties": {
+        "active_panel": {
+          "$ref": "#/$defs/PanelId",
+          "default": "CANVAS"
+        },
+        "active_model_provider": {
+          "default": "",
+          "title": "Active Model Provider",
+          "type": "string"
+        },
+        "is_paused": {
+          "default": false,
+          "title": "Is Paused",
+          "type": "boolean"
+        },
+        "last_interrupt_timestamp": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Interrupt Timestamp"
+        },
+        "critic_gatekeeper_status": {
+          "$ref": "#/$defs/ExecutionState",
+          "default": "READY"
+        }
+      },
+      "title": "TuiState",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The unified V7 system state (V11 0.5).",
+  "properties": {
+    "project_id": {
+      "title": "Project Id",
+      "type": "string"
+    },
+    "workspace_path": {
+      "title": "Workspace Path",
+      "type": "string"
+    },
+    "thread_id": {
+      "title": "Thread Id",
+      "type": "string"
+    },
+    "raw_input": {
+      "default": "",
+      "title": "Raw Input",
+      "type": "string"
+    },
+    "groomed_requirements": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GroomedRequirements"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "technical_design": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TechnicalDesign"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "chunk_dag": {
+      "items": {
+        "$ref": "#/$defs/Chunk"
+      },
+      "title": "Chunk Dag",
+      "type": "array"
+    },
+    "tui_state": {
+      "$ref": "#/$defs/TuiState"
+    },
+    "git_state": {
+      "$ref": "#/$defs/GitState"
+    },
+    "rate_limiting": {
+      "$ref": "#/$defs/RateLimiting"
+    },
+    "inner_loop_retry_count": {
+      "default": 0,
+      "title": "Inner Loop Retry Count",
+      "type": "integer"
+    },
+    "e2e_retry_count": {
+      "default": 0,
+      "title": "E2E Retry Count",
+      "type": "integer"
+    },
+    "latest_e2e_report": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/E2EReport"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "project_id",
+    "workspace_path",
+    "thread_id"
+  ],
+  "title": "HarnessState",
+  "type": "object"
+}
