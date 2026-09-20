@@ -1,0 +1,62 @@
+﻿[run]
+branch = True
+source = dev_harness
+omit =
+    */tests/*
+    */scripts/*
+    */dev_harness/tui/*.tcss
+
+[report]
+# Per-package thresholds from V11 plan §2.3 (coverage ledger).
+# The overall gate is the weighted sum: 91% line / 84% branch.
+show_missing = True
+skip_covered = False
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if TYPE_CHECKING:
+    @overload
+
+[coverage:report:contracts]
+line = 100
+branch = 95
+
+[coverage:report:storage]
+line = 95
+branch = 90
+
+[coverage:report:vcs]
+line = 95
+branch = 90
+
+[coverage:report:broker]
+line = 95
+branch = 90
+
+[coverage:report:core]
+line = 95
+branch = 90
+
+[coverage:report:ipc]
+line = 92
+branch = 85
+
+[coverage:report:providers]
+line = 90
+branch = 85
+
+[coverage:report:engine]
+line = 88
+branch = 80
+
+[coverage:report:recovery]
+line = 90
+branch = 85
+
+[coverage:report:observability]
+line = 90
+branch = 80
+
+[coverage:report:tui]
+line = 75
+branch = 65

@@ -1,1 +1,1 @@
-﻿"""Shared contracts: enums, errors, state, events, schemas."""
+"""Shared contracts: enums, errors, state, events, schemas."""
