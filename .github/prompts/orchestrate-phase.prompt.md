@@ -16,10 +16,11 @@ Run the Dev Harness V11 plan **autonomously, end-to-end**, from `requirements/De
 
 ## Your Job
 
-**Load the `phase-orchestrator` skill and follow it exactly.** It is the canonical spec for the autonomous loop, failure recovery (retry → re-dispatch → escalate), quality gates, phase tracking, session management, the progress dashboard, and the commit/push protocol. This prompt adds nothing to it.
+**Load the `phase-orchestrator` skill and follow it exactly.** It is the canonical spec for the autonomous loop, failure recovery (retry → re-dispatch → escalate), quality gates, phase tracking, session management, the progress dashboard, the commit/push protocol, and the resume protocol. This prompt adds nothing to it.
 
 Key invariants (from the skill):
 
+- **Resume, never restart:** on every invocation, FIRST locate the last known step (`memory.md` phase table + task log + `Current Status`, `progress.md`, `git log`/`git status`), verify it (tests pass, git clean, prereqs green), and record it. Never re-dispatch done tasks, never re-open closed phases, never start over.
 - Run continuously: `while any phase is not closed: dispatch tasks → verify gates → close phase → advance`.
 - **Quality gates (non-negotiable, every phase):** (1) every task's validation row green, (2) coverage contract met, (3) acceptance protocol signed by `reviewer-agent` (phases 5/8/10 need a human).
 - **Failure recovery:** retry once → re-dispatch once → escalate to the user. Never loop forever.
@@ -37,9 +38,10 @@ Key invariants (from the skill):
 - DO NOT stop early — keep running until all 11 phases are `closed`.
 - DO NOT let `progress.md` lag behind `memory.md` — mirror every state change in the same turn.
 - DO NOT commit broken state or stray artifacts (logs, coverage JSON, temp files).
+- DO NOT re-dispatch done tasks or re-open closed phases — resume from the last known step.
 - ALWAYS pass `memory.md` on every invocation and update it on every completion.
 - ALWAYS commit + push at meaningful intervals.
 
 ## Output Format
 
-Report: current phase/task · phase state · implementing agent chosen and why · task brief delivered · agent result + validation status · phase gate verdict · progress (X of 11 closed) · `memory.md` updated (what, phase state change) · `progress.md` updated (what was mirrored) · git state (commit hash, pushed?).
+Report: **resume point (phase/task, last commit, verified OK)** · current phase/task · phase state · implementing agent chosen and why · task brief delivered · agent result + validation status · phase gate verdict · progress (X of 11 closed) · `memory.md` updated (what, phase state change) · `progress.md` updated (what was mirrored) · git state (commit hash, pushed?).

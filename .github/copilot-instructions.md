@@ -39,6 +39,7 @@ The authoritative plan is `requirements/Dev_Harness_Implementation_Plan_V11_Fina
 ## Progress Monitoring & Git Workflow
 
 - **`memory.md`** is the single shared memory file for agents (append-only history). **`progress.md`** is the human-readable monitoring dashboard — the orchestrator mirrors every state change into it (phase table, current task progress, quality gates, recent activity, git/push log) so the user can track progress remotely.
+- **Resume, never restart**: on every invocation the orchestrator FIRST locates the last known step (`memory.md` phase table + task log + `Current Status`, `progress.md`, `git log`/`git status`), verifies it (tests pass, git clean, prereqs green), and records it. Done tasks are never re-dispatched; closed phases are never re-opened.
 - **Commit at regular meaningful intervals**: after each task's validation passes (or a small batch of 2–3 tasks), after each quality gate, and after each phase closes. Use the `Task-Id: {id}` trailer. Never commit broken state or stray artifacts (`*.log`, `coverage.json`, temp files).
 - **Push to `origin`/`main` after every commit** (or batch). The GitHub repository is set up; if a push fails, record it in `progress.md` and continue — never block the loop on push.
-- **The orchestrator** (`phase-orchestrator` agent + skill) is the keeper of phase state, the progress dashboard, and the commit/push cadence. Implementing agents commit their own task work; the orchestrator pushes.
+- **The orchestrator** (`phase-orchestrator` agent + skill) is the keeper of phase state, the progress dashboard, the resume point, and the commit/push cadence. Implementing agents commit their own task work; the orchestrator pushes.

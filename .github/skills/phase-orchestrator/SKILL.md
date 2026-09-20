@@ -45,6 +45,52 @@ The GitHub repository is set up. Commit and push at **regular meaningful interva
 - **Never commit broken state**: only commit when the touched package's tests pass and mypy/ruff are clean for the changed files. A phase-close commit additionally requires the coverage contract and acceptance protocol.
 - **Stray artifacts**: do not commit logs (`*.log`), coverage JSON, or temp files. Add them to `.gitignore` if they recur.
 
+## The Resume Protocol
+
+The orchestrator must **resume from the last known step** on every invocation — never start over. The plan is 149 tasks across 11 phases; re-running completed work wastes context and risks regressions.
+
+### 1. Determine the Last Known Step (before doing anything)
+
+On every invocation, in this order:
+
+1. **Read `memory.md`** — the authoritative state:
+   - The phase-status table: which phases are `closed`, `in progress`, `blocked`, `not started`.
+   - The current phase's task log: which tasks are `done`/`failed`/`pending`.
+   - The `Current Status` block: the exact next task and next step.
+   - The session registry: the last session and its checkpoint.
+2. **Read `progress.md`** — the dashboard mirrors the same state; use it to confirm the current phase/task and the last commit/push.
+3. **Check git** — `git log --oneline -5` and `git status --short`:
+   - The last commit tells you what was last completed and pushed.
+   - Uncommitted changes tell you a task is mid-flight (resume from the checkpoint, do not discard).
+4. **Cross-check** — `memory.md`, `progress.md`, and git must agree on the current step. If they disagree, trust `memory.md` (it is the authoritative history) and reconcile the others.
+
+### 2. Resume, Do Not Restart
+
+- **Closed phases** — never re-open, never re-verify, never re-dispatch. Their gates were signed; the acceptance reports are commit-pinned.
+- **Done tasks** — never re-dispatch. Their validation rows are green; their commits exist.
+- **In-progress phase** — start at the first task whose state is not `done` (or the task named in `Current Status` / the last session's checkpoint).
+- **Mid-task checkpoint** — if the last session checkpointed at ~70% context mid-task, resume from the checkpoint's "exact next step", not from the task start.
+- **Blocked phase** — do not resume past it; recover (retry → re-dispatch → escalate) or ask the user.
+
+### 3. Verify the Resume Point Before Continuing
+
+Before dispatching the next task, confirm the resume point is real:
+
+1. The touched package's tests still pass (`pytest tests/<pkg> -q`).
+2. `git status` is clean (or only expected artifacts are present).
+3. The phase's prerequisites are still green in `memory.md`.
+
+If the resume point is broken (tests fail, state inconsistent), treat it as a failure and recover — do not silently skip ahead.
+
+### 4. Record the Resume
+
+When you resume, append a session entry to `memory.md` and update `progress.md`:
+- Session ID, agent, phase/task resumed from, context estimate.
+- "Resumed from: <phase> <task> (last commit <hash>)".
+- The exact next step.
+
+This makes every subsequent invocation (and every session rotation) a clean handoff: read → locate → verify → continue.
+
 ## Session Management
 
 A **session** is one agent invocation with a finite context window. The V11 plan is 149 tasks — far more than any single session can hold, so sessions must be rotated before they fill. The orchestrator is the **keeper of session state**; `memory.md` holds the session registry.
@@ -71,16 +117,22 @@ Every session — orchestrator or subagent — registers on start and closes on 
 
 ## Autonomous Execution Loop
 
-Run **continuously** until the plan is complete. Do not stop after one phase.
+Run **continuously** until the plan is complete. Do not stop after one phase. **On every invocation, resume from the last known step (see The Resume Protocol) — never start over.**
 
 ```
+# On every invocation, FIRST:
+resume_point = locate_last_known_step()   # memory.md + progress.md + git
+verify_resume_point()                     # tests pass, git clean, prereqs green
+record_resume(resume_point)               # append session entry to memory.md + progress.md
+
+# THEN the loop:
 while any phase is not closed:
     phase = next phase whose prerequisites are green and state is not closed
     if phase is blocked:
         recover (see Failure Recovery) or escalate to the user
         continue
     open phase (in progress)          # update memory.md + progress.md
-    for each task in phase (in dependency order):
+    for each task in phase (in dependency order, starting at the resume point):
         dispatch to implementing agent with a task brief + memory.md
         verify the task's validation command passes
         if failed: recover (see Failure Recovery)
@@ -141,9 +193,10 @@ The orchestrator is the **keeper of phase state**. `memory.md` holds the authori
 
 ### 1. Analyse the Phase
 
-1. Read the phase's `X.A` execution tasks, `X.B` validation matrix, `X.C` coverage contract, and `X.D` acceptance protocol from the V11 plan.
-2. Read `memory.md` to confirm prerequisites are green and identify the starting task.
-3. Determine the lane (A/B/C/D) and the implementing agent.
+1. **Locate the resume point first** (see The Resume Protocol): read `memory.md` (phase table, task log, `Current Status`, session registry), `progress.md`, and `git log`/`git status`. Identify the exact next task — never re-dispatch done work.
+2. Read the phase's `X.A` execution tasks, `X.B` validation matrix, `X.C` coverage contract, and `X.D` acceptance protocol from the V11 plan.
+3. Read `memory.md` to confirm prerequisites are green and identify the starting task.
+4. Determine the lane (A/B/C/D) and the implementing agent.
 
 ### 2. Identify the Implementing Agent
 
@@ -194,6 +247,7 @@ Move to the next phase whose prerequisites are green. Do not stop until all 11 p
 ## Output Format
 
 Report back with:
+- **Resume point** (phase/task resumed from, last commit, verified OK)
 - Phase analysed and current task
 - Phase state (not started / in progress / blocked / closed)
 - Implementing agent chosen and why

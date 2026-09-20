@@ -19,6 +19,18 @@
 | Last commit | `c8e9ece` — P4 broker tasks 4.1-4.10, 4.12 + orchestration upgrade |
 | Last push | ✅ `c8e9ece` → origin/main (2026-09-20) |
 
+## Resume Point
+
+> **The orchestrator resumes from here on every invocation.** Locate → verify → continue. Never restart.
+
+| Field | Value |
+| :--- | :--- |
+| Last known step | P4 — tasks 4.1–4.10, 4.12 done; 4.11 (`verify_phase_04`) pending |
+| Next action | Run coverage contract (broker ≥95/90, cost.py + kill_switch.py 100/95) → `scripts/verify_phase_04.ps1` → close P4 |
+| Last commit | `c8e9ece` (pushed to `origin/main`) |
+| Working tree | clean |
+| Prereqs | P3 closed (providers 94.4/88.5) — green |
+
 ## Phase Status
 
 | Phase | State | Coverage (line/branch) | Gate | Signed by |
@@ -92,4 +104,5 @@
 2. **After every gate** — update the quality-gates table (tests/mypy/ruff/coverage/acceptance).
 3. **After every phase transition** — update the phase table, overall progress, and current phase.
 4. **After every commit/push** — append to the Git/Push log with the commit hash and what it contains.
-5. **Keep it current** — this file is the monitoring view; it must never lag behind `memory.md`.
+5. **On every resume** — update the Resume Point section (last known step, next action, last commit, tree state) so the next invocation continues from here.
+6. **Keep it current** — this file is the monitoring view; it must never lag behind `memory.md`.
