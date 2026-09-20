@@ -6,7 +6,7 @@ from dev_harness.contracts.errors import UnscopedQueryError
 from dev_harness.storage.sqlite_saver import Scope
 
 
-def require_scope(config: dict | None) -> Scope:
+def require_scope(config: dict[str, object] | None) -> Scope:
     """Validate that a query config carries a project_id and thread_id scope.
 
     Raises UnscopedQueryError if either is missing. A mutant that drops the
