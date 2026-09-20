@@ -1,4 +1,4 @@
-"""JSON Schema export for the V7 HarnessState (V11 0.7).
+﻿"""JSON Schema export for the V7 HarnessState (V11 0.7).
 
 The committed schema at schemas/harness_state.v7.json is regenerated from the
 Pydantic model and must be byte-identical (drift check).
@@ -20,7 +20,7 @@ _REPO_ROOT = _SRC_ROOT.parent if _SRC_ROOT.name == "src" else _SRC_ROOT
 SCHEMA_PATH = _REPO_ROOT / "schemas" / "harness_state.v7.json"
 
 
-def generate_schema() -> dict:
+def generate_schema() -> dict[str, object]:
     """Return the JSON Schema for HarnessState."""
     return HarnessState.model_json_schema()
 
