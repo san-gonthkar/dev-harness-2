@@ -353,3 +353,12 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Platform note**: engine daemon binds AF_UNIX (POSIX-only per R2) — verify_phase_05.sh is the deliverable; .ps1 platform-limit stub (same as P4).
 - **Coverage contract (5.C)**: engine/{daemon,session,commands,fanout,shutdown,bootstrap} ≥92/85; engine/provider_gateway.py 100/95.
 - **Commit**: `0905887` (P5 start, pushed).
+
+## P5 SESSION S3 (python-developer) — 5.1 DONE (2026-09-20)
+
+- **Session**: S3, task 5.1 EngineDaemon skeleton, context ~35%.
+- **Skills loaded**: python-dev-harness, ponytail, karpathy-agentic-engineering, karpathy-minimalism, karpathy-understanding-first.
+- **5.1 implemented**: src/dev_harness/engine/__init__.py + daemon.py (EngineDaemon: binds workspace-scoped socket via derive_paths, owns run loop, SIGINT/SIGTERM handlers, drain/stop, socket unlink). Tests: tests/engine/test_daemon.py (12 tests, FakeSocket/FakeSocketFactory pattern from tests/broker/test_daemon.py).
+- **Validation**: pytest tests/engine/test_daemon.py -q → 12 passed; coverage daemon.py 98% line / 100% branch (≥92/85 contract MET); mypy src 0; ruff clean on new files; full suite 482 passed, 3 skipped; coverage_gate.py exit 0.
+- **Pre-existing ruff debt (NOT mine)**: tests/broker/test_coverage_gaps.py has 4 ruff errors (I001, F401, PYI034, F811) — verified present in committed HEAD version; out of P5 scope, left untouched.
+- **Next**: 5.2 engine/session.py (SessionManager: id gen, registry, one active session per workspace).

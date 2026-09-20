@@ -15,7 +15,7 @@
 | Phases in progress | **1** (P5) |
 | Phases remaining | **6** (P6–P10) |
 | Current phase | **P5 — Execution Engine Daemon & Session Lifecycle** |
-| Current task | 5.1 EngineDaemon skeleton |
+| Current task | 5.2 Session manager |
 | Last commit | `1a825c9` — Close P4 (reviewer-agent ACCEPTED) |
 | Last push | ✅ `1a825c9` → origin/main (2026-09-20) |
 
@@ -26,7 +26,7 @@
 | Field | Value |
 | :--- | :--- |
 | Last known step | P5 STARTED — human sign-off granted 2026-09-20; 11 tasks (5.1–5.11), 29h, lane D |
-| Next action | Dispatch 5.1 EngineDaemon skeleton → 5.2 session → ... → 5.11 watcher |
+| Next action | 5.2 session manager (id gen, registry, one active session per workspace) → 5.3 commands → ... → 5.11 watcher |
 | Last commit | `1a825c9` (pushed to `origin/main`) |
 | Working tree | clean except 15 `.github/` files (BOM corruption — excluded) |
 | Prereqs | P4 closed (broker 94.0/86.7); 1.11, 2.5, 2.6, 4.9 all green — verified |
@@ -81,6 +81,37 @@
 | Coverage contract (broker ≥80/80) | ✅ MET | broker 94.0/86.7 (recomputed from coverage.json); threshold lowered per user directive 2026-09-20 |
 | cost.py + kill_switch.py (100/95) | ✅ MET | 100/100 in full-suite run |
 | Acceptance protocol | ✅ ACCEPTED | `reports/phase_04_acceptance.json` verdict ACCEPTED, signed_by reviewer-agent, commit `dc1d3eb` (live POSIX run pending WSL2 — plan R2 platform limit, same as P1/P2/P3) |
+
+## Current Phase Detail — P5 Execution Engine Daemon & Session Lifecycle
+
+**Objective:** Engine daemon (workspace-scoped AF_UNIX socket), session lifecycle, multi-client fanout, broker-gated provider calls, graceful shutdown, state broadcast, watcher.
+
+### Task Progress
+
+| Task | State | Notes |
+| :--- | :--- | :--- |
+| 5.1 EngineDaemon skeleton | ✅ done | `tests/engine/test_daemon.py` 12 passed; daemon.py 98/100 (≥92/85) |
+| 5.2 Session manager | ⬜ pending | — |
+| 5.3 Command surface | ⬜ pending | — |
+| 5.4 Multi-client fanout | ⬜ pending | — |
+| 5.5 Provider gateway | ⬜ pending | — |
+| 5.6 Daemon autostart | ⬜ pending | — |
+| 5.7 Graceful shutdown | ⬜ pending | — |
+| 5.8 State broadcast | ⬜ pending | — |
+| 5.9 verify_phase_05 | ⬜ pending | — |
+| 5.10 StubWorkload | ⬜ pending | — |
+| 5.11 Workspace watcher | ⬜ pending | — |
+
+### Quality Gates
+
+| Gate | Status | Detail |
+| :--- | :--- | :--- |
+| Engine tests | ✅ 12 passed | `pytest tests/engine/test_daemon.py -q` |
+| Full suite | ✅ 482 passed, 3 skipped | `pytest tests -q` |
+| mypy strict | ✅ 0 errors | `mypy src` (65 files) |
+| ruff (new files) | ✅ 0 errors | `ruff check src tests` — 4 pre-existing errors in `tests/broker/test_coverage_gaps.py` (P4 file, untouched) |
+| Coverage gate | ✅ exit 0 | `python scripts/coverage_gate.py` (overall 89/83) |
+| Coverage contract (5.C) | ✅ daemon.py 98/100 | ≥92/85 MET |
 
 ## Recent Activity
 
