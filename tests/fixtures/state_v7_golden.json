@@ -1,0 +1,51 @@
+{
+  "project_id": "proj_98234_backend",
+  "workspace_path": "/home/user/projects/backend-api",
+  "thread_id": "thread_session_2026_09_20_001",
+  "raw_input": "Build a backend API with auth",
+  "groomed_requirements": {
+    "status": "LOCKED",
+    "prd_content": "The system shall provide JWT authentication.",
+    "version": "V7",
+    "locked_at_timestamp": 1758332765
+  },
+  "technical_design": {
+    "architecture_spec": "Layered architecture with FastAPI.",
+    "interface_contracts": {
+      "openapi_spec": "openapi: 3.0.0",
+      "db_schema": "CREATE TABLE users (id INTEGER PRIMARY KEY);"
+    },
+    "status": "APPROVED"
+  },
+  "chunk_dag": [
+    {
+      "chunk_id": "chunk_auth_module",
+      "title": "Authentication Interface Implementation",
+      "dependencies": [],
+      "status": "COMPLETED",
+      "assigned_worker_id": "worker_01"
+    }
+  ],
+  "tui_state": {
+    "active_panel": "CANVAS",
+    "active_model_provider": "Qwen 2.5 Coder CPU 7B",
+    "is_paused": false,
+    "last_interrupt_timestamp": 1758332765,
+    "critic_gatekeeper_status": "RUNNING"
+  },
+  "git_state": {
+    "active_branch": "main",
+    "last_checkpoint_commit": "a1b2c3d4e5f67890123456789abcdef012345678"
+  },
+  "rate_limiting": {
+    "allocated_tokens_tpm": 15000,
+    "current_rpm_count": 12
+  },
+  "inner_loop_retry_count": 0,
+  "e2e_retry_count": 0,
+  "latest_e2e_report": {
+    "classification": "CHUNK_IMPLEMENTATION_BUG",
+    "stack_trace": "Traceback...",
+    "failed_chunk_id": "chunk_auth_module"
+  }
+}
