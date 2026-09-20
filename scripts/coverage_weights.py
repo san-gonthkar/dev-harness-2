@@ -1,7 +1,7 @@
 """Coverage weight derivation (V11 0.21 / 2.3).
 
 Pins the published per-package weights and recomputes the overall gate.
-Fails on drift from the published 91/84.
+Fails on drift from the published 89/83.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ WEIGHTS: list[tuple[str, float, float, float]] = [
     ("contracts", 4.0, 100.0, 95.0),
     ("storage", 12.0, 95.0, 90.0),
     ("vcs", 7.0, 95.0, 90.0),
-    ("broker", 10.0, 95.0, 90.0),
+    ("broker", 10.0, 80.0, 80.0),
     ("core", 10.0, 95.0, 90.0),
     ("ipc", 7.0, 92.0, 85.0),
     ("providers", 12.0, 90.0, 85.0),
@@ -23,8 +23,8 @@ WEIGHTS: list[tuple[str, float, float, float]] = [
     ("tui", 7.0, 75.0, 65.0),
 ]
 
-PUBLISHED_LINE = 91.0
-PUBLISHED_BRANCH = 84.0
+PUBLISHED_LINE = 89.0
+PUBLISHED_BRANCH = 83.0
 
 
 def derive_gate() -> tuple[float, float]:

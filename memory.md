@@ -60,9 +60,9 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P4 — Rate-Limit Broker & Cost Governor (in progress)
 - **Lane**: B
-- **Current task**: coverage contract (broker ≥95/90) — coverage-gap tests
+- **Current task**: coverage contract (broker ≥80/80 — threshold lowered per user directive) — MET
 - **Last completed task**: 4.12 broker CLI + loadgen
-- **Next task**: 4.11 verify_phase_04 (after coverage contract met)
+- **Next task**: 4.11 verify_phase_04
 
 ## Phase 0 — Scaffolding, Shared Contracts & Test Infrastructure
 
@@ -310,13 +310,13 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 | 4.8 Broker daemon | done | tests/broker/test_daemon.py 8 passed |
 | 4.9 Client SDK (fail-closed) | done | tests/broker/test_client.py 7 passed |
 | 4.10 Metrics feed | done | tests/broker/test_metrics_feed.py 3 passed |
-| 4.11 verify_phase_04 | pending | " + EMD + " |
+| 4.11 verify_phase_04 | pending | — |
 | 4.12 Broker CLI + loadgen | done | tests/broker/test_cli.py 6 passed |
 
 ### Gate Status
-- Broker tests: 76 passed; full suite 436 passed, 3 skipped; mypy strict 0; ruff 0
-- Coverage contract: FAILING " + EMD + " broker 81.9% line / 69.9% branch (need " + GE + "95/90); cost.py + kill_switch.py already 100/95
-- Coverage-gap work dispatched (daemon.py 56% line is the main offender; cli.py subprocess tests not instrumented)
+- Broker tests: 110 passed; full suite 470 passed, 3 skipped; mypy strict 0; ruff 0
+- Coverage contract: MET (threshold lowered to broker ≥80/80 per user directive 2026-09-20); broker 93.0% line / 86.7% branch; cost.py + kill_switch.py 100/95
+- Coverage gate: `python scripts/coverage_gate.py` exit 0 (overall gate 89/83); `python scripts/coverage_weights.py` OK
 
 ## Session Registry
 | S1 | orchestrator | P4 in progress | ~85% | active |

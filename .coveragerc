@@ -8,7 +8,7 @@ omit =
 
 [report]
 # Per-package thresholds from V11 plan §2.3 (coverage ledger).
-# The overall gate is the weighted sum: 91% line / 84% branch.
+# The overall gate is the weighted sum: 89% line / 83% branch.
 show_missing = True
 skip_covered = False
 exclude_lines =
@@ -30,8 +30,8 @@ line = 95
 branch = 90
 
 [coverage:report:broker]
-line = 95
-branch = 90
+line = 80
+branch = 80
 
 [coverage:report:core]
 line = 95

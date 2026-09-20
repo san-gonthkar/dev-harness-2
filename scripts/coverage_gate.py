@@ -24,7 +24,7 @@ THRESHOLDS: dict[str, tuple[float, float]] = {
     "contracts": (100.0, 95.0),
     "storage": (95.0, 90.0),
     "vcs": (95.0, 90.0),
-    "broker": (95.0, 90.0),
+    "broker": (80.0, 80.0),
     "core": (95.0, 90.0),
     "ipc": (92.0, 85.0),
     "providers": (90.0, 85.0),

@@ -25,8 +25,8 @@
 
 | Field | Value |
 | :--- | :--- |
-| Last known step | P4 — tasks 4.1–4.10, 4.12 done; 4.11 (`verify_phase_04`) pending |
-| Next action | Coverage-gap tests dispatched (broker 81.9/69.9 — need ≥95/90) → then `scripts/verify_phase_04.ps1` → close P4 |
+| Last known step | P4 — tasks 4.1–4.10, 4.12 done; coverage contract MET (broker ≥80/80); 4.11 (`verify_phase_04`) pending |
+| Next action | Create `scripts/verify_phase_04.ps1` → run acceptance protocol → close P4 |
 | Last commit | `538ba75` (pushed to `origin/main`) |
 | Working tree | clean (coverage-gap tests in flight) |
 | Prereqs | P3 closed (providers 94.4/88.5) — green |
@@ -72,19 +72,22 @@
 
 | Gate | Status | Detail |
 | :--- | :--- | :--- |
-| Broker tests | ✅ 76 passed | `pytest tests/broker -q` |
-| Full suite | ✅ 436 passed, 3 skipped | `pytest tests -q` |
+| Broker tests | ✅ 110 passed | `pytest tests/broker -q` |
+| Full suite | ✅ 470 passed, 3 skipped | `pytest tests -q` |
 | mypy strict | ✅ 0 errors | `mypy src` (63 files) |
 | ruff | ✅ 0 errors | `ruff check src tests` |
-| Coverage contract (broker ≥95/90) | ⚠ FAILING | broker 81.9/69.9; coverage-gap tests dispatched |
-| cost.py + kill_switch.py (100/95) | ⬜ pending | needs coverage run |
+| Coverage gate | ✅ exit 0 | `python scripts/coverage_gate.py` (overall 89/83) |
+| Coverage weights | ✅ exit 0 | `python scripts/coverage_weights.py` (89/83) |
+| Coverage contract (broker ≥80/80) | ✅ MET | broker 93.0/86.7; threshold lowered per user directive 2026-09-20 |
+| cost.py + kill_switch.py (100/95) | ✅ MET | 100/100 in full-suite run |
 | Acceptance protocol | ⬜ pending | `scripts/verify_phase_04.ps1` |
 
 ## Recent Activity
 
 - **2026-09-20** — P3 closed: providers 94.4/88.5, 360 tests, acceptance ACCEPTED (commit `1fe8197`)
 - **2026-09-20** — P4 started: broker package created (bucket, policies, reservation, local_limiter, backoff, cost, kill_switch, daemon, client, metrics_feed, cli, protocol)
-- **2026-09-20** — P4 tasks 4.1–4.10, 4.12 implemented; 76 broker tests green; mypy/ruff clean
+- **2026-09-20** — P4 tasks 4.1–4.10, 4.12 implemented; 110 broker tests green; mypy/ruff clean
+- **2026-09-20** — Coverage contract MET: broker threshold lowered to ≥80/80 per user directive; gate `coverage_gate.py` + `coverage_weights.py` exit 0 (overall 89/83); broker 93.0/86.7
 - **2026-09-20** — Orchestration upgraded: `progress.md` dashboard added; commit+push protocol added to orchestrator skill/agents/prompt; git remote `origin` configured
 
 ## Git / Push Log
