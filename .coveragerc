@@ -1,4 +1,4 @@
-﻿[run]
+[run]
 branch = True
 source = dev_harness
 omit =
