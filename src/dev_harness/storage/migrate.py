@@ -1,7 +1,8 @@
-﻿"""Migration runner: forward + --down, schema_migrations ledger (V11 1.2)."""
+"""Migration runner: forward + --down, schema_migrations ledger (V11 1.2)."""
 
 from __future__ import annotations
 
+import sqlite3
 import sys
 import time
 from pathlib import Path
@@ -11,7 +12,7 @@ from dev_harness.storage.connection import connect
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
 
 
-def _ledger(conn) -> None:
+def _ledger(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at INTEGER)"
     )

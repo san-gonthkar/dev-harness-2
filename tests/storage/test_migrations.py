@@ -41,7 +41,6 @@ def test_reapply_is_noop(tmp_path: Path) -> None:
 def test_rollback_returns_to_baseline(tmp_path: Path) -> None:
     db = tmp_path / "state.db"
     migrate_up(db)
-    before = _sqlite_master_count(connect(db))
     conn_before = connect(db)
     conn_before.close()
     rolled = migrate_down(db)
