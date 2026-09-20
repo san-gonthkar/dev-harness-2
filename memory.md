@@ -166,3 +166,13 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - 0.7 done: contracts/schema.py --emit/--check; schemas/harness_state.v7.json; test_schema 3 PASS
 - Note: Windows UTF-8 BOM on Set-Content causes parse errors; strip BOM after writes. ruff `format --check` crashes on CRLF (ruff bug); use `ruff format` + `ruff check` instead. All 27 contracts tests green.
 - Next task: 0.8 config loader
+
+### Session S1 (orchestrator, P0) continued
+- 0.8 done: config.py TOML + DEV_HARNESS_* env overrides; example toml; test_config 5 PASS
+- 0.9 done: secrets.py env/keyring/0600 file, masked repr; is_insecure_mode pure fn (Windows chmod quirk); test_secrets 7 PASS
+- 0.10 done: paths.py derive_paths (canonical ws, socket, lock, artifacts); test_paths 4 PASS 2 skip
+- 0.11 done: scripts/check_task_trailer.py; regex tightened to plan ranges; test_check_task_trailer 4 PASS
+- 0.12 done: tests/support/clock.py FrozenClock, workspace.py make_workspace, conftest fixtures; test_rig 4 PASS
+- 0.13 done: tests/support/mock_llm.py + fake_provider.py (ASGI, no TCP bind); test_mock_llm 11 PASS
+- Note: tests/ + tests/support/ need __init__.py for imports. git commit needs a tracked file (added .gitkeep). Windows chmod is a no-op for POSIX bits.
+- Next task: 0.14 structured logging + redaction
