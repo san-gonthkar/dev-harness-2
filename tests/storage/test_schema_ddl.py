@@ -1,4 +1,4 @@
-﻿"""Schema DDL constraints and index tests (V11 1.3)."""
+"""Schema DDL constraints and index tests (V11 1.3)."""
 
 from __future__ import annotations
 

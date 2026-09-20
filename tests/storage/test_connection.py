@@ -1,4 +1,4 @@
-﻿"""Connection factory PRAGMA tests (V11 1.1)."""
+"""Connection factory PRAGMA tests (V11 1.1)."""
 
 from __future__ import annotations
 

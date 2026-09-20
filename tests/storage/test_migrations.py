@@ -1,4 +1,4 @@
-﻿"""Migration runner up/down idempotence tests (V11 1.2)."""
+"""Migration runner up/down idempotence tests (V11 1.2)."""
 
 from __future__ import annotations
 

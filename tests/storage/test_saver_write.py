@@ -1,4 +1,4 @@
-﻿"""SqliteSaver write conformance tests (V11 1.4)."""
+"""SqliteSaver write conformance tests (V11 1.4)."""
 
 from __future__ import annotations
 

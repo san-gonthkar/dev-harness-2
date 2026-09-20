@@ -1,4 +1,4 @@
-﻿"""SQLite connection factory with required PRAGMAs (V11 1.1)."""
+"""SQLite connection factory with required PRAGMAs (V11 1.1)."""
 
 from __future__ import annotations
 

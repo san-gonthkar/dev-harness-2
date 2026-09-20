@@ -1,4 +1,4 @@
-﻿"""SqliteSaver write/read paths (V11 1.4, 1.5).
+"""SqliteSaver write/read paths (V11 1.4, 1.5).
 
 Stores HarnessState as JSON with a sha256 digest, git commit, and paused flag.
 Namespace is (project_id, thread_id).
@@ -7,6 +7,7 @@ Namespace is (project_id, thread_id).
 from __future__ import annotations
 
 import hashlib
+import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -62,7 +63,7 @@ class SqliteSaver:
             raise
         return cid
 
-    def get_tuple(self, scope: Scope, checkpoint_id: str) -> dict | None:
+    def get_tuple(self, scope: Scope, checkpoint_id: str) -> dict[str, object] | None:
         """Read one checkpoint by id, verifying the digest."""
         row = self._conn.execute(
             "SELECT * FROM checkpoints WHERE project_id=? AND thread_id=? AND checkpoint_id=?",
@@ -72,7 +73,7 @@ class SqliteSaver:
             return None
         return self._row_to_dict(row)
 
-    def list(self, scope: Scope, *, limit: int = 100, offset: int = 0) -> list[dict]:
+    def list(self, scope: Scope, *, limit: int = 100, offset: int = 0) -> list[dict[str, object]]:
         """Newest-first checkpoints for a scope with cursor paging."""
         rows = self._conn.execute(
             "SELECT * FROM checkpoints WHERE project_id=? AND thread_id=? "
@@ -81,7 +82,7 @@ class SqliteSaver:
         ).fetchall()
         return [self._row_to_dict(r) for r in rows]
 
-    def _row_to_dict(self, row) -> dict:
+    def _row_to_dict(self, row: sqlite3.Row) -> dict[str, object]:
         return {
             "project_id": row["project_id"],
             "thread_id": row["thread_id"],
