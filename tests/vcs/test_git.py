@@ -1,4 +1,4 @@
-﻿"""Git adapter tests (V11 1.9)."""
+"""Git adapter tests (V11 1.9)."""
 
 from __future__ import annotations
 

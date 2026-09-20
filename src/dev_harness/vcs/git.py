@@ -1,4 +1,4 @@
-﻿"""Git adapter: head_sha, active_branch, is_dirty, uncommitted_count (V11 1.9)."""
+"""Git adapter: head_sha, active_branch, is_dirty, uncommitted_count (V11 1.9)."""
 
 from __future__ import annotations
 

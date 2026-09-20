@@ -1,4 +1,4 @@
-﻿"""Namespace guard: every query must carry a project/thread scope (V11 1.6)."""
+"""Namespace guard: every query must carry a project/thread scope (V11 1.6)."""
 
 from __future__ import annotations
 

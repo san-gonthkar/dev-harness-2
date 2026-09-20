@@ -1,4 +1,4 @@
-﻿"""Worktree manager: create/destroy .dev-harness/worktrees/{worker_id} (V11 1.10)."""
+"""Worktree manager: create/destroy .dev-harness/worktrees/{worker_id} (V11 1.10)."""
 
 from __future__ import annotations
 

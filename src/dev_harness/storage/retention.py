@@ -1,4 +1,4 @@
-﻿"""Retention: keep last N per thread + all paused seals; prune + VACUUM (V11 1.7)."""
+"""Retention: keep last N per thread + all paused seals; prune + VACUUM (V11 1.7)."""
 
 from __future__ import annotations
 

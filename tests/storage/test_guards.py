@@ -1,4 +1,4 @@
-﻿"""Namespace guard tests (V11 1.6)."""
+"""Namespace guard tests (V11 1.6)."""
 
 from __future__ import annotations
 

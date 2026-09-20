@@ -1,4 +1,4 @@
-﻿"""Retention policy tests (V11 1.7)."""
+"""Retention policy tests (V11 1.7)."""
 
 from __future__ import annotations
 

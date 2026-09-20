@@ -1,4 +1,4 @@
-﻿"""Worktree manager tests (V11 1.10)."""
+"""Worktree manager tests (V11 1.10)."""
 
 from __future__ import annotations
 

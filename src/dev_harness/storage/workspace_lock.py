@@ -1,4 +1,4 @@
-﻿"""Workspace lock via portalocker with stale detection (V11 1.8).
+"""Workspace lock via portalocker with stale detection (V11 1.8).
 
 10s timeout; PID+hostname recorded for stale detection. A dead-PID lock is
 reclaimed in one attempt.
@@ -27,7 +27,13 @@ class WorkspaceLock:
 
     def _write_owner(self) -> None:
         owner = f"{os.getpid()}:{socket.gethostname()}"
-        self.lock_path.write_text(owner, encoding="utf-8")
+        if self._fh is not None:
+            self._fh.seek(0)
+            self._fh.truncate()
+            self._fh.write(owner)
+            self._fh.flush()
+        else:
+            self.lock_path.write_text(owner, encoding="utf-8")
 
     def acquire(self) -> None:
         """Acquire the lock, waiting up to ``timeout`` seconds."""
@@ -83,13 +89,17 @@ class WorkspaceLock:
 
 
 def _pid_alive(pid: int) -> bool:
-    """True if a process with the given PID is alive."""
+    """True if a process with the given PID is alive.
+
+    On Windows, os.kill(pid, 0) raises OSError for unknown PIDs; treat any
+    OSError as "not alive" except PermissionError (exists but not ours).
+    """
     if pid <= 0:
         return False
     try:
         os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
     except PermissionError:
         return True
+    except OSError:
+        return False
     return True

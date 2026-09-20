@@ -1,8 +1,9 @@
-﻿"""Workspace lock tests (V11 1.8)."""
+"""Workspace lock tests (V11 1.8)."""
 
 from __future__ import annotations
 
-import os
+import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -46,5 +47,12 @@ def test_dead_pid_lock_reclaimed(tmp_path: Path) -> None:
 
 
 def test_pid_alive() -> None:
-    assert _pid_alive(os.getpid()) is True
+    # A live subprocess PID is alive; a huge non-existent PID is not.
+
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(5)"])
+    try:
+        assert _pid_alive(proc.pid) is True
+    finally:
+        proc.kill()
+        proc.wait()
     assert _pid_alive(99999999) is False

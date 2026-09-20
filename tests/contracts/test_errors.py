@@ -41,21 +41,24 @@ def test_remediation_required() -> None:
 
 
 def test_no_bare_raise_exception_in_src() -> None:
-    """AST scan: no bare raise Exception/RuntimeError anywhere in src/."""
+    """AST scan: no raise Exception/RuntimeError anywhere in src/.
+
+    Bare re-raises (``raise`` with no expression inside an except block) are
+    legitimate and not flagged.
+    """
     offenders: list[str] = []
     for py in SRC_ROOT.rglob("*.py"):
         tree = ast.parse(py.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
-            if isinstance(node, ast.Raise) and node.exc is None:
+            if not isinstance(node, ast.Raise) or node.exc is None:
+                continue
+            name = None
+            if isinstance(node.exc, ast.Call):
+                name = getattr(node.exc.func, "id", None)
+            elif isinstance(node.exc, ast.Name):
+                name = node.exc.id
+            if name in {"Exception", "RuntimeError"}:
                 offenders.append(f"{py.relative_to(SRC_ROOT)}:{node.lineno}")
-            if isinstance(node, ast.Raise) and node.exc is not None:
-                name = None
-                if isinstance(node.exc, ast.Call):
-                    name = getattr(node.exc.func, "id", None)
-                elif isinstance(node.exc, ast.Name):
-                    name = node.exc.id
-                if name in {"Exception", "RuntimeError"}:
-                    offenders.append(f"{py.relative_to(SRC_ROOT)}:{node.lineno}")
     assert offenders == [], f"bare raises found: {offenders}"
 
 
