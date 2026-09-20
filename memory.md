@@ -28,7 +28,7 @@ The orchestrator (`phase-orchestrator`) is the keeper of phase state and updates
 | P0 Scaffolding, Contracts & Test Infra | closed | `scripts/verify_phase_00.sh` | reviewer-agent |
 | P1 Persistence & Workspace Isolation | closed | `scripts/verify_phase_01.sh` | reviewer-agent |
 | P2 IPC Transport & Event Bus | closed | `scripts/verify_phase_02.sh` | reviewer-agent |
-| P3 LLM Provider Abstraction | not started | `scripts/verify_phase_03.sh` | — |
+| P3 LLM Provider Abstraction | closed | `scripts/verify_phase_03.sh` | reviewer-agent |
 | P4 Rate-Limit Broker & Cost Governor | not started | `scripts/verify_phase_04.sh` | — |
 | P5 Execution Engine Daemon | not started | `scripts/verify_phase_05.sh` | human required |
 | P6 Critic Gatekeeper & Interrupt Engine | not started | `scripts/verify_phase_06.sh` | — |
@@ -58,11 +58,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P3 — LLM Provider Abstraction (next)
-- **Lane**: A
+- **Phase**: P4 — Rate-Limit Broker & Cost Governor (next)
+- **Lane**: B
 - **Current task**: none started yet
-- **Last completed task**: none
-- **Next task**: 0.1 (`src/` layout package; deps pinned)
+- **Last completed task**: 3.13 spike (skipped: no_local_ollama)
+- **Next task**: 4.1 token bucket
 
 ## Phase 0 — Scaffolding, Shared Contracts & Test Infrastructure
 
@@ -125,7 +125,7 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Phase 3 — LLM Provider Abstraction & Streaming Adapters
 
-**Status**: not started (prereq: P0 + 2.2 green)
+**Status**: closed (2026-09-20)
 
 ## Phase 4 — Rate-Limit Broker & Cost Governor
 
@@ -263,3 +263,33 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Session Registry
 | S1 | orchestrator | P2 closed | ~75% | active |
+
+
+## P3 CLOSED (2026-09-20)
+
+### Gate Verdict
+- All 13 tasks green (3.1-3.13; 3.13 spike recorded skipped: no_local_ollama)
+- Coverage contract MET: providers 94.4% line / 88.5% branch (>=90/85)
+- Overall gate: contracts 100/100, observability 100/100, storage 99.4/98.2, vcs 98.8/95.8, ipc 94.2/91.2, providers 94.4/88.5 — coverage_gate.py rc=0
+- Acceptance protocol executed end-to-end via scripts/verify_phase_03.ps1
+- Report: reports/phase_03_acceptance.json ACCEPTED, signed_by reviewer-agent
+- Final gate: 360 passed, 3 skipped; ruff 0; mypy strict 0; no bare pragmas
+
+### Deliverables
+- src/dev_harness/contracts/llm.py (Message, ToolCall, Usage, TokenChunk)
+- src/dev_harness/providers/: base.py (LLMClient protocol), errors.py (map_status/map_exception/fault_table), registry.py (ModelRegistry), _common.py, anthropic.py, openrouter.py, ollama.py, ollama_loader.py (debounced thrash guard), tokenizer.py (estimate_tokens +15% margin), stream_bridge.py (AGENT_TOKEN_STREAM + METRICS_UPDATE), cli.py, _fake.py (path-aware FakeProviderServer)
+- tests/providers/ (11 files, 94 tests): base, error_mapping, registry, anthropic, openrouter, ollama, ollama_loader, tokenizer, stream_bridge, adapters (12 contract), cli, gaps (16)
+- tests/spikes/test_real_model_spike.py (P3.13)
+- scripts/verify_phase_03.ps1
+
+### Coverage Work (this session)
+- Initial providers coverage 86.6/76.2 FAIL -> added tests/providers/test_providers_gaps.py (16 tests: CLI real paths, adapter error branches, fake faults) -> 94.4/88.5 PASS
+- Key insight: subprocess CLI tests are not instrumented; in-process runpy paths needed
+
+### Platform Notes
+- --disable-socket breaks asyncio ProactorEventLoop on Windows; offline guarantee satisfied via httpx.ASGITransport (no TCP bind)
+- LLMClient.stream() is a plain def returning AsyncIterator (matches adapter async generators)
+- FakeProviderServer must be path-aware per provider (Anthropic /v1/messages, Ollama /api/chat, OpenRouter /v1/chat/completions)
+
+## Session Registry
+| S1 | orchestrator | P3 closed | ~85% | active |
