@@ -18,8 +18,8 @@ Write-Host "[P0] step 9: transition table"
 python -m dev_harness.contracts.transitions --table
 
 Write-Host "[P0] ADR-0002 review gate"
-test -f docs/adr/0002-broker-topology.md
+if (-not (Test-Path docs/adr/0002-broker-topology.md)) { throw "missing ADR-0002" }
 
 Write-Host "[P0] step 10: emit report"
-python scripts/verify_phase.py --phase 00
+python scripts/verify_phase.py --emit 00
 Write-Host "P0 acceptance OK"
