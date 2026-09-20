@@ -1,0 +1,9 @@
+{
+  "type": "FILE_CHANGE",
+  "seq": 0,
+  "payload": {
+    "type": "FILE_CHANGE",
+    "path": "/a",
+    "change_type": "modified"
+  }
+}

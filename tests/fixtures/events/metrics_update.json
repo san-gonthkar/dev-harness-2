@@ -1,0 +1,11 @@
+{
+  "type": "METRICS_UPDATE",
+  "seq": 0,
+  "payload": {
+    "type": "METRICS_UPDATE",
+    "p50_latency_ms": 1.0,
+    "p95_latency_ms": 2.0,
+    "tpm_burn": 3,
+    "cumulative_usd": 0.01
+  }
+}

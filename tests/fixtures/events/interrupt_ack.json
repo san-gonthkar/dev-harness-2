@@ -1,0 +1,9 @@
+{
+  "type": "INTERRUPT_ACK",
+  "seq": 0,
+  "payload": {
+    "type": "INTERRUPT_ACK",
+    "command": "PAUSE",
+    "already": true
+  }
+}

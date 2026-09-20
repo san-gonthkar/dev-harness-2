@@ -1,0 +1,34 @@
+{
+  "type": "SNAPSHOT",
+  "seq": 0,
+  "payload": {
+    "type": "SNAPSHOT",
+    "state": {
+      "project_id": "p1",
+      "workspace_path": "/w",
+      "thread_id": "t1",
+      "raw_input": "hello",
+      "groomed_requirements": null,
+      "technical_design": null,
+      "chunk_dag": [],
+      "tui_state": {
+        "active_panel": "CANVAS",
+        "active_model_provider": "",
+        "is_paused": false,
+        "last_interrupt_timestamp": null,
+        "critic_gatekeeper_status": "READY"
+      },
+      "git_state": {
+        "active_branch": "main",
+        "last_checkpoint_commit": null
+      },
+      "rate_limiting": {
+        "allocated_tokens_tpm": 0,
+        "current_rpm_count": 0
+      },
+      "inner_loop_retry_count": 0,
+      "e2e_retry_count": 0,
+      "latest_e2e_report": null
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "type": "AGENT_TOKEN_STREAM",
+  "seq": 0,
+  "payload": {
+    "type": "AGENT_TOKEN_STREAM",
+    "seq": 1,
+    "token": "x",
+    "agent": ""
+  }
+}

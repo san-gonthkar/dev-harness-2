@@ -1,0 +1,9 @@
+{
+  "type": "MODEL_CONFIG_CHANGE",
+  "seq": 0,
+  "payload": {
+    "type": "MODEL_CONFIG_CHANGE",
+    "provider": "ollama",
+    "model": "qwen"
+  }
+}

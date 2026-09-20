@@ -1,0 +1,9 @@
+{
+  "type": "GIT_STATUS_UPDATE",
+  "seq": 0,
+  "payload": {
+    "type": "GIT_STATUS_UPDATE",
+    "branch": "main",
+    "dirty_count": 1
+  }
+}

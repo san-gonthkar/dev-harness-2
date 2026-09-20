@@ -1,0 +1,9 @@
+{
+  "type": "INTERRUPT_REQUEST",
+  "seq": 0,
+  "payload": {
+    "type": "INTERRUPT_REQUEST",
+    "command": "PAUSE",
+    "reason": ""
+  }
+}
