@@ -1,4 +1,4 @@
-﻿"""Coverage gate / ratchet tests (V11 0.16)."""
+"""Coverage gate / ratchet tests (V11 0.16)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-﻿"""Coverage instrumentation and ratchet gate (V11 0.16).
+"""Coverage instrumentation and ratchet gate (V11 0.16).
 
 - Enforces per-package line/branch thresholds.
 - Detects a 0.5pp+ regression vs the committed baseline (coverage_baseline.json).

@@ -1,4 +1,4 @@
-﻿"""Run artifact store: append-only transcript with size cap + rotation (V11 0.15)."""
+"""Run artifact store: append-only transcript with size cap + rotation (V11 0.15)."""
 
 from __future__ import annotations
 
