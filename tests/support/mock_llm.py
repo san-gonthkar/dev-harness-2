@@ -1,4 +1,4 @@
-﻿"""MockLLM: deterministic scripted LLM for tests (V11 0.13).
+"""MockLLM: deterministic scripted LLM for tests (V11 0.13).
 
 Same seed -> byte-identical completion. Supports streaming and fault injection.
 """

@@ -1,4 +1,4 @@
-﻿"""Structured JSON logging with correlation and redaction (V11 0.14)."""
+"""Structured JSON logging with correlation and redaction (V11 0.14)."""
 
 from __future__ import annotations
 

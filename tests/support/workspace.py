@@ -1,4 +1,4 @@
-﻿"""tmp_workspace: a git-backed workspace factory (V11 0.12)."""
+"""tmp_workspace: a git-backed workspace factory (V11 0.12)."""
 
 from __future__ import annotations
 

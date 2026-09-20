@@ -1,4 +1,4 @@
-﻿"""FakeProviderServer: in-process ASGI fake LLM provider (V11 0.13).
+"""FakeProviderServer: in-process ASGI fake LLM provider (V11 0.13).
 
 Served over httpx.ASGITransport - no TCP bind, which is what makes the
 --disable-socket guarantee hold. Supports scripted completions, SSE streaming,

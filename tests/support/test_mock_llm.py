@@ -1,4 +1,4 @@
-﻿"""MockLLM + FakeProviderServer fidelity tests (V11 0.13)."""
+"""MockLLM + FakeProviderServer fidelity tests (V11 0.13)."""
 
 from __future__ import annotations
 

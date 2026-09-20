@@ -1,4 +1,4 @@
-﻿"""Frozen monotonic clock for deterministic tests (V11 0.12).
+"""Frozen monotonic clock for deterministic tests (V11 0.12).
 
 Tests must never use time.sleep(); they advance this clock with tick().
 """

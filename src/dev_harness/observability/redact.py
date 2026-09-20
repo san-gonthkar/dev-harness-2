@@ -1,4 +1,4 @@
-﻿"""Redaction of secrets from log/artifact text (V11 0.14)."""
+"""Redaction of secrets from log/artifact text (V11 0.14)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-﻿"""Redaction + structured logging tests (V11 0.14)."""
+"""Redaction + structured logging tests (V11 0.14)."""
 
 from __future__ import annotations
 

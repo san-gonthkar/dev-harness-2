@@ -1,4 +1,4 @@
-﻿"""Shared pytest fixtures (V11 0.12)."""
+"""Shared pytest fixtures (V11 0.12)."""
 
 from __future__ import annotations
 
