@@ -154,3 +154,15 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 ## Phase 10 — Final Verification, Traceability & Release
 
 **Status**: not started (prereq: P0–P9 green; human sign-off)
+## Execution Log (orchestrator)
+
+### Session S1 (orchestrator, P0)
+- 0.1 done: src/ layout, pyproject pinned deps, editable install, import smoke PASS
+- 0.2 done: Makefile + mypy.ini (strict) + .coveragerc per-package; ruff/mypy PASS
+- 0.3 done: contracts/enums.py (7 enums, 9 EventType incl SNAPSHOT); test_enums 8 PASS
+- 0.4 done: contracts/errors.py (HarnessError + subclasses, remediation); AST bare-raise scan; test_errors 4 PASS
+- 0.5 done: contracts/state.py V7 models, STOPPED reconciled; golden fixture; test_state_model 5 PASS
+- 0.6 done: contracts/events.py Envelope + 9 payloads, type-match enforcement; test_events 7 PASS
+- 0.7 done: contracts/schema.py --emit/--check; schemas/harness_state.v7.json; test_schema 3 PASS
+- Note: Windows UTF-8 BOM on Set-Content causes parse errors; strip BOM after writes. ruff `format --check` crashes on CRLF (ruff bug); use `ruff format` + `ruff check` instead. All 27 contracts tests green.
+- Next task: 0.8 config loader

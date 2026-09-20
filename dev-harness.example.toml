@@ -1,0 +1,33 @@
+# Dev Harness example configuration (V11 0.8)
+# Copy to dev-harness.toml and adjust. Provider blocks:
+#   rpm, tpm, max_concurrency, context_window, num_ctx, keep_alive,
+#   usd_per_mtok_in, usd_per_mtok_out
+workspace_path = "."
+
+budget_usd_per_run = 0.50
+budget_usd_per_day = 5.00
+
+[broker]
+allow_unbrokered = false
+
+[providers.anthropic]
+rpm = 50
+tpm = 200000
+max_concurrency = 2
+context_window = 200000
+usd_per_mtok_in = 3.00
+usd_per_mtok_out = 15.00
+
+[providers.openrouter]
+rpm = 50
+tpm = 200000
+max_concurrency = 2
+context_window = 128000
+usd_per_mtok_in = 0.50
+usd_per_mtok_out = 1.50
+
+[providers.ollama]
+max_concurrency = 1
+num_ctx = 8192
+keep_alive = "30m"
+context_window = 8192
