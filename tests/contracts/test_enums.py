@@ -1,4 +1,4 @@
-﻿"""Enum exhaustiveness and literal-ban tests (V11 0.3)."""
+"""Enum exhaustiveness and literal-ban tests (V11 0.3)."""
 
 from __future__ import annotations
 

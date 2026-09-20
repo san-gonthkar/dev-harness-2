@@ -1,4 +1,4 @@
-﻿"""Canonical enums for the Dev Harness.
+"""Canonical enums for the Dev Harness.
 
 Single source of truth for every state vocabulary in the system (V11 plan 0.3).
 Never write a state string literal outside this module - the literal-ban test
