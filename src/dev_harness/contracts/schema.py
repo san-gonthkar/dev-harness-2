@@ -1,4 +1,4 @@
-﻿"""JSON Schema export for the V7 HarnessState (V11 0.7).
+"""JSON Schema export for the V7 HarnessState (V11 0.7).
 
 The committed schema at schemas/harness_state.v7.json is regenerated from the
 Pydantic model and must be byte-identical (drift check).
