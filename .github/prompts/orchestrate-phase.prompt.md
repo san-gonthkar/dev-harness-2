@@ -8,6 +8,16 @@ tools: [read, search, execute, todo]
 
 Run the Dev Harness V11 plan **autonomously, end-to-end**, from `requirements/Dev_Harness_Implementation_Plan_V11_Final.md`. Do not stop until all 11 phases are complete.
 
+## Resume First — Never Restart
+
+**If the plan has already started, resume from the last known step. Do not start over.**
+
+1. **Locate** — read `memory.md` (phase table, task log, `Current Status`, session registry), `progress.md` (Resume Point section), and `git log`/`git status`. Identify the exact next task.
+2. **Verify** — the touched package's tests pass, `git status` is clean, and the phase's prerequisites are green.
+3. **Record** — append a session entry to `memory.md` and update `progress.md`'s Resume Point.
+
+Then continue the loop from there. **Never re-dispatch done tasks, never re-open closed phases, never re-run signed gates.**
+
 ## Context
 
 - **Plan**: `requirements/Dev_Harness_Implementation_Plan_V11_Final.md` — the authoritative contract. For each phase, read `X.A` (execution tasks), `X.B` (validation matrix), `X.C` (coverage contract), and `X.D` (acceptance protocol) before dispatching anything.
@@ -20,7 +30,7 @@ Run the Dev Harness V11 plan **autonomously, end-to-end**, from `requirements/De
 
 Key invariants (from the skill):
 
-- **Resume, never restart:** on every invocation, FIRST locate the last known step (`memory.md` phase table + task log + `Current Status`, `progress.md`, `git log`/`git status`), verify it (tests pass, git clean, prereqs green), and record it. Never re-dispatch done tasks, never re-open closed phases, never start over.
+- **Resume, never restart** (see above).
 - Run continuously: `while any phase is not closed: dispatch tasks → verify gates → close phase → advance`.
 - **Quality gates (non-negotiable, every phase):** (1) every task's validation row green, (2) coverage contract met, (3) acceptance protocol signed by `reviewer-agent` (phases 5/8/10 need a human).
 - **Failure recovery:** retry once → re-dispatch once → escalate to the user. Never loop forever.

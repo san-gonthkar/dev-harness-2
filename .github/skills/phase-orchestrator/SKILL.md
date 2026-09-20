@@ -1,6 +1,6 @@
 ---
 name: phase-orchestrator
-description: 'Autonomous phase orchestration for the Dev Harness. Use when running the V11 plan end-to-end: loop through every phase (P0-P10) autonomously, dispatch implementing agents, enforce review and coverage gates, recover from failures, and close phases until the entire plan is complete. Every invocation passes and updates the shared memory.md file, mirrors progress into progress.md, and commits/pushes at meaningful intervals.'
+description: 'Autonomous phase orchestration for the Dev Harness. Use when running the V11 plan end-to-end: loop through every phase (P0-P10) autonomously, dispatch implementing agents, enforce review and coverage gates, recover from failures, and close phases until the entire plan is complete. Every invocation resumes from the last known step, updates memory.md, mirrors progress into progress.md, and commits/pushes at meaningful intervals.'
 user-invocable: true
 ---
 
@@ -195,8 +195,7 @@ The orchestrator is the **keeper of phase state**. `memory.md` holds the authori
 
 1. **Locate the resume point first** (see The Resume Protocol): read `memory.md` (phase table, task log, `Current Status`, session registry), `progress.md`, and `git log`/`git status`. Identify the exact next task — never re-dispatch done work.
 2. Read the phase's `X.A` execution tasks, `X.B` validation matrix, `X.C` coverage contract, and `X.D` acceptance protocol from the V11 plan.
-3. Read `memory.md` to confirm prerequisites are green and identify the starting task.
-4. Determine the lane (A/B/C/D) and the implementing agent.
+3. Determine the lane (A/B/C/D) and the implementing agent.
 
 ### 2. Identify the Implementing Agent
 
