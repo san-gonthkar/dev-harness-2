@@ -326,21 +326,30 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## P4 REVIEWER SIGN-OFF (2026-09-20, reviewer-agent S2)
 
-### Verdict: ACCEPTED � all three phase-completion conditions met
+### Verdict: ACCEPTED — all three phase-completion conditions met
 
-1. **Task validation rows green**: python -m pytest tests/broker -q ? 110 passed (bucket 8, policies 7, reservation 7, local_limiter 5, backoff 6, cost 7, kill_switch 4, daemon 8, client 7, metrics_feed 3, cli 6, coverage_gaps 34, protocol 6, rate_limiter_load 2). Full suite 470 passed, 3 skipped.
-2. **Coverage contract MET**: broker 94.0% line / 86.7% branch (811/863 stmts, 144/166 branches) recomputed from coverage.json � exceeds lowered =80/80 threshold (user directive 2026-09-20). cost.py + kill_switch.py 100/100 (=100/95). python scripts/coverage_gate.py exit 0 (overall 89/83); python scripts/coverage_weights.py exit 0; python -m pytest tests/tooling -q ? 16 passed.
-3. **Acceptance protocol**: eports/phase_04_acceptance.json verdict ACCEPTED, signed_by reviewer-agent, re-emitted at HEAD dc1d3eb (report is gitignored; src/ and tests/ byte-identical between pinned 362bd55 and HEAD). verify_phase_04.sh implements all 10 steps of plan �4.D; .ps1 is a legitimate platform-limit stub (R2: AF_UNIX POSIX-only, WSL2 supported � same as P1/P2/P3).
+1. **Task validation rows green**: python -m pytest tests/broker -q → 110 passed (bucket 8, policies 7, reservation 7, local_limiter 5, backoff 6, cost 7, kill_switch 4, daemon 8, client 7, metrics_feed 3, cli 6, coverage_gaps 34, protocol 6, rate_limiter_load 2). Full suite 470 passed, 3 skipped.
+2. **Coverage contract MET**: broker 94.0% line / 86.7% branch (811/863 stmts, 144/166 branches) recomputed from coverage.json — exceeds lowered ≥80/80 threshold (user directive 2026-09-20). cost.py + kill_switch.py 100/100 (≥100/95). python scripts/coverage_gate.py exit 0 (overall 89/83); python scripts/coverage_weights.py exit 0; python -m pytest tests/tooling -q → 16 passed.
+3. **Acceptance protocol**: reports/phase_04_acceptance.json verdict ACCEPTED, signed_by reviewer-agent, re-emitted at HEAD dc1d3eb (report is gitignored; src/ and tests/ byte-identical between pinned 362bd55 and HEAD). verify_phase_04.sh implements all 10 steps of plan §4.D; .ps1 is a legitimate platform-limit stub (R2: AF_UNIX POSIX-only, WSL2 supported — same as P1/P2/P3).
 
 ### Findings (non-blocking)
 - **cost.py line 96**: local BudgetExceededError(Exception) does NOT subclass HarnessError; canonical BudgetExceededError(BrokerError) in contracts/errors.py (line 223) is unused. Deviation from error-taxonomy contract; daemon catches it correctly and fail-closed behavior verified by tests. Recommend implementer import the canonical error. Not a rejection criterion failure.
 - Report commit pinning: report emitted at 362bd55, verify scripts committed at dc1d3eb (2 min later). Re-emitted at HEAD dc1d3eb during sign-off; no src/tests changes between.
 - .sh step fidelity gaps (minor): step 4 omits --max-concurrency; step 6 doesn't assert STOP count; step 8 uses metrics not metrics --follow; step 1 warns (not fails) on =50ms health.
-- mutation_report.json stale (storage/vcs only, no broker) � .sh step 9 overwrites on POSIX run; mutation_gate --dry-run exit 0 on Windows (mutmut needs WSL, issue #397).
+- mutation_report.json stale (storage/vcs only, no broker) — .sh step 9 overwrites on POSIX run; mutation_gate --dry-run exit 0 on Windows (mutmut needs WSL, issue #397).
 
 ### Mutation focus set (verified via unit tests, mutmut WSL-only)
-- Ceiling comparison inversion ? test_bucket.py + test_rate_limiter_load.py (100 concurrent vs 50 RPM)
-- Retry-After override drop ? test_backoff.py
-- Kill-switch emit skip ? test_kill_switch.py (exactly one STOP, reason=BUDGET)
+- Ceiling comparison inversion → test_bucket.py + test_rate_limiter_load.py (100 concurrent vs 50 RPM)
+- Retry-After override drop → test_backoff.py
+- Kill-switch emit skip → test_kill_switch.py (exactly one STOP, reason=BUDGET)
 
-| S2 | reviewer-agent | P4 sign-off review (independent) | ~10% | closed � ACCEPTED |
+| S2 | reviewer-agent | P4 sign-off review (independent) | ~10% | closed — ACCEPTED |
+
+## P5 DISPATCHED (2026-09-20, orchestrator S1)
+
+- **Human sign-off granted** by user (2026-09-20) — P5 requires human signature per plan line 135.
+- **Prereqs verified**: 1.11 (storage/checkpoint_binding.py), 2.5/2.6 (ipc/), 4.9 (broker/client.py) all present.
+- **Agent**: python-developer (S3, background) — full P5 brief delivered (11 tasks, 5.B validation matrix, 5.C coverage contract, architectural constraints).
+- **Platform note**: engine daemon binds AF_UNIX (POSIX-only per R2) — verify_phase_05.sh is the deliverable; .ps1 platform-limit stub (same as P4).
+- **Coverage contract (5.C)**: engine/{daemon,session,commands,fanout,shutdown,bootstrap} ≥92/85; engine/provider_gateway.py 100/95.
+- **Commit**: `0905887` (P5 start, pushed).
