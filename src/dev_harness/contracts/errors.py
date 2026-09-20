@@ -50,6 +50,12 @@ class PathError(HarnessError):
     remediation = "Provide a canonical, absolute workspace path."
 
 
+class SecretsError(HarnessError):
+    """A secret could not be resolved or handled safely."""
+
+    remediation = "Ensure the secret is available via env, keyring, or a 0600 file."
+
+
 # --- storage ----------------------------------------------------------------
 
 
