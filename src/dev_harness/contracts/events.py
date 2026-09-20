@@ -6,7 +6,7 @@ the Envelope discriminates on it and rejects type/payload mismatches.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -110,17 +110,15 @@ class SnapshotPayload(BaseModel):
 
 
 EventPayload = Annotated[
-    Union[
-        FileChangePayload,
-        GitStatusUpdatePayload,
-        AgentTokenStreamPayload,
-        TestProgressPayload,
-        ModelConfigChangePayload,
-        InterruptRequestPayload,
-        InterruptAckPayload,
-        MetricsUpdatePayload,
-        SnapshotPayload,
-    ],
+    FileChangePayload
+    | GitStatusUpdatePayload
+    | AgentTokenStreamPayload
+    | TestProgressPayload
+    | ModelConfigChangePayload
+    | InterruptRequestPayload
+    | InterruptAckPayload
+    | MetricsUpdatePayload
+    | SnapshotPayload,
     Field(discriminator="type"),
 ]
 
@@ -139,7 +137,7 @@ class Envelope(BaseModel):
     payload: EventPayload
 
     @model_validator(mode="after")
-    def _enforce_type_match(self) -> "Envelope":
+    def _enforce_type_match(self) -> Envelope:
         if self.type.value != self.payload.type:
             raise ValueError(
                 f"envelope type {self.type.value!r} does not match "
