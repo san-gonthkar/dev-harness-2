@@ -157,9 +157,9 @@ def _run_coverage() -> dict[str, dict[str, float]]:
         pkg_branch_cov[pkg] = pkg_branch_cov.get(pkg, 0) + summary.get("covered_branches", 0)
         pkg_branch_total[pkg] = pkg_branch_total.get(pkg, 0) + summary.get("num_branches", 0)
     result: dict[str, dict[str, float]] = {}
-    for pkg in pkg_total:
+    for pkg, total in pkg_total.items():
         result[pkg] = {
-            "line": (pkg_covered[pkg] / pkg_total[pkg] * 100) if pkg_total[pkg] else 0.0,
+            "line": (pkg_covered[pkg] / total * 100) if total else 0.0,
             "branch": (pkg_branch_cov[pkg] / pkg_branch_total[pkg] * 100) if pkg_branch_total[pkg] else 0.0,
         }
     return result
