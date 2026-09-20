@@ -27,7 +27,7 @@ The orchestrator (`phase-orchestrator`) is the keeper of phase state and updates
 | :--- | :--- | :--- | :--- |
 | P0 Scaffolding, Contracts & Test Infra | closed | `scripts/verify_phase_00.sh` | reviewer-agent |
 | P1 Persistence & Workspace Isolation | closed | `scripts/verify_phase_01.sh` | reviewer-agent |
-| P2 IPC Transport & Event Bus | not started | `scripts/verify_phase_02.sh` | — |
+| P2 IPC Transport & Event Bus | closed | `scripts/verify_phase_02.sh` | reviewer-agent |
 | P3 LLM Provider Abstraction | not started | `scripts/verify_phase_03.sh` | — |
 | P4 Rate-Limit Broker & Cost Governor | not started | `scripts/verify_phase_04.sh` | — |
 | P5 Execution Engine Daemon | not started | `scripts/verify_phase_05.sh` | human required |
@@ -58,7 +58,7 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P2 — IPC Transport & Event Bus (next)
+- **Phase**: P3 — LLM Provider Abstraction (next)
 - **Lane**: A
 - **Current task**: none started yet
 - **Last completed task**: none
@@ -121,7 +121,7 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Phase 2 — IPC Transport & Event Bus
 
-**Status**: not started (prereq: P0 green)
+**Status**: closed (2026-09-20)
 
 ## Phase 3 — LLM Provider Abstraction & Streaming Adapters
 
@@ -236,3 +236,30 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Session Registry
 | S1 | orchestrator | P1 closed | ~55% | active |
+
+## P2 CLOSED (2026-09-20)
+
+### Gate Verdict
+- All 11 tasks green (2.1-2.11)
+- Coverage contract MET: ipc 94.2% line / 91.2% branch (>=92/85)
+- Contract coverage binding metric: test_event_contract.py asserts 9/9 EventType members exercised
+- Acceptance protocol executed end-to-end via scripts/verify_phase_02.ps1
+- Report: reports/phase_02_acceptance.json ACCEPTED, signed_by reviewer-agent
+- Final gate: 266 passed, 2 skipped; ruff 0; mypy strict 0; no bare pragmas
+
+### Deliverables
+- docs/adr/0001-ipc-transport.md (length-prefixed JSON over AF_UNIX; gRPC rejected)
+- docs/adr/0003-snapshot-framing.md (1 MiB streaming / 16 MiB SNAPSHOT)
+- src/dev_harness/ipc/: framing.py, server.py, client.py, router.py, queue.py, transport.py, cli.py
+- tests/fixtures/events/*.json (9 fixtures)
+- tests/support/echo_server.py, tests/support/recording_client.py
+- scripts/verify_phase_02.ps1, scripts/gen_event_fixtures.py
+
+### Platform Notes
+- AF_UNIX absent on Windows Python; server/client use getattr(socket, "AF_UNIX", 1)
+- require_posix() raises UnsupportedPlatformError naming WSL2 (2.7)
+- Tests use FakeSocket/FakeConn simulated layers to exercise server/client logic
+- gen_event_fixtures.py OUT path: parents[1] is repo root -> tests/fixtures/events
+
+## Session Registry
+| S1 | orchestrator | P2 closed | ~75% | active |
