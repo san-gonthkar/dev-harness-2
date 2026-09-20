@@ -11,13 +11,13 @@
 
 | Metric | Value |
 | :--- | :--- |
-| Phases closed | **3 / 11** (P0, P1, P2, P3) |
-| Phases in progress | **1** (P4) |
+| Phases closed | **4 / 11** (P0, P1, P2, P3, P4) |
+| Phases in progress | **0** |
 | Phases remaining | **7** (P5–P10) |
-| Current phase | **P4 — Rate-Limit Broker & Cost Governor** |
-| Current task | 4.11 verify_phase_04 done → reviewer sign-off → close P4 |
-| Last commit | `362bd55` — P4: lower broker coverage threshold to 80/80 per user directive |
-| Last push | ✅ `362bd55` → origin/main (2026-09-20) |
+| Current phase | **P4 — Rate-Limit Broker & Cost Governor (closed)** |
+| Current task | P4 closed → P5 (human sign-off required) |
+| Last commit | `dc1d3eb` — P4.11 verify_phase_04 acceptance protocol |
+| Last push | ✅ `dc1d3eb` → origin/main (2026-09-20) |
 
 ## Resume Point
 
@@ -25,11 +25,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Last known step | P4 — tasks 4.1–4.13 done; coverage contract MET (broker ≥80/80); 4.11 (`verify_phase_04`) done; acceptance report emitted ACCEPTED |
-| Next action | reviewer-agent sign-off → close P4 → advance to P5 (human sign-off required) |
-| Last commit | `362bd55` (pushed to `origin/main`) |
+| Last known step | P4 CLOSED — all 13 tasks green, coverage contract MET (broker ≥80/80), acceptance ACCEPTED (reviewer-agent) |
+| Next action | P5 — Execution Engine Daemon (prereq: P1, P2, P4 green; **human sign-off required**) |
+| Last commit | `dc1d3eb` (pushed to `origin/main`) |
 | Working tree | clean except 15 `.github/` files (BOM corruption — excluded) |
-| Prereqs | P3 closed (providers 94.4/88.5) — green |
+| Prereqs | P3 closed (providers 94.4/88.5), P4 closed (broker 94.0/86.7) — green |
 
 ## Phase Status
 
@@ -39,7 +39,7 @@
 | P1 Persistence & Workspace Isolation | ✅ closed | storage 99.4/98.2 · vcs 98.8/95.8 | `verify_phase_01` | reviewer-agent |
 | P2 IPC Transport & Event Bus | ✅ closed | ipc 94.2/91.2 | `verify_phase_02` | reviewer-agent |
 | P3 LLM Provider Abstraction | ✅ closed | providers 94.4/88.5 | `verify_phase_03` | reviewer-agent |
-| P4 Rate-Limit Broker & Cost Governor | 🔄 in progress | broker — pending | `verify_phase_04` | — |
+| P4 Rate-Limit Broker & Cost Governor | ✅ closed | broker 94.0/86.7 · cost+kill_switch 100/100 | `verify_phase_04` | reviewer-agent |
 | P5 Execution Engine Daemon | ⬜ not started | — | `verify_phase_05` | human required |
 | P6 Critic Gatekeeper & Interrupt Engine | ⬜ not started | — | `verify_phase_06` | — |
 | P7 Hermes TUI Core Subsystem | ⬜ not started | — | `verify_phase_07` | — |
@@ -78,9 +78,9 @@
 | ruff | ✅ 0 errors | `ruff check src tests` |
 | Coverage gate | ✅ exit 0 | `python scripts/coverage_gate.py` (overall 89/83) |
 | Coverage weights | ✅ exit 0 | `python scripts/coverage_weights.py` (89/83) |
-| Coverage contract (broker ≥80/80) | ✅ MET | broker 93.0/86.7; threshold lowered per user directive 2026-09-20 |
+| Coverage contract (broker ≥80/80) | ✅ MET | broker 94.0/86.7 (recomputed from coverage.json); threshold lowered per user directive 2026-09-20 |
 | cost.py + kill_switch.py (100/95) | ✅ MET | 100/100 in full-suite run |
-| Acceptance protocol | ✅ ACCEPTED | `reports/phase_04_acceptance.json` (emitted; live POSIX run pending WSL2 — plan R2 platform limit, same as P1/P2/P3) |
+| Acceptance protocol | ✅ ACCEPTED | `reports/phase_04_acceptance.json` verdict ACCEPTED, signed_by reviewer-agent, commit `dc1d3eb` (live POSIX run pending WSL2 — plan R2 platform limit, same as P1/P2/P3) |
 
 ## Recent Activity
 
@@ -89,12 +89,15 @@
 - **2026-09-20** — P4 tasks 4.1–4.10, 4.12 implemented; 110 broker tests green; mypy/ruff clean
 - **2026-09-20** — Coverage contract MET: broker threshold lowered to ≥80/80 per user directive; gate `coverage_gate.py` + `coverage_weights.py` exit 0 (overall 89/83); broker 93.0/86.7
 - **2026-09-20** — 4.11 done: `verify_phase_04.sh` (POSIX/WSL2 acceptance protocol) + `.ps1` platform-limit stub (AF_UNIX unavailable on native Windows — plan R2); `reports/phase_04_acceptance.json` emitted ACCEPTED
+- **2026-09-20** — **P4 CLOSED**: reviewer-agent signed ACCEPTED (110 broker tests, coverage contract MET broker 94.0/86.7, acceptance report signed at `dc1d3eb`); findings: cost.py:96 local BudgetExceededError should import canonical error (non-blocking)
 - **2026-09-20** — Orchestration upgraded: `progress.md` dashboard added; commit+push protocol added to orchestrator skill/agents/prompt; git remote `origin` configured
 
 ## Git / Push Log
 
 | When | Commit | What | Pushed |
 | :--- | :--- | :--- | :--- |
+| 2026-09-20 | `dc1d3eb` | P4.11 verify_phase_04 acceptance protocol + P4 close (memory/progress) | ✅ pushed |
+| 2026-09-20 | `362bd55` | P4: lower broker coverage threshold to 80/80 per user directive | ✅ pushed |
 | 2026-09-20 | `538ba75` | orchestrator guardrails + memory.md P4 reconcile | ✅ pushed |
 | 2026-09-20 | `c8e9ece` | P4 broker tasks 4.1–4.10, 4.12 + orchestration upgrade | ✅ pushed |
 | 2026-09-20 | `1fe8197` | Close P3: LLM Provider Abstraction | ✅ pushed (in c8e9ece push) |
