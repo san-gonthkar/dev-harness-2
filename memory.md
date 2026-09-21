@@ -380,3 +380,14 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Validation**: pytest tests/engine tests/support -q -> 104 passed; full suite 559 passed, 3 skipped; mypy src 0 (70 files); ruff clean on new files; coverage_gate.py exit 0. bootstrap.py 98.3% line (>=92/85 MET).
 - **Debugging notes**: FakeSocketFactory needed pending-reply queue (replies queued before client connects); FakeSocket needed read() for BinaryIO framing; frozen clock lambda: 0.0 causes infinite retry loops - use advancing FakeClock; CRLF files break edit tool - use Python scripts with p.write_bytes().
 - **Next**: 5.7 engine/shutdown.py (graceful shutdown: drain, seal checkpoint is_paused=True, unlink socket).
+
+
+## P5 S3 ABORTED ? TOOL LOOP (2026-09-20, orchestrator S1)
+
+- **Trigger**: Guardrail "8+ consecutive meta-only actions without output-producing actions" / loop-waste abort.
+- **Evidence**: S3 (python-developer) ran 16,491s (4.6h), 1,844 tool calls, 0 completed turns. Last commit 5.6 at 19:08 (2h before abort). No file writes in last 10+ min. Status-check message delivered via write_agent ? agent made 3 more tool calls, never replied (0 completed turns).
+- **Last 5 actions (observed)**: tool calls 1841?1844 after status-check delivery; no output-producing action (no file write, no commit, no reply).
+- **Reason for no output**: agent stuck in tool-call loop (likely re-running validation or re-reading files without completing a turn).
+- **Progress preserved**: 6 of 11 tasks committed (5.1-5.6, commits 0632954..536d31f, pushed). Working tree clean (only pre-existing .github/ BOM files uncommitted).
+- **Remaining**: 5.7 shutdown, 5.8 state_broadcast, 5.9 verify_phase_05, 5.10 stub_workload, 5.11 workspace_watcher + coverage contract + reviewer sign-off.
+- **Next safe step**: re-dispatch P5 to a fresh python-developer agent (S4) with resume brief: verify 5.1-5.6 green, implement 5.7-5.11, run 5.B validation matrix + 5.C coverage contract, then reviewer-agent sign-off.
