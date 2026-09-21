@@ -399,3 +399,14 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Verified before re-dispatch**: tests/engine + tests/support 104 passed; full suite 559 passed/3 skipped; coverage_gate.py exit 0.
 - **Agent**: python-developer (S4, background, id da0bd9c2) ? resume brief: verify 5.1-5.6, implement 5.7 shutdown, 5.8 state_broadcast, 5.9 verify_phase_05.sh/.ps1, 5.10 stub_workload, 5.11 workspace_watcher; run 5.B validation matrix + 5.C coverage contract; commit per task with Task-Id trailer; no push.
 - **Commit**: `e40029a` (abort record, pushed).
+
+
+## GUARDRAIL FIX ? SUBAGENT HEALTH CHECK (2026-09-20, orchestrator S1)
+
+- **Root cause of S3 loop**: the loop guardrail only fired when the orchestrator had control (a completed turn). S3 (background subagent) never completed a turn, so nothing monitored it ? it looped invisibly for 4.6h / 1,844 tool calls.
+- **Fix (committed 1b98641, pushed)**:
+  - phase-orchestrator SKILL.md: new "Subagent Health Check" section ? check every running background agent at every turn boundary (read_agent wait:false); abort on no output 30+ min, tool-call churn with 0 turns, ignored status check, or budget exceeded; dispatch-time prevention (session budget + heartbeat contract + stop-and-report rule in every brief).
+  - python-developer.agent.md: Heartbeat Contract (memory.md append or commit every <=30 min; reply to status checks within one turn; respect session budget; stop-and-report on loops).
+  - phase-orchestrator.agent.md: same guardrail mirrored.
+- **Also**: restored 15 .github files corrupted with UTF-8 BOM + content degradation (git checkout -- .github) ? they are tracked, not gitignored (check-ignore exit 1).
+- **S4 health at fix time**: 230s / 64 tool calls / actively working ? healthy.

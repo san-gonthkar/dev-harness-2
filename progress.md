@@ -147,3 +147,5 @@
 6. **Keep it current** — this file is the monitoring view; it must never lag behind `memory.md`.
 
 - **2026-09-20** — **P5 S3 ABORTED (tool loop)**: python-developer agent ran 4.6h / 1,844 tool calls / 0 completed turns; last commit 5.6 at 19:08, no file writes 10+ min, ignored status-check. 6 of 11 tasks committed (5.1–5.6, pushed). Remaining: 5.7–5.11 + coverage contract + reviewer sign-off. Next: re-dispatch S4.
+
+- **2026-09-20** — **Guardrail fix**: added background subagent health-check to orchestrator skill + agent briefs (root cause: loop guardrail only fired on completed turns; S3 never completed one). Restored 15 BOM-corrupted .github files. Commit `1b98641` pushed.
