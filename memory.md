@@ -420,3 +420,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Committed so far**: 5.1-5.6 (commits 0632954..536d31f, pushed). Remaining: 5.7 shutdown, 5.8 state_broadcast, 5.9 verify_phase_05, 5.10 stub_workload, 5.11 workspace_watcher + coverage contract + reviewer sign-off.
 - **Guardrail fix (committed 1b98641, pushed)**: subagent health check added to orchestrator skill + agent briefs ? will catch looping subagents at turn boundaries (no output 30+ min, tool-call churn with 0 turns, ignored status check, budget exceeded).
 - **Next**: await user direction. Do not dispatch any P5 work.
+
+
+## SESSION S5 (orchestrator) - RESUME (2026-09-20)
+
+- **Resumed from**: P5 HALTED (user directive 2026-09-20) - last commit 3d89a84 (pushed).
+- **Verified**: git clean on main; tests/engine + tests/support 104 passed (1.50s); no uncommitted work.
+- **State**: P5 remains IN PROGRESS (HALTED). 5.1-5.6 committed/pushed (0632954..536d31f); 5.7-5.11 pending. No P5 work dispatched - awaiting explicit user re-authorization per directive.
+- **Next**: await user direction on P5 (re-authorize resume of 5.7-5.11, or other instruction).

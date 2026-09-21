@@ -25,11 +25,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Last known step | P5 STARTED — human sign-off granted 2026-09-20; 11 tasks (5.1–5.11), 29h, lane D |
+| Last known step | P5 HALTED (user directive 2026-09-20); 5.1–5.6 committed/pushed, 5.7–5.11 pending |
 | Next action | HALTED — do NOT resume P5 without explicit user re-authorization |
-| Last commit | `1a825c9` (pushed to `origin/main`) |
-| Working tree | clean except 15 `.github/` files (BOM corruption — excluded) |
-| Prereqs | P4 closed (broker 94.0/86.7); 1.11, 2.5, 2.6, 4.9 all green — verified |
+| Last commit | `3d89a84` (pushed to `origin/main`) |
+| Working tree | clean |
+| Prereqs | P4 closed (broker 94.0/86.7); engine tests 104 passed (verified 2026-09-20) |
 
 ## Phase Status
 
@@ -151,3 +151,4 @@
 - **2026-09-20** — **Guardrail fix**: added background subagent health-check to orchestrator skill + agent briefs (root cause: loop guardrail only fired on completed turns; S3 never completed one). Restored 15 BOM-corrupted .github files. Commit `1b98641` pushed.
 
 - **2026-09-20** — **P5 HALTED (user directive)**: S4 cancelled cleanly (no partial work). 5.1–5.6 committed/pushed; 5.7–5.11 remain. Guardrail fix in place (subagent health check, commit `1b98641`). Awaiting user direction.
+- **2026-09-20** — **S5 resume (orchestrator)**: resumed from P5 HALTED (user directive). Verified git clean at `3d89a84`, engine tests 104 passed. No P5 work dispatched — awaiting explicit user re-authorization for 5.7–5.11.
