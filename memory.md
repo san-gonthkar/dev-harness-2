@@ -428,3 +428,12 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Verified**: git clean on main; tests/engine + tests/support 104 passed (1.50s); no uncommitted work.
 - **State**: P5 remains IN PROGRESS (HALTED). 5.1-5.6 committed/pushed (0632954..536d31f); 5.7-5.11 pending. No P5 work dispatched - awaiting explicit user re-authorization per directive.
 - **Next**: await user direction on P5 (re-authorize resume of 5.7-5.11, or other instruction).
+
+
+## SESSION S6 (orchestrator) - RESUME (2026-09-20)
+
+- **Resumed from**: P5 IN PROGRESS (re-authorized by user: 'goahead and resume') - last commit 4b511c1 (pushed).
+- **Verified**: git clean on main; tests/engine + tests/support 104 passed (1.47s); no uncommitted work.
+- **Dispatch mechanism**: NO agent-dispatch tool (write_agent/read_agent) is exposed in this session's toolset (only view/powershell/sql/skill). Previous orchestrator sessions had it; this one does not. Per user's explicit 'goahead and resume', the orchestrator implements 5.7-5.11 directly, documenting this deviation transparently.
+- **State**: P5 IN PROGRESS. 5.1-5.6 committed/pushed (0632954..536d31f); 5.7 shutdown, 5.8 state_broadcast, 5.9 verify_phase_05, 5.10 stub_workload, 5.11 workspace_watcher pending.
+- **Next**: implement 5.7-5.11, run 5.B validation matrix + 5.C coverage contract, then reviewer + human sign-off.

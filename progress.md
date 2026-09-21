@@ -15,8 +15,8 @@
 | Phases in progress | **1** (P5) |
 | Phases remaining | **6** (P6–P10) |
 | Current phase | **P5 — Execution Engine Daemon & Session Lifecycle** |
-| Current task | P5 HALTED (user directive) — awaiting direction |
-| Last commit | `1a825c9` — Close P4 (reviewer-agent ACCEPTED) |
+| Current task | P5 5.7 graceful shutdown (implementing directly - no dispatch tool in session) |
+| Last commit | `4b511c1` (pushed to `origin/main`) |
 | Last push | ✅ `1a825c9` → origin/main (2026-09-20) |
 
 ## Resume Point
@@ -25,11 +25,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Last known step | P5 HALTED (user directive 2026-09-20); 5.1–5.6 committed/pushed, 5.7–5.11 pending |
-| Next action | HALTED — do NOT resume P5 without explicit user re-authorization |
-| Last commit | `3d89a84` (pushed to `origin/main`) |
+| Last known step | P5 IN PROGRESS (re-authorized 2026-09-20); 5.1-5.6 committed/pushed, 5.7-5.11 pending |
+| Next action | Implement 5.7 shutdown, 5.8 state_broadcast, 5.9 verify_phase_05, 5.10 stub_workload, 5.11 workspace_watcher |
+| Last commit | `4b511c1` (pushed to `origin/main`) |
 | Working tree | clean |
-| Prereqs | P4 closed (broker 94.0/86.7); engine tests 104 passed (verified 2026-09-20) |
+| Prereqs | P4 closed; engine tests 104 passed (verified 2026-09-20) |
 
 ## Phase Status
 
@@ -152,3 +152,4 @@
 
 - **2026-09-20** — **P5 HALTED (user directive)**: S4 cancelled cleanly (no partial work). 5.1–5.6 committed/pushed; 5.7–5.11 remain. Guardrail fix in place (subagent health check, commit `1b98641`). Awaiting user direction.
 - **2026-09-20** — **S5 resume (orchestrator)**: resumed from P5 HALTED (user directive). Verified git clean at `3d89a84`, engine tests 104 passed. No P5 work dispatched — awaiting explicit user re-authorization for 5.7–5.11.
+- **2026-09-20** - **S6 resume (orchestrator)**: user re-authorized P5 ('goahead and resume'). No agent-dispatch tool exposed in this session (only view/powershell/sql/skill), so the orchestrator implements 5.7-5.11 directly (documented deviation). Verified git clean at '4b511c1', engine tests 104 passed. Starting 5.7 graceful shutdown.
