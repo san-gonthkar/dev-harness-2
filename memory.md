@@ -410,3 +410,13 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
   - phase-orchestrator.agent.md: same guardrail mirrored.
 - **Also**: restored 15 .github files corrupted with UTF-8 BOM + content degradation (git checkout -- .github) ? they are tracked, not gitignored (check-ignore exit 1).
 - **S4 health at fix time**: 230s / 64 tool calls / actively working ? healthy.
+
+
+## P5 HALTED ? USER DIRECTIVE (2026-09-20, orchestrator S1)
+
+- **User directive**: "dont resume the P5 after the agent update. Stop it."
+- **Action**: S4 (da0bd9c2) cancelled at 401s / 64 tool calls / 0 turns ? no partial work left (working tree clean; no 5.7-5.11 files created).
+- **State**: P5 remains IN PROGRESS in the phase table but is HALTED. Do NOT re-dispatch P5, do NOT resume 5.7-5.11, do NOT advance P5, unless the user explicitly re-authorizes.
+- **Committed so far**: 5.1-5.6 (commits 0632954..536d31f, pushed). Remaining: 5.7 shutdown, 5.8 state_broadcast, 5.9 verify_phase_05, 5.10 stub_workload, 5.11 workspace_watcher + coverage contract + reviewer sign-off.
+- **Guardrail fix (committed 1b98641, pushed)**: subagent health check added to orchestrator skill + agent briefs ? will catch looping subagents at turn boundaries (no output 30+ min, tool-call churn with 0 turns, ignored status check, budget exceeded).
+- **Next**: await user direction. Do not dispatch any P5 work.

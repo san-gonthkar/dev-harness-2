@@ -15,7 +15,7 @@
 | Phases in progress | **1** (P5) |
 | Phases remaining | **6** (P6–P10) |
 | Current phase | **P5 — Execution Engine Daemon & Session Lifecycle** |
-| Current task | P5 S3 ABORTED (tool loop) — re-dispatch pending |
+| Current task | P5 HALTED (user directive) — awaiting direction |
 | Last commit | `1a825c9` — Close P4 (reviewer-agent ACCEPTED) |
 | Last push | ✅ `1a825c9` → origin/main (2026-09-20) |
 
@@ -26,7 +26,7 @@
 | Field | Value |
 | :--- | :--- |
 | Last known step | P5 STARTED — human sign-off granted 2026-09-20; 11 tasks (5.1–5.11), 29h, lane D |
-| Next action | RE-DISPATCH P5 to fresh python-developer (S4): verify 5.1–5.6 green, implement 5.7–5.11, run 5.B/5.C, reviewer sign-off |
+| Next action | HALTED — do NOT resume P5 without explicit user re-authorization |
 | Last commit | `1a825c9` (pushed to `origin/main`) |
 | Working tree | clean except 15 `.github/` files (BOM corruption — excluded) |
 | Prereqs | P4 closed (broker 94.0/86.7); 1.11, 2.5, 2.6, 4.9 all green — verified |
@@ -149,3 +149,5 @@
 - **2026-09-20** — **P5 S3 ABORTED (tool loop)**: python-developer agent ran 4.6h / 1,844 tool calls / 0 completed turns; last commit 5.6 at 19:08, no file writes 10+ min, ignored status-check. 6 of 11 tasks committed (5.1–5.6, pushed). Remaining: 5.7–5.11 + coverage contract + reviewer sign-off. Next: re-dispatch S4.
 
 - **2026-09-20** — **Guardrail fix**: added background subagent health-check to orchestrator skill + agent briefs (root cause: loop guardrail only fired on completed turns; S3 never completed one). Restored 15 BOM-corrupted .github files. Commit `1b98641` pushed.
+
+- **2026-09-20** — **P5 HALTED (user directive)**: S4 cancelled cleanly (no partial work). 5.1–5.6 committed/pushed; 5.7–5.11 remain. Guardrail fix in place (subagent health check, commit `1b98641`). Awaiting user direction.
