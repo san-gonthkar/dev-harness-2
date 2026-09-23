@@ -31,6 +31,8 @@ In `requirements/Dev_Harness_Implementation_Plan_V11_Final.md`: the phase's `X.A
 3. Cover the defect class with a `negative` test before the happy path.
 4. Frozen clock (`tests/support/clock.py`) and `tmp_workspace` — never `time.sleep()`.
 5. `MockLLM` / `FakeProviderServer` — never live network calls.
+6. **Cover every branch in the task's own test file — never a trailing `*gaps*` file.** Check the touched package's branch % as you go (`pytest tests/<pkg> -q --cov=dev_harness.<pkg> --cov-branch`) and add the missing case to the module's test file. `*gaps*`/coverage-padding files are a closed-workaround: they are excluded from the smoke lane and defer the cost to a phase gate where it is more expensive to fix.
+7. **Use `parametrize` for tables** — the 16-cell transition table, error mappings, and status-code maps are data, not 16 near-identical functions. One parametrized test replaces a whole family of copy-paste tests and is what the reviewer expects for a tabular contract.
 
 ### 4. Validate
 **Smoke lane only** — `make test` (or `scripts/test_lane.ps1 smoke`) plus targeted `pytest tests/<package> -q`. Never `make test-full` / `make coverage` / `make ci` / `make test-nightly` unless the user explicitly asks in their current message; a `NIGHTLY`-tier row is not run (record it `pending - requires user-authorized full-suite run`). Then `make lint typecheck`.

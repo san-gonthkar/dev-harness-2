@@ -17,15 +17,25 @@ user-invocable: true
 
 | File | Role | Rule |
 | :--- | :--- | :--- |
-| `memory.md` | Authoritative shared memory: phase table, task log, `Current Status`, session registry | Read first; append-only; never delete history |
-| `progress.md` | Human monitoring dashboard: phase table, current task, gates, activity, git log | Mirror every state change in the same turn; never lag behind `memory.md` |
+| `memory.md` | Authoritative shared memory: phase table, task log, `Current Status`, session registry | Read first; append-only; never delete history; **commit once per phase close**, not per task |
+| `progress.md` | Human monitoring dashboard; the `AUTO:DASHBOARD` region is **machine-owned** | **Never hand-edit** — run `python scripts/gen_dashboard.py` (reads `memory.md` + git). `--check` fails on a stale dashboard. Commit with the phase close |
 
 ## Commit & Push Protocol
 
-- Commit after each task (or batch of 2-3), each gate, and each phase close.
+- Commit **code** after each task (or batch of 2-3), each gate, and each phase close.
 - Message: short summary + `Task-Id: {id}` trailer (enforced by `scripts/check_task_trailer.py`).
+- **State-file commits are batched once per phase** (see State-File Batching). Never a standalone `memory`/`progress`-only commit per task.
 - Push to `origin`/`main` after every commit/batch. If push fails, record it in `progress.md` and continue — never block the loop on push.
 - Never commit broken state or stray artifacts (`*.log`, `coverage.json`, temp files).
+
+## State-File Batching (anti-churn)
+
+`memory.md` and `progress.md` were the two most-edited files in the repo (71 edits / 109 commits), and 11 commits existed only to "fix stale dashboard rows". Both costs are now designed out:
+
+- **`progress.md` is generated** — run `python scripts/gen_dashboard.py` to rewrite the `AUTO:DASHBOARD` region from `memory.md` + git. Never hand-edit inside the markers. Run `--check` in a gate to fail a stale dashboard.
+- **Append to `memory.md` freely** (it is the append-only log), but **commit it once per phase close**, not per task. Same for the regenerated `progress.md`.
+- Per-task `memory.md` appends are scratch state; they do not each need a commit. The phase-close commit carries the durable record.
+- **Never** create a commit whose only purpose is to fix a stale dashboard row — regenerate instead.
 
 ## Resume Protocol
 
@@ -72,6 +82,8 @@ Abort immediately on any signal:
 
 **Never poll to wait** — no tool makes another agent progress; if you are waiting, you are looping.
 
+**This is enforced, not just documented**: a `PreToolUse` hook (`.github/hooks/stall-guard.json` -> `scripts/check_stall.py`) counts consecutive identical `(tool_name, tool_input)` calls and returns `ask` on the 3rd and `deny` on the 5th. A normal edit/test/edit cycle resets the counter. If the guard fires, it is a real loop — stop, produce output, or change the call.
+
 On abort: stop the loop; report to the user (trigger, last 5 actions, why no output, exact next safe step); record it in `memory.md` + `progress.md`. This outranks the autonomous loop and failure-retry logic.
 
 ### A subagent return is terminal
@@ -104,13 +116,12 @@ while any phase is not closed:
     phase = next phase whose prereqs are green and state != closed
     if blocked: recover or escalate; continue
     open phase (in progress)                  # memory.md + progress.md
-    for each task (dependency order, from resume point):
+    for each batch of 3-5 tasks (dependency order, from resume point):
         dispatch with brief + memory.md; smoke-lane validation
         if failed: recover
-        update memory.md + progress.md
-        commit (+ push) at meaningful intervals
+        update memory.md (regenerate progress.md); commit code
     verify phase gate (acceptance protocol + reviewer-agent)
-    close phase; commit + push; advance Current Status
+    close phase; commit code + state files; push; advance Current Status
 ```
 
 ## Failure Recovery
@@ -139,7 +150,7 @@ Gates 1-3 need the full suite — gate them `pending - requires user-authorized 
 | `closed` | Tasks green + coverage contract + signed acceptance protocol | Phase gate verified |
 
 1. **Open** — set `in progress` on first dispatch; mirror to `progress.md`.
-2. **Per task** — update the task log (`pending` -> `done`/`failed`) and `Current Status`; mirror test counts.
+2. **Per task** — update the task log (`pending` -> `done`/`failed`) and `Current Status`; mirror test counts. Regenerate `progress.md` with `scripts/gen_dashboard.py`; do **not** commit it per task (batch at phase close).
 3. **Blocked** — only after 3 failed attempts; record history + decision needed.
 4. **Close** — only when all three gates hold; record the acceptance report path + `signed_by` + commit, set `closed`, advance `Current Status`, mirror, commit + push.
 
@@ -158,7 +169,9 @@ Read the resume point first. Then the phase's `X.A` (tasks), `X.B` (validation),
 | Any phase gate | - | `reviewer-agent` (independent) |
 
 ### 3. Write the brief
-Task ID + deliverable (`X.A`); exact validation command + criteria (`X.B`); coverage contract + mutation focus set (`X.C`); skills to load; current `memory.md` context; session budget; heartbeat contract; stop-and-report rule; **smoke-lane-only rule**.
+**Batch 3-5 tasks per dispatch** — subagents run serially (no parallelism), so each dispatch pays a fixed startup + context-reload cost. One task per dispatch multiplies that cost by the task count. Only split when tasks have no shared context or a dependency boundary (different package, or a task that must be reviewed before the next is designed).
+
+Task IDs + deliverables (`X.A`); exact validation command + criteria (`X.B`); coverage contract + mutation focus set (`X.C`); skills to load; current `memory.md` context; session budget; heartbeat contract; stop-and-report rule; **smoke-lane-only rule**; **"cover branches in the task's own test file — never a trailing `*gaps*` file"**.
 
 ### 4. Invoke
 Dispatch with the `agent` tool (`runSubagent`) — blocking; verify output (commit/file change) after it returns, not just the report. Pass the brief and `memory.md`. If unavailable, follow the no-dispatch-tool rule.

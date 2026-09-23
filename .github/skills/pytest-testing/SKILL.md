@@ -42,6 +42,13 @@ def test_unscoped_query_raises() -> None:
 5. **Mock only at process/IO boundaries.** Never mock the unit under test's own internals.
 6. **Branch coverage is mandatory** (`--cov-branch`). The ratchet blocks any PR that drops a package by >0.5pp.
 7. **`# pragma: no cover` requires a trailing justification comment** on the same line. Bare pragmas fail CI.
+8. **Cover branches in the module's own test file.** Do not create or extend `*gaps*` / coverage-padding files — they are excluded from the smoke lane and defer the cost to a phase gate. Add the missing case to the test file the validation row names.
+9. **Use `parametrize` for contract tables.** A normative table (N states x M commands, error maps, status-code maps) is one parametrized test with explicit `ids`, not N*M functions. Assert the exact expected value per case.
+
+## Coverage-loop Hygiene
+
+- Never end an async test by awaiting a task parked in a long sleep; `task.cancel()` then `try: await task / except CancelledError`. A teardown that blocks turns the lane into a hang (the classic "no output forever" failure).
+- A task cancelled **before its first `await`** is instantly done — `await asyncio.sleep(0)` after `create_task` if the test asserts the task is still running.
 
 ## Async Tests
 

@@ -59,11 +59,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P5 — Execution Engine Daemon & Session Lifecycle (in progress, human sign-off granted 2026-09-20)
-- **Lane**: D
-- **Current task**: 5.1 EngineDaemon skeleton
-- **Last completed task**: P4 CLOSED (reviewer-agent ACCEPTED)
-- **Next task**: 5.1 → 5.11 (11 tasks, 29h); human sign-off required at phase close
+- **Phase**: P6 — Critic Gatekeeper & Interrupt Engine (in progress)
+- **Lane**: C
+- **Current task**: 6.3 TaskRegistry (done); next 6.4 process_group
+- **Last completed task**: P6 6.3 TaskRegistry with per-thread cancel_all
+- **Next task**: 6.4 process_group → 6.9 (6 tasks remaining); no human sign-off required for P6
 
 ## Phase 0 — Scaffolding, Shared Contracts & Test Infrastructure
 

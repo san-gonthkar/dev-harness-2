@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "python scripts/check_stall.py",
+        "windows": "python scripts/check_stall.py",
+        "linux": "python3 scripts/check_stall.py",
+        "osx": "python3 scripts/check_stall.py",
+        "timeout": 10
+      }
+    ]
+  }
+}
