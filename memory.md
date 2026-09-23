@@ -683,3 +683,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Start**: repo clean at `bd40533`. Skills loaded: python-dev-harness, ponytail, karpathy-*.
 - **Plan**: implement 6.4 -> test -> commit; 6.5 -> test -> commit; 6.6 -> test -> commit; then memory/progress + dashboard.
 - **Heartbeat**: this is the first append; next at ~30 min or per task.
+## SESSION S18 - P6 6.5-6.6 resume (python-developer, 2026-09-23)
+
+- **Session**: S18, python-developer, tasks 6.5 (core/signals.py) + 6.6 (core/pause_seal.py). 6.4 DONE at `1dcf1fb` (7 passed/2 skipped).
+- **Skills loaded**: python-dev-harness, asyncio-concurrency, ponytail, karpathy-agentic-engineering, karpathy-understanding-first.
+- **Context estimate**: ~8% at start.
+- **Key findings**: `ProcessGroupManager` (6.4) exposes `pgids`/`forget`; `is_posix()` guard pattern established. `GitAdapter.head_sha()` (1.9) + `CheckpointBinding.put_bound` (1.11) already bind checkpoints to HEAD. `HarnessState` has `is_paused` field. `tmp_workspace` fixture = git repo with initial commit. Frozen clock in `tests/support/clock.py`. Marker plugin: exactly one marker per test (module-level `pytestmark` counts). `os.killpg`/`os.waitpid` are POSIX-only; mypy strict on src.
+- **Plan**: 6.5 `EscalatingInterrupt` (killpg SIGINT -> grace -> killpg SIGKILL + waitpid reaping, injectable grace + clock, is_posix guard); 6.6 `PauseSeal` (is_paused, timestamp, bound hash via injectable hash provider). Tests in `tests/core/` with exactly one marker each. Smoke lane only.
+- **Heartbeat**: this is the first append; next at ~30 min or per task.
