@@ -732,3 +732,10 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Validation**: same run as above; `metrics.py` **100% line / 100% branch**. ruff + mypy strict clean.
 - **Deviations**: none. 6.7's plan validation row is `tests/core/test_interrupt_latency.py -m timing` (NIGHTLY, 50-trial SLO + `reports/interrupt_latency.json`) — that is the 6.9 `latency-drill` deliverable, not the collector; the collector's own unit tests live in `test_metrics.py` per the task's targeted file. The timing SLO test is deferred to 6.9.
 - **Next**: 6.8 `scripts/verify_phase_06.sh`, then 6.9 `core/cli.py` + `tests/support/stubborn_runner.py`.
+
+## SESSION S22 - P6 6.8-6.9 dispatch FAILED (python-developer, 2026-09-23)
+
+- **Dispatch**: batched brief 6.8 (verify_phase_06.sh + .ps1 stub) + 6.9 (core/cli.py + stubborn_runner.py + test_cli.py) to python-developer.
+- **Result**: subagent returned with NO output - no commit, no file writes, no memory.md append. Verified state once (git log/status + target file existence): all False, tree clean at 3a827ef.
+- **Verdict**: failed dispatch (empty return = no evidence of work). Per Subagent Health Check: record, re-dispatch fresh with resume brief.
+- **Next**: re-dispatch 6.8-6.9 with explicit "produce output continuously" + "commit after each task" emphasis.
