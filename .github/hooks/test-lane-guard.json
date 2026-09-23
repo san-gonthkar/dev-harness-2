@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "python scripts/check_test_lane.py",
+        "windows": "python scripts/check_test_lane.py",
+        "linux": "python3 scripts/check_test_lane.py",
+        "osx": "python3 scripts/check_test_lane.py",
+        "timeout": 10
+      }
+    ]
+  }
+}
