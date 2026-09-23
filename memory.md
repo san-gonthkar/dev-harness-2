@@ -61,9 +61,9 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P6 — Critic Gatekeeper & Interrupt Engine (in progress)
 - **Lane**: C
-- **Current task**: 6.3 TaskRegistry (done); next 6.4 process_group
-- **Last completed task**: P6 6.3 TaskRegistry with per-thread cancel_all
-- **Next task**: 6.4 process_group → 6.9 (6 tasks remaining); no human sign-off required for P6
+- **Current task**: 6.7 metrics (done); next 6.8 verify_phase_06
+- **Last completed task**: P6 6.7 interrupt-engine metrics collector
+- **Next task**: 6.8 verify_phase_06 → 6.9 cli + stubborn_runner (2 tasks remaining); no human sign-off required for P6
 
 ## Phase 0 — Scaffolding, Shared Contracts & Test Infrastructure
 
@@ -707,3 +707,28 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Result**: 6.5 `tests/core/test_signals.py` **17 passed, 1 skipped**; ruff + mypy clean. Commit `26070ba`.
 - **Lesson (general)**: any fake for a `while True` drain loop MUST have a terminating condition. A fake that always returns "more work" is an infinite loop, not a test.
 - **Next**: 6.6 pause_seal + 6.7 metrics (batched).
+
+## SESSION S21 - P6 6.6 + 6.7 (python-developer, 2026-09-23)
+
+- **Session**: S21, python-developer, tasks 6.6 (`core/pause_seal.py`) + 6.7 (`core/metrics.py`). 6.5 DONE at `26070ba` (17 passed/1 skipped).
+- **Skills loaded**: python-dev-harness, ponytail, karpathy-minimalism, karpathy-agentic-engineering, karpathy-understanding-first.
+- **Plan (6.A/6.B/6.C)**:
+  - 6.6 Pause seal with `is_paused`, timestamp, bound hash. Prereq 6.2, 1.11. Validation `pytest tests/core/test_pause_seal.py -q`: `is_paused=True`; timestamp within 1s; hash == `git rev-parse HEAD`.
+  - 6.7 Interrupt latency histogram on `METRICS_UPDATE`. Prereq 6.5, 4.10. Validation `pytest tests/core/test_interrupt_latency.py -q -m timing` (NIGHTLY): 50 trials p95<500ms, max<1000ms; `reports/interrupt_latency.json`.
+- **Reuse**: `GitAdapter.head_sha()` (1.9), `CheckpointBinding.put_bound` (1.11), `HarnessState.tui_state.is_paused`, `MetricsUpdatePayload` (4.10), frozen clock `tests/support/clock.py`, `tmp_workspace` fixture.
+- **Plan**: 6.6 `PauseSeal` (injectable hash provider + clock; `seal()` returns a frozen record; integration test against real git HEAD). 6.7 `InterruptMetrics` (typed counters/gauges + latency histogram; `to_payload()` -> `MetricsUpdatePayload`). Tests in `tests/core/` with exactly one marker each. Smoke lane only.
+- **Status**: starting implementation.
+
+### 6.6 DONE — `core/pause_seal.py` (commit `08f2c57`)
+
+- **Deliverable**: `PauseSeal` frozen dataclass (`is_paused`, `timestamp`, `checkpoint_hash`) + `PauseSealer` with injectable `clock` and `hash_provider`. `seal()` stamps the clock and binds the hash; `apply(state)` returns a deep copy with `tui_state.is_paused=True` and `git_state.last_checkpoint_commit=<hash>` (input never mutated); `apply_seal(state, seal)` applies an explicit seal. Default hash provider = `GitAdapter(workspace).head_sha()` (reuses 1.9; agrees with `CheckpointBinding.put_bound` 1.11).
+- **Tests** `tests/core/test_pause_seal.py` (6 tests): 5 `unit` (frozen clock, no-mutation, explicit seal, monkeypatched GitAdapter default, non-repo -> `VcsError`) + 1 `integration` (`tmp_workspace`: hash == `git rev-parse HEAD`, timestamp within 1s).
+- **Validation**: `pytest tests/core/test_pause_seal.py tests/core/test_metrics.py -q` -> **17 passed**; `pytest tests/core -q --cov=dev_harness.core --cov-branch` -> **74 passed, 3 skipped**; `pause_seal.py` **100% line / 100% branch**. ruff + mypy strict clean.
+
+### 6.7 DONE — `core/metrics.py` (commit `d4790b4`)
+
+- **Deliverable**: `InterruptMetrics` typed collector — counters `interrupts_issued`/`escalations`/`reaps`/`seals` (canonical `COUNTER_NAMES`), a latency histogram with nearest-rank `percentile`/`p50`/`p95`/`max_latency_ms`, `samples` gauge, `to_payload()` -> `MetricsUpdatePayload` (4.10), `reset()`. No third-party metrics library (ponytail).
+- **Tests** `tests/core/test_metrics.py` (11 tests, all `unit`): zero-init, record increments, canonical keys, parametrized percentile table, empty histogram, p50/p95/max, payload mapping, reset.
+- **Validation**: same run as above; `metrics.py` **100% line / 100% branch**. ruff + mypy strict clean.
+- **Deviations**: none. 6.7's plan validation row is `tests/core/test_interrupt_latency.py -m timing` (NIGHTLY, 50-trial SLO + `reports/interrupt_latency.json`) — that is the 6.9 `latency-drill` deliverable, not the collector; the collector's own unit tests live in `test_metrics.py` per the task's targeted file. The timing SLO test is deferred to 6.9.
+- **Next**: 6.8 `scripts/verify_phase_06.sh`, then 6.9 `core/cli.py` + `tests/support/stubborn_runner.py`.
