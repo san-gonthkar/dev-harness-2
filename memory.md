@@ -61,9 +61,9 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P6 — Critic Gatekeeper & Interrupt Engine (in progress)
 - **Lane**: C
-- **Current task**: 6.7 metrics (done); next 6.8 verify_phase_06
-- **Last completed task**: P6 6.7 interrupt-engine metrics collector
-- **Next task**: 6.8 verify_phase_06 → 6.9 cli + stubborn_runner (2 tasks remaining); no human sign-off required for P6
+- **Current task**: 6.9b stubborn_runner (done); next 6.8 verify_phase_06
+- **Last completed task**: P6 6.9b StubbornRunner hostile workload
+- **Next task**: 6.8 verify_phase_06 (unblocked — 6.9a CLI + 6.9b runner both exist); no human sign-off required for P6
 
 ## Phase 0 — Scaffolding, Shared Contracts & Test Infrastructure
 
