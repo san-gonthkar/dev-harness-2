@@ -96,11 +96,11 @@
 | 5.4 Multi-client fanout | ✅ done | `tests/engine/test_fanout.py` passed; fanout.py 100/100 |
 | 5.5 Provider gateway | ✅ done | `tests/engine/test_provider_gateway.py` passed; provider_gateway.py 100/100 (AST guard) |
 | 5.6 Daemon autostart | ✅ done | `tests/engine/test_bootstrap.py` 18 passed; bootstrap.py 98.3/— (≥92/85) |
-| 5.7 Graceful shutdown | ⬜ pending | — |
-| 5.8 State broadcast | ⬜ pending | — |
-| 5.9 verify_phase_05 | ⬜ pending | — |
-| 5.10 StubWorkload | ⬜ pending | — |
-| 5.11 Workspace watcher | ⬜ pending | — |
+| 5.7 Graceful shutdown | ✅ done | `tests/engine/test_shutdown.py` 6 passed; shutdown.py 100/100 |
+| 5.8 State broadcast | ✅ done | `tests/engine/test_state_broadcast.py` 7 passed; state_broadcast.py 100/100 |
+| 5.9 verify_phase_05 | ✅ done | `scripts/verify_phase_05.sh` (11 steps) + `.ps1` stub; report ACCEPTED |
+| 5.10 StubWorkload | ✅ done | `tests/support/test_stub_workload.py` passed; pausable/resumable, seq strictly increasing |
+| 5.11 Workspace watcher | ✅ done | `tests/engine/test_workspace_watcher.py` 10 passed; watcher.py 90/— |
 
 ### Quality Gates
 
