@@ -15,7 +15,7 @@
 | Phases in progress | **1** (P5) |
 | Phases remaining | **6** (P6–P10) |
 | Current phase | **P5 — Execution Engine Daemon & Session Lifecycle** |
-| Current task | P5 5.7 graceful shutdown (implementing directly - no dispatch tool in session) |
+| Current task | P5 complete (5.1-5.11); gate accepted by reviewer - **awaiting human signature** |
 | Last commit | `756ead1` (pushed to `origin/main`) |
 | Last push | ✅ `1a825c9` → origin/main (2026-09-20) |
 
@@ -25,10 +25,10 @@
 
 | Field | Value |
 | :--- | :--- |
-| Last known step | P5 IN PROGRESS (re-authorized 2026-09-22); 5.1-5.6 committed/pushed, 5.7-5.11 pending |
-| Next action | Dispatch 5.7-5.11 to python-developer (smoke lane); then 5.B/5.C gates + reviewer + human sign-off |
+| Last known step | P5 tasks 5.1-5.11 all DONE; 5.C coverage MET; 5.D reviewer ACCEPTED |
+| Next action | Obtain the **human signature** for P5 (plan line 135), then close P5 and start P6 |
 | Last commit | `756ead1` (pushed to `origin/main`) |
-| Working tree | clean |
+| Working tree | clean (reports/*.json gitignored by design) |
 | Prereqs | P4 closed; engine tests 104 passed (verified 2026-09-20) |
 
 ## Phase Status
