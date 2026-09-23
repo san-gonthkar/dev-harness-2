@@ -40,7 +40,7 @@
 | P2 IPC Transport & Event Bus | ✅ closed | ipc 94.2/91.2 | `verify_phase_02` | reviewer-agent |
 | P3 LLM Provider Abstraction | ✅ closed | providers 94.4/88.5 | `verify_phase_03` | reviewer-agent |
 | P4 Rate-Limit Broker & Cost Governor | ✅ closed | broker 94.0/86.7 · cost+kill_switch 100/100 | `verify_phase_04` | reviewer-agent |
-| P5 Execution Engine Daemon | 🔄 in progress | — | `verify_phase_05` | human required |
+| P5 Execution Engine Daemon | ✅ accepted (reviewer) / ⏳ human sign-off | engine 97.4–100 / 85.7–100 | `verify_phase_05` | reviewer-agent ✔ / **human required** |
 | P6 Critic Gatekeeper & Interrupt Engine | ⬜ not started | — | `verify_phase_06` | — |
 | P7 Hermes TUI Core Subsystem | ⬜ not started | — | `verify_phase_07` | — |
 | P8 SDLC Pipeline & Worker Pool | ⬜ not started | — | `verify_phase_08` | human required |
@@ -159,3 +159,5 @@
 - **2026-09-22** - **Lane policy enforced**: every agent (orchestrator, python-developer, reviewer, release, nodejs) now runs the **smoke lane only**; the full suite (`make test-full`/`make coverage`/`make ci`/`make test-nightly`) requires the user's explicit instruction in the current message. Phase gates/coverage contracts are tracked as `pending - requires user-authorized full-suite run` instead of triggering a run. Applied to 10 customization files (commit `9a9e016`).
 - **2026-09-22** - **Lane hook + AI-first docs**: added a deterministic `PreToolUse` hook (`.github/hooks/test-lane-guard.json` -> `scripts/check_test_lane.py`) that prompts (ask) on any full-suite command; smoke lane/targeted pytest/lint pass through. Condensed all `.github` customizations for AI readers (phase-orchestrator skill 318->164 lines; total 1450->1191). Fixed `.gitignore` (`.github/*` was hiding new customization files). Commits `7f2e1a4` (hook), `d5646a8` (condense + gitignore).
 - **2026-09-22** - **P5 tasks 5.7-5.11 DONE**: shutdown (5.7), state_broadcast (5.8), verify_phase_05 (5.9), stub_workload (5.10), workspace_watcher (5.11) all implemented and committed (dffffa2, c3de08b, ff53650, c6d600e, facfeaa). Smoke lane 461 passed; ruff/mypy clean. P5 gate pending: coverage contract (needs user-authorized full-suite run), acceptance protocol (POSIX/WSL2), reviewer + human sign-off.
+
+- **2026-09-22** — P5 reviewer sign-off (S12, reviewer-agent): 5.B rows green (engine+support 142 passed; per-file rows 127 passed); mypy strict 73 files clean; 5.C coverage MET (daemon 97.9/100, session 100/100, commands 97.4/94.0, fanout 100/100, shutdown 100/100, bootstrap 98.3/85.7, provider_gateway 100/100); 5.D all 11 steps implemented in `.sh`; rejection criteria all PASS. Report `reports/phase_05_acceptance.json` ACCEPTED at commit `ffebaa7`, signed_by reviewer-agent. **P5 additionally requires a HUMAN signature (plan line 135).** Live POSIX run of verify_phase_05.sh pending WSL2 (same as P1-P4).

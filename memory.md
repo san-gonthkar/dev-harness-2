@@ -594,3 +594,25 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Coverage contract 5.C**: engine PKG >=92/85; provider_gateway 100/95 - NOT yet measured (needs a full-suite coverage run: user authorization required, see Test Lane Policy).
 - **Phase gate PENDING**: (1) 5.B validation matrix green - task-level rows green; (2) 5.C coverage contract - pending user-authorized full-suite run; (3) acceptance protocol `scripts/verify_phase_05.sh` - live run is POSIX/WSL2 (native Windows has no AF_UNIX); report not yet emitted. P5 also requires a HUMAN signature (plan line 135).
 - **Next**: run the coverage contract + acceptance protocol on a user-authorized full-suite/POSIX run, then `reviewer-agent` sign-off + human signature to close P5.
+
+---
+
+## P5 REVIEWER SIGN-OFF (2026-09-22, reviewer-agent S12)
+
+- **Session**: S12, reviewer-agent, independent review of P5 (5.1-5.11), commits `0632954..ffebaa7` (HEAD `ffebaa7`).
+- **Skills loaded**: ponytail-review, asyncio-concurrency, karpathy-understanding-first.
+
+### Verification evidence
+
+- **5.B task rows (smoke lane)**: `python -m pytest tests/engine tests/support -q` -> **142 passed** (exit 0); per-file named rows `test_daemon/session/commands/fanout/provider_gateway/bootstrap/shutdown/state_broadcast/workspace_watcher/stub_workload` -> **127 passed** (exit 0).
+- **mypy --strict**: `Success: no issues found in 73 source files` (exit 0). ruff clean per S11 log.
+- **5.C coverage** (re-verified from `coverage.json`): daemon 97.9/100, session 100/100, commands 97.4/94.0, fanout 100/100, shutdown 100/100, bootstrap 98.3/85.7, provider_gateway 100/100 -> **all MET** (>=92/85; gateway 100/95).
+- **5.D acceptance protocol**: `scripts/verify_phase_05.sh` implements all **11** steps of plan 5.D by inspection (cold start, session uniqueness, multi-client attach, independent detach, late-attach SNAPSHOT, broker enforcement, autostart, graceful shutdown, crash residue, watcher demo, emit). `verify_phase_05.ps1` = AF_UNIX platform-limit stub (R2). Live POSIX run **pending WSL2** - same constraint P1-P4 closed under.
+- **Rejection criteria: all PASS** - no transcript divergence (step 3 asserts `diff -q` equality + gapless); no provider call bypasses the broker (AST guard test + step 6 asserts `BrokerUnavailableError`, 0 requests); no manual cleanup in step 9.
+- **Invariants**: no engine->provider-adapter import (AST guard `test_engine_never_imports_provider_adapters` green; grep shows only pydantic `TypeAdapter` + vcs `GitAdapter`); one marker per test; no bare `raise Exception/RuntimeError` in src (`tests/contracts/test_errors.py::test_no_bare_raise_exception_in_src`).
+- **Ponytail delete-list**: empty (no unjustified abstractions/deps). Minor non-blocking: `Any` in 4 constructor/conn signatures; `commands.py` re-implements 4-byte framing (intentional, distinct error taxonomy - same as broker/).
+
+### Verdict
+
+- **ACCEPTED** - report `reports/phase_05_acceptance.json`, commit `ffebaa7`, signed_by `reviewer-agent`.
+- **HUMAN SIGNATURE STILL REQUIRED** (plan line 135: P5 is Lane D). reviewer-agent signature does not satisfy this.
