@@ -20,6 +20,17 @@ LOG="${TMPDIR:-/tmp}/dev-harness-p6-driver.log"
 CTL="${TMPDIR:-/tmp}/dev-harness-p6-ctl.sock"
 STREAM="${TMPDIR:-/tmp}/dev-harness-p6-stream.sock"
 DAEMON_PID=""
+RUNNER_PID=""
+RUNNER_OUT="${TMPDIR:-/tmp}/dev-harness-p6-runner.out"
+
+stop_runner() {
+    if [ -n "$RUNNER_PID" ]; then
+        kill -TERM "$RUNNER_PID" 2>/dev/null || true
+        kill -KILL "$RUNNER_PID" 2>/dev/null || true
+        wait "$RUNNER_PID" 2>/dev/null || true
+        RUNNER_PID=""
+    fi
+}
 
 stop_driver() {
     if [ -n "$DAEMON_PID" ]; then
@@ -29,7 +40,7 @@ stop_driver() {
     fi
     rm -f "$CTL" "$STREAM"
 }
-trap 'stop_driver' EXIT
+trap 'stop_runner; stop_driver' EXIT
 
 # --- embedded driver: compose the P6 interrupt engine from its real parts ---
 cat >"$DRIVER" <<'PY'
@@ -56,6 +67,8 @@ from dev_harness.core.critic import CriticGatekeeper
 from dev_harness.core.critic_commands import CriticCommandHandler
 from dev_harness.core.metrics import InterruptMetrics
 from dev_harness.core.pause_seal import PauseSealer
+from dev_harness.core.process_group import ProcessGroupManager
+from dev_harness.core.signals import EscalatingInterrupt
 from dev_harness.core.task_registry import TaskRegistry
 
 THREAD_ID = "t1"
@@ -67,7 +80,9 @@ class Driver:
 
     def __init__(self, workspace: str) -> None:
         self.workspace = workspace
-        self.gatekeeper = CriticGatekeeper(initial=ExecutionState.READY)
+        # The protocol drives a live session, so the gatekeeper starts RUNNING
+        # (a PAUSE from READY is a no-op per the 0.22 table).
+        self.gatekeeper = CriticGatekeeper(initial=ExecutionState.RUNNING)
         self.registry = TaskRegistry()
         self.sealer = PauseSealer(workspace)
         self.metrics = InterruptMetrics()
@@ -200,12 +215,18 @@ class Driver:
                 leftover = self._cancel_all()
                 elapsed_ms = (time.monotonic() - start) * 1000.0
                 self.metrics.record_interrupt(elapsed_ms)
+                seal = self.sealer.seal()
                 return {
                     "ok": True,
                     "state": self.gatekeeper.state.value,
                     "already": envelope.payload.already,
                     "cancelled": had_tasks,
                     "leftover": len(leftover),
+                    "seal": {
+                        "is_paused": seal.is_paused,
+                        "timestamp": seal.timestamp,
+                        "checkpoint_hash": seal.checkpoint_hash,
+                    },
                 }
             if cmd == "resume":
                 envelope = self.handler.handle(CriticCommand.RESUME)
@@ -220,6 +241,20 @@ class Driver:
                     "ok": True,
                     "state": self.gatekeeper.state.value,
                     "already": envelope.payload.already,
+                }
+            if cmd == "interrupt-hostile":
+                # Escalate SIGINT -> grace 3.0s -> SIGKILL over the caller's
+                # process group, then reap. The manager is only used to forget
+                # the PGID; the group itself is signalled directly.
+                pgid = int(req["pgid"])
+                result = EscalatingInterrupt(
+                    ProcessGroupManager(), grace=3.0
+                ).interrupt(pgid)
+                return {
+                    "ok": True,
+                    "sigint_sent": result.sigint_sent,
+                    "sigkill_sent": result.sigkill_sent,
+                    "reaped": result.reaped,
                 }
             if cmd == "shutdown":
                 self._stop.set()
@@ -286,6 +321,50 @@ while b'\n' not in d:
 sys.stdout.write(d.decode())
 "; }
 
+# --- ACK recorder: reads `count` INTERRUPT_ACK lines from the stream socket --
+ACK_RECORDER="${TMPDIR:-/tmp}/dev-harness-p6-ackrec.py"
+cat >"$ACK_RECORDER" <<'PY'
+"""Reads `count` INTERRUPT_ACK lines from the streaming socket."""
+from __future__ import annotations
+
+import argparse
+import socket
+from pathlib import Path
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(prog="p6-ackrec")
+    parser.add_argument("--stream", required=True)
+    parser.add_argument("--out", required=True)
+    parser.add_argument("--count", type=int, default=3)
+    args = parser.parse_args()
+
+    conn = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    conn.connect(args.stream)
+    lines: list[str] = []
+    buf = b""
+    try:
+        while len(lines) < args.count:
+            chunk = conn.recv(4096)
+            if not chunk:
+                break
+            buf += chunk
+            while b"\n" in buf and len(lines) < args.count:
+                line, buf = buf.split(b"\n", 1)
+                if line.strip():
+                    lines.append(line.decode("utf-8"))
+    except OSError:
+        pass
+    finally:
+        conn.close()
+    Path(args.out).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+PY
+
 rm -rf "$WS"
 mkdir -p "$WS"
 ( cd "$WS" && git init -q -b main && git commit -q --allow-empty -m "p6 init" )
@@ -322,7 +401,107 @@ if [ "$elapsed_ms" -ge 500 ]; then
     exit 1
 fi
 
-# TODO(6.8c): steps 3-6 (hostile interrupt, idempotency, illegal transition, seal)
+echo "[P6] step 3: hostile interrupt (SIGINT ignored -> SIGKILL over the group)"
+rm -f "$RUNNER_OUT" "$RUNNER_OUT".child* "$RUNNER_OUT".stop
+python tests/support/stubborn_runner.py --output "$RUNNER_OUT" --children 3 --new-session &
+RUNNER_PID=$!
+for _ in $(seq 1 100); do
+    [ -s "$RUNNER_OUT" ] && break
+    sleep 0.1
+done
+if [ ! -s "$RUNNER_OUT" ]; then
+    echo "stubborn runner produced no output within 10s" >&2
+    exit 1
+fi
+PGID="$(ps -o pgid= -p "$RUNNER_PID" | tr -d ' ')"
+echo "  runner pid=$RUNNER_PID pgid=$PGID"
+size_before="$(wc -c <"$RUNNER_OUT")"
+hostile="$(ctl "{\"cmd\":\"interrupt-hostile\",\"pgid\":$PGID}")"
+echo "  interrupt-hostile -> $hostile"
+grep -q '"ok": true' <<<"$hostile" || { echo "interrupt-hostile failed: $hostile" >&2; exit 1; }
+grep -q '"sigint_sent": true' <<<"$hostile" || { echo "SIGINT was not sent: $hostile" >&2; exit 1; }
+grep -q '"sigkill_sent": true' <<<"$hostile" || { echo "SIGKILL was not sent (group died on SIGINT?): $hostile" >&2; exit 1; }
+# The runner is our child: reap it so it is not left a zombie, then confirm the
+# whole group has drained (bounded poll).
+wait "$RUNNER_PID" 2>/dev/null || true
+stat="$(ps -o stat= -p "$RUNNER_PID" 2>/dev/null | tr -d ' ' || true)"
+if [ -n "$stat" ] && [[ "$stat" == *Z* ]]; then
+    echo "runner $RUNNER_PID left a zombie (stat=$stat)" >&2
+    exit 1
+fi
+RUNNER_PID=""
+gone=0
+for _ in $(seq 1 40); do
+    if ! pgrep -g "$PGID" >/dev/null 2>&1; then gone=1; break; fi
+    sleep 0.1
+done
+[ "$gone" -eq 1 ] || { echo "process group $PGID still alive after 4s" >&2; exit 1; }
+# The output file must have stopped growing.
+sleep 0.5
+size_after="$(wc -c <"$RUNNER_OUT")"
+if [ "$size_after" -ne "$size_before" ]; then
+    echo "runner output still growing ($size_before -> $size_after)" >&2
+    exit 1
+fi
+
+echo "[P6] step 4: idempotency (3x PAUSE -> one transition, 3 ACKs, 2 already)"
+# Restart the driver so the streaming socket replays no stale ACKs from step 2
+# and the gatekeeper starts RUNNING (so the first PAUSE is a real transition).
+stop_driver
+run_driver
+ACK_OUT="${TMPDIR:-/tmp}/dev-harness-p6-acks.txt"
+rm -f "$ACK_OUT"
+python "$ACK_RECORDER" --stream "$STREAM" --out "$ACK_OUT" --count 3 &
+ACK_PID=$!
+p1="$(ctl '{"cmd":"pause"}')"
+p2="$(ctl '{"cmd":"pause"}')"
+p3="$(ctl '{"cmd":"pause"}')"
+wait "$ACK_PID" 2>/dev/null || true
+echo "  pause#1 -> $p1"
+echo "  pause#2 -> $p2"
+echo "  pause#3 -> $p3"
+grep -q '"state": "PAUSED"' <<<"$p1" || { echo "pause#1 did not reach PAUSED: $p1" >&2; exit 1; }
+grep -Eq '"already": ?false' <<<"$p1" || { echo "pause#1 was not a real transition: $p1" >&2; exit 1; }
+grep -Eq '"already": ?true' <<<"$p2" || { echo "pause#2 was not idempotent: $p2" >&2; exit 1; }
+grep -Eq '"already": ?true' <<<"$p3" || { echo "pause#3 was not idempotent: $p3" >&2; exit 1; }
+ack_lines="$(wc -l <"$ACK_OUT")"
+[ "$ack_lines" -eq 3 ] || { echo "expected 3 INTERRUPT_ACK envelopes, got $ack_lines" >&2; cat "$ACK_OUT" >&2; exit 1; }
+sed -n '1p' "$ACK_OUT" | grep -Eq '"already": ?false' || { echo "ACK#1 was not a real transition" >&2; exit 1; }
+sed -n '2p' "$ACK_OUT" | grep -Eq '"already": ?true' || { echo "ACK#2 missing already:true" >&2; exit 1; }
+sed -n '3p' "$ACK_OUT" | grep -Eq '"already": ?true' || { echo "ACK#3 missing already:true" >&2; exit 1; }
+
+echo "[P6] step 5: illegal transition (STOP then RESUME -> IllegalTransitionError)"
+stop="$(ctl '{"cmd":"stop"}')"
+echo "  stop -> $stop"
+grep -q '"state": "STOPPED"' <<<"$stop" || { echo "stop did not reach STOPPED: $stop" >&2; exit 1; }
+resume="$(ctl '{"cmd":"resume"}')"
+echo "  resume -> $resume"
+grep -q '"ok": false' <<<"$resume" || { echo "resume from STOPPED did not fail: $resume" >&2; exit 1; }
+grep -q '"error": "IllegalTransitionError"' <<<"$resume" || { echo "resume error was not IllegalTransitionError: $resume" >&2; exit 1; }
+status="$(ctl '{"cmd":"status"}')"
+echo "  status -> $status"
+grep -q '"state": "STOPPED"' <<<"$status" || { echo "state changed after illegal resume: $status" >&2; exit 1; }
+
+echo "[P6] step 6: pause seal (is_paused, HEAD hash, timestamp)"
+# Step 5 left the gatekeeper STOPPED (PAUSE is illegal there), so restart the
+# driver for a fresh RUNNING -> PAUSED cycle and observe the seal.
+stop_driver
+run_driver
+head_sha="$(git -C "$WS" rev-parse HEAD)"
+t_before="$(date +%s)"
+seal_pause="$(ctl '{"cmd":"pause"}')"
+t_after="$(date +%s)"
+echo "  pause -> $seal_pause"
+grep -q '"is_paused": true' <<<"$seal_pause" || { echo "seal is_paused not true: $seal_pause" >&2; exit 1; }
+grep -q "\"checkpoint_hash\": \"$head_sha\"" <<<"$seal_pause" || { echo "seal hash != HEAD ($head_sha): $seal_pause" >&2; exit 1; }
+ts="$(python -c "import json,sys; print(json.loads(sys.argv[1])['seal']['timestamp'])" "$seal_pause")"
+python -c "
+import sys
+ts = float(sys.argv[1]); before = int(sys.argv[2]); after = int(sys.argv[3])
+if not (before - 1 <= ts <= after + 1):
+    raise SystemExit(f'seal timestamp {ts} outside [{before - 1}, {after + 1}]')
+" "$ts" "$t_before" "$t_after" || { echo "seal timestamp out of range: $ts" >&2; exit 1; }
+
 # TODO(6.8d): steps 7-10 (resume correctness, latency-drill, mutation gate, emit)
 
-echo "P6 acceptance (partial: steps 1-2) OK"
+echo "P6 acceptance (partial: steps 1-6) OK"
