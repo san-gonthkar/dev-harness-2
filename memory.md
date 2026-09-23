@@ -753,3 +753,28 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Verdict**: two consecutive empty returns (S22, S23). Retry + re-dispatch ladder exhausted. Per Failure Recovery: ESCALATE - set P6 blocked, ask the user.
 - **Blocked on**: 6.8 (verify_phase_06.sh + .ps1) + 6.9 (core/cli.py + stubborn_runner.py + test_cli.py). The python-developer subagent returns empty for these two tasks specifically (6.1-6.7 all succeeded).
 - **Hypothesis**: the 6.8/6.9 brief is the largest and most self-contained (a 10-step bash protocol + a CLI + a test binary); the subagent may be hitting a context/startup failure on the biggest briefs. Options for the user: (a) implement 6.8/6.9 directly in the root session (documented deviation, done before for P5 5.7-5.11); (b) split into 4 smaller dispatches (6.8 alone, then 6.9 cli, then stubborn_runner, then test_cli); (c) try a different agent/model.
+
+## SESSION S24 - P6 6.9a core CLI (python-developer, 2026-09-23)
+
+- **Session**: S24, python-developer, task 6.9a ONLY (`core/cli.py` + `tests/core/test_cli.py`). 6.9b (stubborn_runner) + 6.8 (verify_phase_06) remain.
+- **Skills loaded**: python-dev-harness, ponytail, karpathy-minimalism, karpathy-agentic-engineering, karpathy-understanding-first.
+- **Plan (6.A/6.B/6.D)**: `transitions --table` prints the 16-cell §0.22 table from `contracts/transitions.py` (single source of truth, no hardcoded copy, no `UNDEFINED` cells); `latency-drill --trials N` measures PAUSE->PAUSED latency via real `CriticGatekeeper` (6.1) + `CriticCommandHandler` (6.2), computes p50/p95/max via `InterruptMetrics` (6.7), writes `reports/interrupt_latency.json`, exits non-zero if p95 >= 500ms or max >= 1000ms. Structure mirrors `broker/cli.py`: argparse subparsers with `func` defaults, `main(argv) -> int`, `raise SystemExit(main())`.
+- **Reuse**: `transition_table()` from `contracts/transitions.py`; `InterruptMetrics` from `core/metrics.py`; frozen clock `tests/support/clock.py`; `monkeypatch.chdir(tmp_path)` pattern from `tests/broker/test_cli.py`.
+- **Status**: starting implementation.
+
+## SESSION S25 - P6 6.9b stubborn_runner (python-developer, 2026-09-23)
+
+- **Session**: S25, python-developer, task 6.9b ONLY (`tests/support/stubborn_runner.py` + `tests/support/test_stubborn_runner.py`). 6.8 (verify_phase_06) remains.
+- **Skills loaded**: python-dev-harness, ponytail, karpathy-minimalism, karpathy-agentic-engineering, karpathy-understanding-first.
+- **Plan (6.A/6.B/6.D step 3)**: hostile workload — spawns 3 grandchildren, traps SIGINT (handler does not exit), writes continuously to `--output`; POSIX startable in its own session (`start_new_session=True`) so `killpg` targets the tree; Windows degrades gracefully. Tests: `unit` (arg parsing / child-count logic, no spawn), `integration` (POSIX: 3 grandchildren + file grows, then killpg stops growth), `negative` (SIGINT alone does not terminate).
+- **Hazard guard (S20)**: every loop bounded by `--max-iterations` / stop file; every spawned process cleaned up in `finally`; no `time.sleep()` in tests.
+- **Status**: starting implementation.
+
+### 6.9b DONE — `tests/support/stubborn_runner.py` + `test_stubborn_runner.py`
+
+- **Deliverable**: `stubborn_runner.py` — stdlib-only hostile workload. Spawns `--children` (default 3) grandchildren (each ignores SIGINT, writes to `<output>.child<i>`), traps SIGINT with a no-op handler (only SIGKILL ends it), writes counter+timestamp lines to `--output` and echoes each to stdout (flushed) for event-driven test observation. Every loop bounded by `--max-iterations` (0 = unbounded) or `--stop-file`; `main()` reaps children in `finally`. POSIX: `start_new_session=True` (or `--new-session` → `os.setsid()`); Windows degrades gracefully (no `killpg`).
+- **Tests** `tests/support/test_stubborn_runner.py` (10 tests): 6 `unit` (arg defaults/overrides, bad-count rejection, child argv shape, bounded stop logic, zero-children ready) + 1 `negative` (SIGINT does not terminate; POSIX-skipped) + 1 `integration` (3 grandchildren + file growth + `killpg` stops growth; POSIX-skipped). 2 POSIX tests skip on Windows.
+- **No `time.sleep` in tests**: a `_LineReader` thread pumps the runner's stdout into a `queue.Queue`; tests block on `read_until`/`read_line`/`drain` with timeouts. Every process reaped in `finally`.
+- **Validation**: `python -m pytest tests/support/test_stubborn_runner.py -q --timeout=60` → **8 passed, 2 skipped**; `tests/support` → **30 passed, 2 skipped**. ruff check + format clean; `mypy src` clean (81 files). Bounded-run smoke: `--max-iterations 5` exits 0 with 5 lines.
+- **Deviations**: none. POSIX live tests skip on Windows (mirrors `test_process_group.py`); the `.ps1` platform stub covers the live kill path.
+- **Next**: 6.8 `scripts/verify_phase_06.sh` + `.ps1` (now unblocked — 6.9a CLI and 6.9b runner both exist).
