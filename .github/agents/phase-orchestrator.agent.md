@@ -33,9 +33,23 @@ The `phase-orchestrator` skill is the canonical spec (loop, resume, recovery, ga
 
 ## Guardrail: Loop Abort (Mandatory)
 
-Abort immediately when any holds: the same tool-input error repeats twice consecutively (or 3x in a turn window); 8+ consecutive meta-only actions produce no output; a full cycle yields no dispatch, no `memory.md` append, no `progress.md` mirror, and no commit attempt.
+Abort immediately when **any** holds:
+1. **Identical repeat** — you run the same tool with the same input and get the same output **twice**. Repeating it a third time is forbidden. (This is the most common self-loop: polling `git log`/`git status` to "wait" for something.)
+2. **Same tool-input validation error** repeats twice consecutively (or 3x in a turn window).
+3. **8+ consecutive meta-only actions** with no output-producing action.
+4. A full cycle with no dispatch, no `memory.md` append, no `progress.md` mirror, and no commit attempt.
+
+**Never poll to wait.** There is no tool that makes another agent or a running command progress. If you are waiting, you are looping — stop.
 
 On abort: stop; report (trigger, last 5 actions, why no output, exact next safe step); log to `memory.md` + `progress.md`. This outranks the autonomous loop.
+
+## Rule: A Subagent Return Is Terminal
+
+`runSubagent` is **blocking**. When it returns, that invocation is **over** — there is no background agent to wait for.
+
+- If it returned a **final report**: verify output (commit / file change) and continue.
+- If it returned a **partial/mid-task fragment** (e.g. "Let me check…", "Now I'll run…") or no report: the session ended early. Do **not** wait. Verify actual state **once** (`git log`, `git status`, target files), record what is done vs. missing, then **re-dispatch the remainder in a fresh session**.
+- **Never** follow a `runSubagent` return with a polling loop. One state check, then act (re-dispatch) or report.
 
 ## Guardrail: Subagent Health Check (Mandatory)
 

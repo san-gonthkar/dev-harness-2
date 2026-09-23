@@ -65,11 +65,21 @@ A session is one invocation with a finite context window. The orchestrator keeps
 ## Loop Guardrail (hard stop)
 
 Abort immediately on any signal:
-1. The same tool-input validation error repeats twice consecutively (or 3 times in one turn window).
-2. 8+ consecutive meta-only actions (listing, fetching context, reading logs, permission retries) with no output-producing action.
-3. A full cycle with no dispatch, no `memory.md` append, no `progress.md` mirror, and no commit attempt.
+1. **Identical repeat** — the same tool, same input, same output **twice**. A third repeat is forbidden. (Polling `git log`/`git status` to wait is the classic self-loop.)
+2. The same tool-input validation error repeats twice consecutively (or 3 times in one turn window).
+3. 8+ consecutive meta-only actions (listing, fetching context, reading logs, permission retries) with no output-producing action.
+4. A full cycle with no dispatch, no `memory.md` append, no `progress.md` mirror, and no commit attempt.
+
+**Never poll to wait** — no tool makes another agent progress; if you are waiting, you are looping.
 
 On abort: stop the loop; report to the user (trigger, last 5 actions, why no output, exact next safe step); record it in `memory.md` + `progress.md`. This outranks the autonomous loop and failure-retry logic.
+
+### A subagent return is terminal
+
+`runSubagent` is blocking: when it returns, the invocation is over — nothing is still running.
+
+- **Final report** → verify output, continue.
+- **Partial/mid-task fragment, or no report** → the session ended early. Do NOT wait or poll. Verify state **once**, record done vs. missing, and **re-dispatch the remainder in a fresh session** (a fresh `runSubagent` with a resume brief).
 
 ### Subagent liveness
 

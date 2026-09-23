@@ -430,6 +430,19 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Next**: await user direction on P5 (re-authorize resume of 5.7-5.11, or other instruction).
 
 
+## S10 ORCHESTRATOR SELF-LOOP - DIAGNOSED (2026-09-22)
+
+- **Symptom**: the orchestrator ran the identical poll `git --no-pager log --oneline -1; git status --short` dozens of times with identical output (c3de08b / " M memory.md").
+- **Root cause**: `runSubagent` returned a mid-task fragment ("Now I have a good understanding... Let me check the verify_phase.py flow") for the 5.9-5.11 dispatch. I misread it as "still running" and began polling to wait. But `runSubagent` is BLOCKING - when it returns, the invocation is OVER. Polling a terminal can never progress a subagent, so identical input produced identical output forever.
+- **Why the guardrail did not catch it**: the loop-abort rule triggered on a repeated tool-INPUT VALIDATION ERROR, not on a repeated SUCCESSFUL call. The subagent-health rule monitored the subagent, not the orchestrator itself.
+- **Fixes applied** (phase-orchestrator agent + skill):
+  1. Loop trigger 1 is now "same tool + same input + same output twice -> abort; a third repeat is forbidden".
+  2. Explicit "never poll to wait" rule.
+  3. New Rule: "A Subagent Return Is Terminal" - on a partial/no report, verify state ONCE, record done vs missing, then re-dispatch the remainder in a fresh session; never wait or poll.
+- **Actual P5 state at diagnosis**: 5.7 committed/pushed (dffffa2); 5.8 committed + pushed (c3de08b); 5.9-5.11 absent (verify_phase_05.sh, stub_workload.py, workspace_watcher.py). Tree clean except memory.md.
+- **Next**: re-dispatch 5.9-5.11 (fresh runSubagent, resume brief), then re-run smoke + lint/typecheck, then 5.B/5.C gates + reviewer + human sign-off.
+
+
 ## P5 RE-AUTHORIZED - RESUME 5.7-5.11 (2026-09-22, user directive)
 
 - **User directive**: "that was a temporary halt. now remove this and start again from P5.6 if complete resume the process and take the next logical section."
@@ -517,6 +530,19 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Next**: await user direction on P5 (re-authorize resume of 5.7-5.11, or other instruction).
 
 
+## S10 ORCHESTRATOR SELF-LOOP - DIAGNOSED (2026-09-22)
+
+- **Symptom**: the orchestrator ran the identical poll `git --no-pager log --oneline -1; git status --short` dozens of times with identical output (c3de08b / " M memory.md").
+- **Root cause**: `runSubagent` returned a mid-task fragment ("Now I have a good understanding... Let me check the verify_phase.py flow") for the 5.9-5.11 dispatch. I misread it as "still running" and began polling to wait. But `runSubagent` is BLOCKING - when it returns, the invocation is OVER. Polling a terminal can never progress a subagent, so identical input produced identical output forever.
+- **Why the guardrail did not catch it**: the loop-abort rule triggered on a repeated tool-INPUT VALIDATION ERROR, not on a repeated SUCCESSFUL call. The subagent-health rule monitored the subagent, not the orchestrator itself.
+- **Fixes applied** (phase-orchestrator agent + skill):
+  1. Loop trigger 1 is now "same tool + same input + same output twice -> abort; a third repeat is forbidden".
+  2. Explicit "never poll to wait" rule.
+  3. New Rule: "A Subagent Return Is Terminal" - on a partial/no report, verify state ONCE, record done vs missing, then re-dispatch the remainder in a fresh session; never wait or poll.
+- **Actual P5 state at diagnosis**: 5.7 committed/pushed (dffffa2); 5.8 committed + pushed (c3de08b); 5.9-5.11 absent (verify_phase_05.sh, stub_workload.py, workspace_watcher.py). Tree clean except memory.md.
+- **Next**: re-dispatch 5.9-5.11 (fresh runSubagent, resume brief), then re-run smoke + lint/typecheck, then 5.B/5.C gates + reviewer + human sign-off.
+
+
 ## P5 RE-AUTHORIZED - RESUME 5.7-5.11 (2026-09-22, user directive)
 
 - **User directive**: "that was a temporary halt. now remove this and start again from P5.6 if complete resume the process and take the next logical section."
@@ -539,3 +565,8 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Skills loaded**: python-dev-harness (procedure), ponytail (YAGNI), karpathy-agentic-engineering (one increment/round), karpathy-understanding-first (report contract).
 - **Verified**: tree clean at dffffa2 (5.7 committed/pushed); engine tests 104 passed; 5.1-5.7 committed; 5.8-5.11 files absent.
 - **Plan**: 5.8 state_broadcast -> 5.9 verify_phase_05 -> 5.10 stub_workload -> 5.11 workspace_watcher; smoke lane + lint/typecheck per task; commit per task with Task-Id trailer; no push (orchestrator pushes).
+
+### S9 progress
+
+- **5.8 DONE** (commit `c3de08b`): `engine/state_broadcast.py` — `StateBroadcast` delivers `SNAPSHOT` (full `HarnessState`) as first frame on attach via new `Fanout.publish_to()` (existing clients never see a duplicate). Tests `tests/engine/test_state_broadcast.py` 7 passed; fanout 8 passed; ruff+mypy clean. Validation: `pytest tests/engine/test_state_broadcast.py -q` exit 0.
+- **Next**: 5.9 `scripts/verify_phase_05.sh` (+ `.ps1` stub).
