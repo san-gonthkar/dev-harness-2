@@ -21,3 +21,9 @@ reports/*.log
 .venv/
 venv/
 .github/*
+!.github/agents/
+!.github/prompts/
+!.github/skills/
+!.github/hooks/
+!.github/workflows/
+!.github/copilot-instructions.md

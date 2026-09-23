@@ -12,307 +12,153 @@ user-invocable: true
 - Starting, advancing, or closing a phase
 - Dispatching a task to an implementing agent
 - Recovering from a failed task or gate
-- Any handoff between agents
 
-## The Memory Protocol
+## State Files
 
-`memory.md` (at the workspace root) is the **single shared memory file** for this development. Every agent invocation reads it first and updates it on completion.
+| File | Role | Rule |
+| :--- | :--- | :--- |
+| `memory.md` | Authoritative shared memory: phase table, task log, `Current Status`, session registry | Read first; append-only; never delete history |
+| `progress.md` | Human monitoring dashboard: phase table, current task, gates, activity, git log | Mirror every state change in the same turn; never lag behind `memory.md` |
 
-- **Read before starting**: load `memory.md`, understand where the development stands, what the last completed task was, and what the current phase needs.
-- **Update on completion**: append the task result, decisions, and next steps so the next agent starts with full context.
-- **Never delete history**: append-only. The file is the exchange medium — losing history loses context.
+## Commit & Push Protocol
 
-## The Progress Dashboard Protocol
+- Commit after each task (or batch of 2-3), each gate, and each phase close.
+- Message: short summary + `Task-Id: {id}` trailer (enforced by `scripts/check_task_trailer.py`).
+- Push to `origin`/`main` after every commit/batch. If push fails, record it in `progress.md` and continue — never block the loop on push.
+- Never commit broken state or stray artifacts (`*.log`, `coverage.json`, temp files).
 
-`progress.md` (at the workspace root) is the **human-readable monitoring view**. The user watches this file to track progress; it must never lag behind `memory.md`.
+## Resume Protocol
 
-- **Update after every meaningful interval**: task done, gate result, phase transition, commit/push.
-- **Mirror, do not duplicate**: `memory.md` holds the full history; `progress.md` holds the current state — phase table, current phase task progress, quality gates, recent activity, git/push log.
-- **Keep it current**: every time you append to `memory.md`, update the corresponding section of `progress.md` in the same turn.
-- **Never delete history**: append to the git/push log and recent-activity sections; do not rewrite them.
+On every invocation: **locate -> verify -> record -> continue.** Never restart.
 
-## The Commit & Push Protocol
+1. **Locate** — `memory.md` (phase table, task log, `Current Status`, session registry), `progress.md` (Resume Point), `git log --oneline -5`, `git status --short`.
+2. **Cross-check** — if sources disagree, trust `memory.md` and reconcile the others.
+3. **Verify** — touched package's tests pass (smoke lane), `git status` clean, prereqs green.
+4. **Record** — append a session entry to `memory.md`; update `progress.md`'s Resume Point.
 
-The GitHub repository is set up. Commit and push at **regular meaningful intervals** so the user can monitor progress remotely.
-
-- **Commit at every meaningful interval** — at minimum:
-  1. After each task's validation passes (or a small batch of 2–3 tasks).
-  2. After each quality gate passes (coverage contract, acceptance protocol).
-  3. After each phase closes.
-  4. After any `memory.md` / `progress.md` update that changes phase state.
-- **Commit message convention**: `Task-Id: {id}` trailer (enforced by `scripts/check_task_trailer.py`). Use a short summary line describing what changed, e.g. `P4.1 token bucket + tests` or `Close P4: coverage contract met, acceptance ACCEPTED`.
-- **Push after every commit** (or batch of commits) — the remote is `origin`; the branch is `main`. If the push fails (no remote, auth), record it in `progress.md` and continue; do not block the loop on push.
-- **Never commit broken state**: only commit when the touched package's tests pass and mypy/ruff are clean for the changed files. A phase-close commit additionally requires the coverage contract and acceptance protocol.
-- **Stray artifacts**: do not commit logs (`*.log`), coverage JSON, or temp files. Add them to `.gitignore` if they recur.
-
-## The Resume Protocol
-
-The orchestrator must **resume from the last known step** on every invocation — never start over. The plan is 149 tasks across 11 phases; re-running completed work wastes context and risks regressions.
-
-### 1. Determine the Last Known Step (before doing anything)
-
-On every invocation, in this order:
-
-1. **Read `memory.md`** — the authoritative state:
-   - The phase-status table: which phases are `closed`, `in progress`, `blocked`, `not started`.
-   - The current phase's task log: which tasks are `done`/`failed`/`pending`.
-   - The `Current Status` block: the exact next task and next step.
-   - The session registry: the last session and its checkpoint.
-2. **Read `progress.md`** — the dashboard mirrors the same state; use it to confirm the current phase/task and the last commit/push.
-3. **Check git** — `git log --oneline -5` and `git status --short`:
-   - The last commit tells you what was last completed and pushed.
-   - Uncommitted changes tell you a task is mid-flight (resume from the checkpoint, do not discard).
-4. **Cross-check** — `memory.md`, `progress.md`, and git must agree on the current step. If they disagree, trust `memory.md` (it is the authoritative history) and reconcile the others.
-
-### 2. Resume, Do Not Restart
-
-- **Closed phases** — never re-open, never re-verify, never re-dispatch. Their gates were signed; the acceptance reports are commit-pinned.
-- **Done tasks** — never re-dispatch. Their validation rows are green; their commits exist.
-- **In-progress phase** — start at the first task whose state is not `done` (or the task named in `Current Status` / the last session's checkpoint).
-- **Mid-task checkpoint** — if the last session checkpointed at ~70% context mid-task, resume from the checkpoint's "exact next step", not from the task start.
-- **Blocked phase** — do not resume past it; recover (retry → re-dispatch → escalate) or ask the user.
-
-### 3. Verify the Resume Point Before Continuing
-
-Before dispatching the next task, confirm the resume point is real:
-
-1. The touched package's tests still pass (`pytest tests/<pkg> -q`).
-2. `git status` is clean (or only expected artifacts are present).
-3. The phase's prerequisites are still green in `memory.md`.
-
-If the resume point is broken (tests fail, state inconsistent), treat it as a failure and recover — do not silently skip ahead.
-
-### 4. Record the Resume
-
-When you resume, append a session entry to `memory.md` and update `progress.md`:
-- Session ID, agent, phase/task resumed from, context estimate.
-- "Resumed from: <phase> <task> (last commit <hash>)".
-- The exact next step.
-
-This makes every subsequent invocation (and every session rotation) a clean handoff: read → locate → verify → continue.
+- **Closed phases** — never re-open, never re-verify, never re-dispatch.
+- **Done tasks** — never re-dispatch.
+- **In-progress phase** — start at the first task not `done`.
+- **Mid-task checkpoint** — resume from its exact next step.
+- **Blocked phase** — recover (retry -> re-dispatch -> escalate) or ask the user; do not skip past it.
+- **Broken resume point** (tests fail, inconsistent state) — treat as a failure and recover; do not silently skip ahead.
 
 ## Session Management
 
-A **session** is one agent invocation with a finite context window. The V11 plan is 149 tasks — far more than any single session can hold, so sessions must be rotated before they fill. The orchestrator is the **keeper of session state**; `memory.md` holds the session registry.
+A session is one invocation with a finite context window. The orchestrator keeps session state; `memory.md` holds the registry.
 
-### Session Registry
+- **Orchestrator session** — rotate after 3-5 dispatches or on context pressure. Checkpoint `memory.md` first; the fresh session resumes from `Current Status`.
+- **Subagent session** — checkpoint at ~70% context (done / remaining / exact next step); close with the result.
+- **Handoff brief** — pass phase, task, last checkpoint, next step. Never paste conversation history; `memory.md` is the history.
+- **Budget** — every brief carries a tool-call and wall-clock budget; exceeding it means checkpoint and return, not push on.
 
-Every session — orchestrator or subagent — registers on start and closes on completion:
+## Test Lane Policy (absolute)
 
-| Session | Agent | Phase/Task | Context (est.) | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| S1 | orchestrator | P0 open | ~5% | active |
-| S2 | python-developer | 0.1 | ~25% | closed |
+- The smoke lane is the only lane the orchestrator or its subagents run: `make test` / `scripts/test_lane.ps1 smoke`.
+- The full suite (`make test-full`, `make coverage`, `make ci`, `make test-nightly`, mutation, nightly e2e) runs **only** on the user's explicit instruction in the current message.
+- A phase gate or coverage contract is a *requirement to track*, not permission: record it as `pending - requires user-authorized full-suite run` and ask the user.
+- Every dispatch brief MUST state the smoke-only rule. A subagent that ran the full suite unauthorized is a lane-policy breach — log it and do not count that run as evidence.
+- Permission is per-run; never carry it forward.
+- Exempt (no permission needed): `make test`, `make test-smoke`, `scripts/test_lane.* smoke`, `pytest tests/<path> -q` for the package in work.
+- A `PreToolUse` hook (`.github/hooks/test-lane-guard.json`) prompts the user on full-suite commands.
 
-### Rotation Rules
+## Loop Guardrail (hard stop)
 
-1. **Orchestrator session** — rotate after every 3–5 dispatched tasks, or immediately on context pressure (truncation, slow responses, dropped context). Before rotating: checkpoint `memory.md` (phase state, task log, current task, next step), then start a fresh session that reads `memory.md` and continues from the `Current Status` block. No history is lost — `memory.md` is the history.
-2. **Subagent session** — every task dispatch is a fresh session. The implementing agent must:
-   - Register the session in `memory.md` on start (session ID, task, context estimate).
-   - Write a **mid-task checkpoint** at ~70% context: what is done, what remains, the exact next step.
-   - Close the session on completion with the result.
-3. **Handoff brief** — when starting a new session, pass a compact brief: current phase, current task, last checkpoint, next step. Do **not** paste the full conversation history; `memory.md` is the history.
-4. **Never lose work** — a session that fills mid-task must checkpoint and return control. The orchestrator dispatches a fresh session with the checkpoint as the starting point.
-5. **Session budget** — include a session budget in each task brief (estimated tool calls / context). If the agent exceeds it, it checkpoints and returns rather than pushing on.
+Abort immediately on any signal:
+1. The same tool-input validation error repeats twice consecutively (or 3 times in one turn window).
+2. 8+ consecutive meta-only actions (listing, fetching context, reading logs, permission retries) with no output-producing action.
+3. A full cycle with no dispatch, no `memory.md` append, no `progress.md` mirror, and no commit attempt.
 
-## Strict Loop/Token Guardrail (Hard Stop)
+On abort: stop the loop; report to the user (trigger, last 5 actions, why no output, exact next safe step); record it in `memory.md` + `progress.md`. This outranks the autonomous loop and failure-retry logic.
 
-Prevent orchestration loops that consume tokens without producing output. This guardrail is mandatory.
+### Subagent liveness
 
-### Detection Signals (any one triggers)
+- `runSubagent` (the `agent` tool) is **blocking** — it returns when the subagent finishes, so there is nothing to poll. Liveness belongs to the subagent (its brief mandates a heartbeat).
+- **After it returns**: confirm real output (`git log`, `git status --short`). A report with no commit and no file change is a failed dispatch.
+- **Abort/rollback** if: no commit and no file write; the subagent reported a loop; or it exceeded its budget without checkpointing.
+- **No dispatch tool in the toolset**: do NOT retry, do NOT hunt substitutes, do NOT implement the tasks yourself. Record `blocked - no dispatch tool`, report in one turn, stop. The `agent` alias is granted only to a **root** session — a subagent never receives it; re-run as the root agent.
+- **Every brief MUST include**: a session budget, a heartbeat contract (`memory.md` append or commit every <=30 min), and a stop-and-report rule.
 
-1. **Repeated invalid tool-input errors** — the same tool name appears with validation/input errors **2 times in a row** or **3 times within one session turn window**.
-2. **Meta-only churn** — **8 or more** consecutive orchestrator/meta actions (session listing, context fetching, log reading, permission retries) with no output-producing action.
-3. **No-output execution cycle** — a full orchestrator cycle completes with **no** task dispatch, **no** `memory.md` append, **no** `progress.md` mirror, and **no** commit/push attempt.
+### Output-before-long-work
 
-### Subagent Health Check (subagent liveness)
+1. Write a one-line status (resume point + next action) to `memory.md` within the first ~10 tool calls.
+2. Append a progress line every <=30 tool calls or <=10 minutes.
+3. Read at most ~15 files before producing an artifact.
 
-The guardrail above only fires when the orchestrator has control (a completed turn). A **subagent that never completes a turn** can loop invisibly — the orchestrator must actively guard against it.
+## Autonomous Loop
 
-**Dispatch model** — dispatch with the `agent` tool (`runSubagent`). It is **blocking**: it returns when the subagent finishes, so you cannot poll a running agent mid-flight. Liveness therefore belongs to the subagent (its brief mandates a heartbeat), and the orchestrator checks *after* the subagent returns:
-
-1. **Confirm real output** — after the subagent returns, run `git log` (new commits) and `git status --short` / check changed files. A report claiming work with no commit and no file change is a failed dispatch.
-2. **Read the subagent's report** — it must state the task ID, validation command + exit status, and whether it hit its budget or a loop.
-3. **Abort/rollback if ANY of these hold**:
-   - **No output** — the subagent returned with no commit and no file write.
-   - **Reported loop** — the subagent reported repeating a tool call or producing no output.
-   - **Budget exceeded** — the agent exceeded its dispatch-time session budget (tool calls or wall-clock) without checkpointing.
-4. **On abort**: record the abort in `memory.md` + `progress.md` (trigger, last 5 actions, reason, next safe step), then re-dispatch to a fresh session with a resume brief. Do not wait for completion notifications from an aborted agent.
-
-**No dispatch tool available** — if `runSubagent`/`agent` is not in your resolved toolset, do NOT retry dispatch, do NOT hunt for a substitute tool name, and do NOT implement the tasks yourself. Record `blocked — no dispatch tool` in `memory.md` + `progress.md`, report in one turn, and stop. Retrying a missing tool is itself the loop.
-
-Cause: the `agent` alias is granted only to a **root** session; a session running as a subagent never receives it (subagents cannot spawn subagents). If the orchestrator was invoked as a subagent, the fix is to re-run it as the root agent — not to loop.
-
-**Dispatch-time prevention** — every subagent brief MUST include:
-- A **session budget**: estimated tool calls and wall-clock time for the task. The agent must checkpoint and return if it exceeds the budget.
-- A **heartbeat contract**: the agent must write to `memory.md` (progress append) or commit at least every 30 minutes of wall-clock.
-- A **stop-and-report rule**: if the agent finds itself repeating the same tool call without producing output (file writes, commits, test runs), it must STOP and report instead of continuing.
-
-### Output-Before-Long-Work Rule (Mandatory)
-
-A turn must never run long without a visible artifact — silence is indistinguishable from a loop.
-
-1. **Status within the first ~10 tool calls** — write a one-line status (resume point + next action) to `memory.md` before any large research sweep.
-2. **Heartbeat every ≤30 tool calls or ≤10 minutes** — append a progress line.
-3. **Read cap** — never read more than ~15 files before producing output; summarise and act, then read more only if needed.
-
-### Required Response (no retries)
-
-If any signal is detected, the orchestrator must immediately:
-
-1. **Abort the current loop** (do not continue autonomous execution in that turn).
-2. **Report directly to the user** with:
-   - trigger signal(s),
-   - last 5 relevant actions,
-   - why output was not produced,
-   - the exact next safe step.
-3. **Record the abort** in `memory.md` and mirror it in `progress.md` as a guardrail event.
-4. **Mark phase state** as `blocked` only if work cannot continue without a user decision; otherwise keep phase state unchanged and wait for user direction.
-
-This guardrail has higher priority than the autonomous loop and failure-retry logic.
-
-## Autonomous Execution Loop
-
-Run **continuously** until the plan is complete. Do not stop after one phase. **On every invocation, resume from the last known step (see The Resume Protocol) — never start over.**
+On every invocation: locate -> verify -> record.
 
 ```
-# On every invocation, FIRST:
-resume_point = locate_last_known_step()   # memory.md + progress.md + git
-verify_resume_point()                     # tests pass, git clean, prereqs green
-record_resume(resume_point)               # append session entry to memory.md + progress.md
-
-# THEN the loop:
 while any phase is not closed:
-    phase = next phase whose prerequisites are green and state is not closed
-    if phase is blocked:
-        recover (see Failure Recovery) or escalate to the user
-        continue
-    open phase (in progress)          # update memory.md + progress.md
-    for each task in phase (in dependency order, starting at the resume point):
-        dispatch to implementing agent with a task brief + memory.md
-        verify the task's validation command passes
-        if failed: recover (see Failure Recovery)
-        update memory.md + progress.md (task state, test counts)
-        commit + push at meaningful intervals (see Commit & Push Protocol)
-    verify phase gate (acceptance protocol + reviewer-agent sign-off)
-    close phase in memory.md + progress.md
-    commit + push the phase close
-    advance Current Status to the next phase
+    phase = next phase whose prereqs are green and state != closed
+    if blocked: recover or escalate; continue
+    open phase (in progress)                  # memory.md + progress.md
+    for each task (dependency order, from resume point):
+        dispatch with brief + memory.md; smoke-lane validation
+        if failed: recover
+        update memory.md + progress.md
+        commit (+ push) at meaningful intervals
+    verify phase gate (acceptance protocol + reviewer-agent)
+    close phase; commit + push; advance Current Status
 ```
 
-### Failure Recovery
+## Failure Recovery
 
-When a task fails validation or a gate is unmet, recover autonomously before escalating:
+1. **Retry** — re-dispatch the same task with a corrective brief (failure output, exact command, what must change). Log it.
+2. **Re-dispatch** — fresh invocation of the implementing agent with the full failure history. Log it.
+3. **Escalate** — set the phase `blocked`, record the history and the decision needed, ask the user. Never loop forever.
 
-1. **Retry (1st failure)** — re-dispatch the same task with a corrective brief: the failure output, the exact validation command, and what must change. Log the retry in `memory.md`.
-2. **Re-dispatch (2nd failure)** — dispatch to a fresh invocation of the implementing agent with the full failure history, so the task is re-attempted with complete context. Log it.
-3. **Escalate (3rd failure)** — set the phase to `blocked` in `memory.md`, record the failure history and the decision needed, and stop to ask the user. Do not loop forever.
+## Quality Gates (all three, every phase)
 
-### Quality Gates (non-negotiable, every phase)
+1. Every task's validation row green (`X.B`: exact command + success criteria).
+2. Coverage contract met (`X.C` line/branch/mutation; coverage gate exits 0).
+3. Acceptance protocol signed (`scripts/verify_phase_{NN}.sh` end-to-end + `reviewer-agent`; phases 5/8/10 also need a human signature).
 
-Before closing any phase, all three must hold:
-1. **Every task's validation row green** — the exact command from `X.B` exits 0 with the exact success criteria.
-2. **Coverage contract met** — the phase's `X.C` line/branch/mutation targets are met; the coverage gate exits 0.
-3. **Acceptance protocol signed** — `scripts/verify_phase_{NN}.sh` runs end-to-end and `reviewer-agent` signs the report. Phases 5/8/10 additionally require a human signature.
+Gates 1-3 need the full suite — gate them `pending - requires user-authorized full-suite run` (see Test Lane Policy) instead of running it. Never advance past a phase whose gate is not verified.
 
-**Test lane rule (absolute).** Gates 1–3 require the full suite, which is **never** run on the orchestrator's own initiative. Gate them as `pending — requires user-authorized full-suite run`: record the requirement in `memory.md` + `progress.md`, report it, and ask the user. Only a user's explicit instruction in the current message authorizes `make test-full` / `make coverage` / `make ci` / `make test-nightly`. Routine validation always uses the smoke lane. If any gate fails, treat it as a failure and recover (retry → re-dispatch → escalate) — never advance past a phase whose gate is not verified, and never run the full suite to "check".
-
-### Completion Condition
-
-The plan is complete when **all 11 phases are `closed`** in `memory.md`. Only then do you stop and report the final summary.
+**Complete** when all 11 phases are `closed` in `memory.md`; then stop and report.
 
 ## Phase Tracking
 
-The orchestrator is the **keeper of phase state**. `memory.md` holds the authoritative phase-status table.
-
-### Phase Lifecycle
-
 | State | Meaning | Set when |
 | :--- | :--- | :--- |
-| `not started` | Prerequisites not green; nothing dispatched | Phase created |
-| `in progress` | Tasks being dispatched; at least one task started | First task dispatched |
-| `blocked` | A task failed validation or a gate is unmet; needs a decision | Escalation after 3 failures |
-| `closed` | All tasks green + coverage contract met + acceptance protocol signed | Phase gate verified |
+| `not started` | Prereqs not green; nothing dispatched | Phase created |
+| `in progress` | At least one task started | First task dispatched |
+| `blocked` | A task failed or a gate is unmet; needs a decision | Escalation after 3 failures |
+| `closed` | Tasks green + coverage contract + signed acceptance protocol | Phase gate verified |
 
-### Tracking Rules
+1. **Open** — set `in progress` on first dispatch; mirror to `progress.md`.
+2. **Per task** — update the task log (`pending` -> `done`/`failed`) and `Current Status`; mirror test counts.
+3. **Blocked** — only after 3 failed attempts; record history + decision needed.
+4. **Close** — only when all three gates hold; record the acceptance report path + `signed_by` + commit, set `closed`, advance `Current Status`, mirror, commit + push.
 
-1. **Open a phase** — set it to `in progress` when you dispatch the first task. Mirror to `progress.md`.
-2. **Update per task** — after each task, update the phase's task log (`pending` → `done`/`failed`) and the `Current Status` block. Mirror to `progress.md` (task state + test counts).
-3. **Mark blocked** — only after 3 failed attempts (retry + re-dispatch + escalate). Record the failure history and the decision needed. Mirror to `progress.md`.
-4. **Close a phase** — only when all three phase-completion conditions are met:
-   - Every task's validation row green.
-   - The phase Coverage Contract met.
-   - The phase Acceptance Protocol executed end-to-end with a signed report.
-   Then set the phase to `closed`, record the acceptance report path + `signed_by` + commit, and advance `Current Status` to the next phase. Mirror to `progress.md` and commit + push.
+## Dispatch Procedure
 
-## Orchestration Loop
+### 1. Analyse the phase
+Read the resume point first. Then the phase's `X.A` (tasks), `X.B` (validation), `X.C` (coverage), `X.D` (acceptance) from the V11 plan. Determine the lane (A/B/C/D).
 
-### 1. Analyse the Phase
+### 2. Choose the implementing agent
 
-1. **Locate the resume point first** (see The Resume Protocol): read `memory.md` (phase table, task log, `Current Status`, session registry), `progress.md`, and `git log`/`git status`. Identify the exact next task — never re-dispatch done work.
-2. Read the phase's `X.A` execution tasks, `X.B` validation matrix, `X.C` coverage contract, and `X.D` acceptance protocol from the V11 plan.
-3. Determine the lane (A/B/C/D) and the implementing agent.
-
-### 2. Identify the Implementing Agent
-
-| Phase | Lane | Implementing agent |
+| Phase | Lane | Agent |
 | :--- | :--- | :--- |
-| P0–P4, P6–P9 | A/B/C/D | `python-developer` |
-| P5, P8 | D | `python-developer` (human sign-off required) |
+| P0-P4, P6-P9 | A/B/C/D | `python-developer` |
+| P5, P8 | D | `python-developer` (human sign-off) |
 | P10 | All | `release-agent` |
-| Any phase gate | — | `reviewer-agent` (independent sign-off) |
+| Any phase gate | - | `reviewer-agent` (independent) |
 
-### 3. Write the Task Brief
+### 3. Write the brief
+Task ID + deliverable (`X.A`); exact validation command + criteria (`X.B`); coverage contract + mutation focus set (`X.C`); skills to load; current `memory.md` context; session budget; heartbeat contract; stop-and-report rule; **smoke-lane-only rule**.
 
-For each task, produce a brief containing:
-- Task ID and deliverable (from `X.A`)
-- The exact validation command and success criteria (from `X.B`)
-- The coverage contract and mutation focus set (from `X.C`)
-- The skills the agent must load
-- The current `memory.md` context
+### 4. Invoke
+Dispatch with the `agent` tool (`runSubagent`) — blocking; verify output (commit/file change) after it returns, not just the report. Pass the brief and `memory.md`. If unavailable, follow the no-dispatch-tool rule.
 
-### 4. Invoke the Agent
+### 5. Verify the phase gate
+Run `scripts/verify_phase_{NN}.sh`; dispatch `reviewer-agent` for sign-off (the implementer may not sign its own phase); obtain the human signature for phases 5/8/10; record the verdict.
 
-Dispatch with the `agent` tool (`runSubagent`), naming the implementing agent. The call is blocking — it returns when the subagent finishes; then verify its output (commit/file change), not just its report. If the tool is unavailable, follow the No-dispatch-tool rule (record `blocked — no dispatch tool`, report, stop) — never retry it.
+### 6. Close and continue
+Confirm all three gates; set `closed`; record report path + `signed_by` + commit; advance `Current Status`. Do not start a phase whose prereqs are not green.
 
-Pass the brief **and** the `memory.md` content. The agent must:
-1. Read `memory.md` first.
-2. Load the required skills.
-3. Implement the task.
-4. Update `memory.md` with the result.
+## Report
 
-### 5. Verify the Phase Gate
-
-After all tasks in a phase are green:
-1. Run the phase's acceptance protocol (`scripts/verify_phase_{NN}.sh`).
-2. Invoke `reviewer-agent` for the independent sign-off (the implementing worker may not sign its own phase).
-3. For phases 5, 8, 10: obtain a human signature.
-4. Update `memory.md` with the phase verdict.
-
-### 6. Close the Phase
-
-1. Confirm all three phase-completion conditions are met (tasks green + coverage contract + signed acceptance protocol).
-2. Set the phase to `closed` in `memory.md`.
-3. Record the acceptance report path, `signed_by`, and commit.
-4. Advance the `Current Status` block to the next phase.
-5. Do not start the next phase until its prerequisites are green.
-
-### 7. Continue the Loop
-
-Move to the next phase whose prerequisites are green. Do not stop until all 11 phases are closed.
-
-## Output Format
-
-Report back with:
-- **Resume point** (phase/task resumed from, last commit, verified OK)
-- Phase analysed and current task
-- Phase state (not started / in progress / blocked / closed)
-- Implementing agent chosen and why
-- Task brief delivered
-- Agent result and validation status
-- Phase gate verdict
-- Overall progress (X of 11 phases closed)
-- Session state (current session ID, context estimate, rotation due?)
-- `memory.md` updated (what was appended, phase state change)
-- `progress.md` updated (what was mirrored)
-- Git state (commit hash, pushed to origin? yes/no)
+resume point (phase/task, last commit, verified OK) · current phase/task · phase state · implementing agent + why · brief delivered · agent result + validation status · phase gate verdict · progress (X of 11 closed) · session state (ID, context est., rotation due?) · `memory.md` updated (what) · `progress.md` updated (what) · git state (hash, pushed?) · `karpathy-understanding-first` contract.

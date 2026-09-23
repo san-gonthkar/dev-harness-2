@@ -9,63 +9,37 @@ user-invocable: true
 
 ## When to Use
 
-- Implementing a task from `requirements/Dev_Harness_Implementation_Plan_V11_Final.md`
-- Writing or fixing Python under `src/dev_harness/`
-- Adding tests that must satisfy the plan's validation matrix and marker rules
-- Resolving `mypy --strict` or `ruff` failures
-- Running a phase acceptance protocol or mutation gate
+- Implementing a task from the V11 plan; writing or fixing code under `src/dev_harness/`
+- Adding tests that must satisfy the validation matrix and marker rules
+- Resolving `mypy --strict` / `ruff` failures, running an acceptance protocol or mutation gate
 
 ## Procedure
 
-### 1. Locate the Task Contract
-
-1. Open `requirements/Dev_Harness_Implementation_Plan_V11_Final.md`.
-2. Find the task row in the phase's `X.A` table: task ID, deliverable, targeted files, prereqs, Est.
-3. Find the matching row in the phase's `X.B` validation matrix: exact test command, success criteria, tier.
-4. Read the phase's `X.C` coverage contract for required test classes and mutation focus set.
+### 1. Locate the task contract
+In `requirements/Dev_Harness_Implementation_Plan_V11_Final.md`: the phase's `X.A` row (ID, deliverable, files, prereqs), the matching `X.B` row (exact command, success criteria, tier), and `X.C` (coverage contract, mutation focus set).
 
 ### 2. Implement
-
-1. Follow the hexagonal layout: `contracts/` depends on nothing; `tui/` and `engine/` never import each other.
-2. Use Pydantic v2 (`model_validate` / `model_dump(mode="json")`) for all state models.
-3. Use canonical enums from `contracts/enums.py` — never state string literals.
-4. Raise `HarnessError` subclasses with non-empty `remediation` — never bare exceptions.
-5. Route all provider calls through the broker client.
+1. Hexagonal: `contracts/` depends on nothing; `tui/` and `engine/` never import each other.
+2. Pydantic v2 for state models (`model_validate` / `model_dump(mode="json")`).
+3. Canonical enums from `contracts/enums.py` — never state string literals.
+4. `HarnessError` subclasses with non-empty `remediation` — never bare exceptions.
+5. All provider calls route through the broker client.
 
 ### 3. Test
-
 1. Write tests in the file the validation row names.
-2. Declare exactly one marker per test: `unit`, `property`, `contract`, `integration`, `negative`, `timing`, `slow`, `e2e`.
-3. Cover the defect class with a `negative` test before the happy path is done.
-4. Use `tests/support/clock.py` (frozen clock) and `tests/support/workspace.py` (`tmp_workspace`) — never `time.sleep()`.
-5. Use `MockLLM` / `FakeProviderServer` from `tests/support/` — never live network calls.
+2. Exactly one marker per test (`unit`, `property`, `contract`, `integration`, `negative`, `timing`, `slow`, `e2e`).
+3. Cover the defect class with a `negative` test before the happy path.
+4. Frozen clock (`tests/support/clock.py`) and `tmp_workspace` — never `time.sleep()`.
+5. `MockLLM` / `FakeProviderServer` — never live network calls.
 
 ### 4. Validate
+**Smoke lane only** — `make test` (or `scripts/test_lane.ps1 smoke`) plus targeted `pytest tests/<package> -q`. Never `make test-full` / `make coverage` / `make ci` / `make test-nightly` unless the user explicitly asks in their current message; a `NIGHTLY`-tier row is not run (record it `pending - requires user-authorized full-suite run`). Then `make lint typecheck`.
 
-**Test lane rule (absolute).** Run the **smoke lane** for validation — `make test` (or `scripts/test_lane.ps1 smoke`), plus a targeted `pytest tests/<your-package> -q` for the package you touched. **NEVER** run the full suite (`make test-full`, `make coverage`, `make ci`, `make test-nightly`) unless the user explicitly asks for it in their current message. If the validation row's tier is `NIGHTLY`, do not run it — record it as `pending — requires user-authorized full-suite run` and report it.
+Mutation-scoped packages (`storage/`, `vcs/`, `broker/`, `core/`, `engine/{dag,worker_pool,worker_workspace,integrator}.py`): `python scripts/mutation_gate.py --packages <package>`; kill any surviving focus-set mutant.
 
-Then:
-
-```bash
-make lint typecheck
-```
-
-For mutation-scoped packages (`storage/`, `vcs/`, `broker/`, `core/`, `engine/dag.py`, `engine/worker_pool.py`, `engine/worker_workspace.py`, `engine/integrator.py`):
-
-```bash
-python scripts/mutation_gate.py --packages <package>
-```
-
-Kill any surviving mutant in the phase's named focus set.
-
-### 5. Hand Off
-
-- Branch: `task/{id}-{slug}`
-- Commit trailer: `Task-Id: {id}`
-- PR body: paste the validation command output
+### 5. Hand off
+Branch `task/{id}-{slug}`; commit trailer `Task-Id: {id}`; PR body pastes the validation output.
 
 ## References
 
-- Plan: `requirements/Dev_Harness_Implementation_Plan_V11_Final.md`
-- Test rig: `tests/support/` (clock, workspace, mock_llm, fake_provider)
-- Quality gates: `Makefile`, `mypy.ini`, `.coveragerc`
+Plan `requirements/Dev_Harness_Implementation_Plan_V11_Final.md` · test rig `tests/support/` · gates `Makefile`, `mypy.ini`, `.coveragerc`.
