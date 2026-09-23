@@ -486,3 +486,15 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Key design point**: a phase gate or coverage contract is a *requirement to track*, NOT permission to run. The agent records it as pending and asks the user.
 - **Validation**: YAML frontmatter parses clean on all 9 edited customization files (no BOM); smoke lane still green (432 passed, 2 skipped, 17s); audit confirms every remaining full-suite mention across `.github/` is a prohibition or permission-gated.
 - **Next**: agents run `make test` by default; `make test-full` only when the user explicitly asks.
+
+
+## TEST-LANE HOOK + .github CONDENSED FOR AI (2026-09-22)
+
+- **Deterministic enforcement added** (commit `34ad4a7`... see below): a `PreToolUse` hook `.github/hooks/test-lane-guard.json` -> `scripts/check_test_lane.py` returns `permissionDecision: "ask"` when a tool call would run the full suite. Smoke lane, targeted package pytest, lint, and mypy pass through. Fails open on any error. Hook schema confirmed from the VS Code Copilot extension: stdin `{tool_name, tool_input, tool_use_id}`, stdout `hookSpecificOutput.permissionDecision` (`allow|ask|deny`); `.github/hooks` is read recursively.
+- **Hook verified**: 20/20 decision cases pass; malformed JSON / empty stdin / non-command tools -> no output, exit 0.
+- **`.github` condensed for AI consumption** (target audience is AI, not humans): terse, imperative, tables/checklists over prose; no rule lost.
+  - phase-orchestrator SKILL 318 -> 164; orchestrator agent 88 -> 75; prompt 63 -> 35; python-developer 56 -> 43; reviewer 44 -> 35; release 42 -> 34; nodejs 46 -> 34; python-dev-harness SKILL 71 -> 45; ci-cd 43 -> 41; copilot-instructions 55 -> 53 (deduped, delegates detail to the skill). Total .github: ~1450 -> 1191 lines (-558/+296 in the commit).
+  - Duplication removed: agent/prompt bodies now state the non-negotiable rules and point to the canonical skill instead of restating the whole procedure.
+- **`.gitignore` fixed**: `.github/*` was ignoring ALL customizations, so `git add` silently skipped new files and every add needed `-f`. Added negations for `agents/`, `prompts/`, `skills/`, `hooks/`, `workflows/`, and `copilot-instructions.md`.
+- **Validation**: all `.github/*.md` frontmatter parses (no BOM); semantic-token check confirms resume/retry/re-dispatch/escalate/blocked/signed_by/Task-Id/smoke/gates all survive; hook decisions correct after the rewrite; smoke lane still 432 passed / 17s; ruff clean on the hook.
+- **Next**: agents run the smoke lane; the hook blocks (asks) on any full-suite command unless the user authorizes it.
