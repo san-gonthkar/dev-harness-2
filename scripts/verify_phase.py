@@ -20,7 +20,11 @@ REPORTS = REPO / "reports"
 
 def _git_head() -> str:
     r = subprocess.run(
-        ["git", "rev-parse", "HEAD"], cwd=REPO, capture_output=True, text=True, check=False
+        ["git", "rev-parse", "HEAD"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     return r.stdout.strip() if r.returncode == 0 else "unknown"
 
@@ -102,14 +106,17 @@ def main() -> int:
             script = REPO / "scripts" / f"verify_phase_{phase}.ps1"
             exit_code = subprocess.run(
                 ["powershell", "-ExecutionPolicy", "Bypass", "-File", str(script)],
-                cwd=REPO, check=False,
+                cwd=REPO,
+                check=False,
             ).returncode
         else:
             script = REPO / "scripts" / f"verify_phase_{phase}.sh"
             if not script.exists():
                 print(f"missing {script}", file=sys.stderr)
                 return 1
-            exit_code = subprocess.run(["bash", str(script)], cwd=REPO, check=False).returncode
+            exit_code = subprocess.run(
+                ["bash", str(script)], cwd=REPO, check=False
+            ).returncode
         path = emit_report(
             phase,
             tasks_green=[],

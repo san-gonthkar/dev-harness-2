@@ -19,7 +19,9 @@ class Restorer:
     def _git(self, *args: str) -> str:
         proc = subprocess.run(
             ["git", "-C", str(self.repo), *args],
-            capture_output=True, text=True, check=False,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if proc.returncode != 0:
             raise VcsError(

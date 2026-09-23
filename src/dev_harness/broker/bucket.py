@@ -79,7 +79,9 @@ class TokenBucket:
                     return True
                 # Wait exactly until enough tokens refill (real time).
                 deficit = tokens - self._tokens
-                wait = deficit / self.refill_rate if self.refill_rate > 0 else float("inf")
+                wait = (
+                    deficit / self.refill_rate if self.refill_rate > 0 else float("inf")
+                )
                 if deadline is not None:
                     remaining = deadline - self._clock()
                     if remaining <= 0:

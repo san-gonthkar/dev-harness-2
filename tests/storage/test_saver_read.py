@@ -13,7 +13,9 @@ pytestmark = pytest.mark.unit
 
 
 def _state(project: str, thread: str, raw: str = "x") -> HarnessState:
-    return HarnessState(project_id=project, workspace_path="/w", thread_id=thread, raw_input=raw)
+    return HarnessState(
+        project_id=project, workspace_path="/w", thread_id=thread, raw_input=raw
+    )
 
 
 def test_get_tuple_equals_golden(tmp_path: Path) -> None:
@@ -31,7 +33,12 @@ def test_get_tuple_equals_golden(tmp_path: Path) -> None:
 def test_list_newest_first(tmp_path: Path) -> None:
     saver = SqliteSaver(tmp_path / "db.sqlite")
     for i in range(5):
-        saver.put(Scope("p1", "t1"), _state("p1", "t1", f"v{i}"), created_at=i, checkpoint_id=f"c{i}")
+        saver.put(
+            Scope("p1", "t1"),
+            _state("p1", "t1", f"v{i}"),
+            created_at=i,
+            checkpoint_id=f"c{i}",
+        )
     rows = saver.list(Scope("p1", "t1"), limit=3)
     # created_at DESC -> c4, c3, c2
     assert [r["checkpoint_id"] for r in rows] == ["c4", "c3", "c2"]
@@ -41,7 +48,12 @@ def test_list_newest_first(tmp_path: Path) -> None:
 def test_paging_disjoint_sets(tmp_path: Path) -> None:
     saver = SqliteSaver(tmp_path / "db.sqlite")
     for i in range(6):
-        saver.put(Scope("p1", "t1"), _state("p1", "t1", f"v{i}"), created_at=i, checkpoint_id=f"c{i}")
+        saver.put(
+            Scope("p1", "t1"),
+            _state("p1", "t1", f"v{i}"),
+            created_at=i,
+            checkpoint_id=f"c{i}",
+        )
     page1 = saver.list(Scope("p1", "t1"), limit=3, offset=0)
     page2 = saver.list(Scope("p1", "t1"), limit=3, offset=3)
     ids1 = {r["checkpoint_id"] for r in page1}

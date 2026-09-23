@@ -27,7 +27,9 @@ def migrate_up(db_path: str | Path) -> list[str]:
     """Apply all pending migrations, returning the applied versions."""
     conn = connect(db_path)
     _ledger(conn)
-    applied = {r["version"] for r in conn.execute("SELECT version FROM schema_migrations")}
+    applied = {
+        r["version"] for r in conn.execute("SELECT version FROM schema_migrations")
+    }
     versions: list[str] = []
     for mfile in _migration_files():
         version = mfile.stem.split("_", 1)[0]
@@ -49,7 +51,12 @@ def migrate_down(db_path: str | Path, target: str | None = None) -> list[str]:
     """Roll back applied migrations (reverse order). Returns rolled-back versions."""
     conn = connect(db_path)
     _ledger(conn)
-    applied = [r["version"] for r in conn.execute("SELECT version FROM schema_migrations ORDER BY applied_at DESC")]
+    applied = [
+        r["version"]
+        for r in conn.execute(
+            "SELECT version FROM schema_migrations ORDER BY applied_at DESC"
+        )
+    ]
     if target is not None:
         applied = [v for v in applied if v > target]
     rolled_back: list[str] = []
@@ -66,7 +73,10 @@ def migrate_down(db_path: str | Path, target: str | None = None) -> list[str]:
 def main() -> int:
     args = sys.argv[1:]
     if "--workspace" not in args:
-        print("usage: python -m dev_harness.storage.migrate --workspace <dir> [--up|--down]", file=sys.stderr)
+        print(
+            "usage: python -m dev_harness.storage.migrate --workspace <dir> [--up|--down]",
+            file=sys.stderr,
+        )
         return 2
     db = args[args.index("--workspace") + 1]
     db_path = Path(db) / ".dev-harness" / "state.db"

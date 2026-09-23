@@ -19,17 +19,22 @@ pytestmark = pytest.mark.unit
 
 
 def _state(project: str, thread: str, raw: str = "x") -> HarnessState:
-    return HarnessState(project_id=project, workspace_path="/w", thread_id=thread, raw_input=raw)
+    return HarnessState(
+        project_id=project, workspace_path="/w", thread_id=thread, raw_input=raw
+    )
 
 
 def test_keep5_over_20_leaves_5_plus_seals(tmp_path: Path) -> None:
     saver = SqliteSaver(tmp_path / "db.sqlite")
     for i in range(20):
-        saver.put(Scope("p1", "t1"), _state("p1", "t1", f"v{i}"), created_at=i, checkpoint_id=f"c{i}")
+        saver.put(
+            Scope("p1", "t1"),
+            _state("p1", "t1", f"v{i}"),
+            created_at=i,
+            checkpoint_id=f"c{i}",
+        )
     # Seal one old checkpoint.
-    saver._conn.execute(
-        "UPDATE checkpoints SET is_paused=1 WHERE checkpoint_id='c0'"
-    )
+    saver._conn.execute("UPDATE checkpoints SET is_paused=1 WHERE checkpoint_id='c0'")
     saver._conn.commit()
     deleted = prune_and_vacuum(tmp_path / "db.sqlite", Scope("p1", "t1"), keep=5)
     rows = saver.list(Scope("p1", "t1"), limit=100)
@@ -44,7 +49,12 @@ def test_keep5_over_20_leaves_5_plus_seals(tmp_path: Path) -> None:
 def test_file_shrinks_after_vacuum(tmp_path: Path) -> None:
     saver = SqliteSaver(tmp_path / "db.sqlite")
     for i in range(50):
-        saver.put(Scope("p1", "t1"), _state("p1", "t1", "x" * 100), created_at=i, checkpoint_id=f"c{i}")
+        saver.put(
+            Scope("p1", "t1"),
+            _state("p1", "t1", "x" * 100),
+            created_at=i,
+            checkpoint_id=f"c{i}",
+        )
     saver.close()
     size_before = (tmp_path / "db.sqlite").stat().st_size
     prune_and_vacuum(tmp_path / "db.sqlite", Scope("p1", "t1"), keep=5)
@@ -55,7 +65,12 @@ def test_file_shrinks_after_vacuum(tmp_path: Path) -> None:
 def test_retained_seal_still_restorable(tmp_path: Path) -> None:
     saver = SqliteSaver(tmp_path / "db.sqlite")
     for i in range(10):
-        saver.put(Scope("p1", "t1"), _state("p1", "t1", f"v{i}"), created_at=i, checkpoint_id=f"c{i}")
+        saver.put(
+            Scope("p1", "t1"),
+            _state("p1", "t1", f"v{i}"),
+            created_at=i,
+            checkpoint_id=f"c{i}",
+        )
     saver._conn.execute("UPDATE checkpoints SET is_paused=1 WHERE checkpoint_id='c3'")
     saver._conn.commit()
     prune_and_vacuum(tmp_path / "db.sqlite", Scope("p1", "t1"), keep=5)

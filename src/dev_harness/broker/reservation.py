@@ -38,7 +38,9 @@ class Reservation:
 class ReservationStore:
     """Tracks live reservations and reaps expired ones."""
 
-    def __init__(self, *, clock: Clock = time.monotonic, ttl: float = TTL_SECONDS) -> None:
+    def __init__(
+        self, *, clock: Clock = time.monotonic, ttl: float = TTL_SECONDS
+    ) -> None:
         self._clock = clock
         self.ttl = ttl
         self._reservations: dict[str, Reservation] = {}

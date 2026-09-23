@@ -46,12 +46,18 @@ def run_mutmut(packages: list[str], dry_run: bool = False) -> dict[str, dict]:
     for module in packages:
         target = f"dev_harness.{module}"
         cmd = [
-            sys.executable, "-m", "mutmut", "run",
-            "--paths-to-mutate", target,
+            sys.executable,
+            "-m",
+            "mutmut",
+            "run",
+            "--paths-to-mutate",
+            target,
         ]
         if dry_run:
             cmd.append("--quiet")
-        proc = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True, check=False)
+        proc = subprocess.run(
+            cmd, cwd=REPO, capture_output=True, text=True, check=False
+        )
         # Parse the "Mutation score" line from mutmut output.
         score = _parse_score(proc.stdout + proc.stderr)
         results[module] = {

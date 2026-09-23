@@ -33,7 +33,8 @@ class CheckpointBinding:
             saver = SqliteSaver(self.db_path)
             try:
                 return saver.put(
-                    scope, state,
+                    scope,
+                    state,
                     checkpoint_id=checkpoint_id,
                     git_commit_hash=head,
                     is_paused=is_paused,

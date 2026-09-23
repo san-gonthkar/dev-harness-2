@@ -14,14 +14,18 @@ pytestmark = pytest.mark.unit
 
 
 def _git(cwd: Path, *args: str) -> None:
-    subprocess.run(["git", "-C", str(cwd), *args], check=True, capture_output=True, text=True)
+    subprocess.run(
+        ["git", "-C", str(cwd), *args], check=True, capture_output=True, text=True
+    )
 
 
 def test_head_sha_matches_rev_parse(tmp_workspace: Path) -> None:
     adapter = GitAdapter(tmp_workspace)
     expected = subprocess.run(
         ["git", "-C", str(tmp_workspace), "rev-parse", "HEAD"],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
     assert adapter.head_sha() == expected
 

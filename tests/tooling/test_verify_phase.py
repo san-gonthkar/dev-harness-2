@@ -37,7 +37,9 @@ def test_emit_report_schema_valid(tmp_path: Path) -> None:
 def test_audit_all_fails_without_reports() -> None:
     r = subprocess.run(
         [sys.executable, str(SCRIPT), "--audit-all"],
-        capture_output=True, text=True, check=False,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     # Reports dir may or may not have reports; assert it either succeeds or
     # fails gracefully (exit 0 or 1), not a crash.
@@ -49,8 +51,14 @@ def test_marker_enforcement_active() -> None:
     from tests.support import markers
 
     assert markers.ALLOWED_MARKERS == {
-        "unit", "property", "contract", "integration",
-        "negative", "timing", "slow", "e2e",
+        "unit",
+        "property",
+        "contract",
+        "integration",
+        "negative",
+        "timing",
+        "slow",
+        "e2e",
     }
 
 
@@ -62,8 +70,18 @@ def test_unmarked_test_fails_collection(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     r = subprocess.run(
-        [sys.executable, "-m", "pytest", str(test_file), "-q", "-p", "tests.support.markers"],
-        capture_output=True, text=True, check=False,
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            str(test_file),
+            "-q",
+            "-p",
+            "tests.support.markers",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
     )
     assert r.returncode != 0
     assert "exactly one marker" in r.stderr

@@ -56,7 +56,16 @@ class SqliteSaver:
             self._conn.execute(
                 "INSERT INTO checkpoints (project_id, thread_id, checkpoint_id, state_json, state_sha256, git_commit_hash, is_paused, created_at) "
                 "VALUES (?,?,?,?,?,?,?,?)",
-                (scope.project_id, scope.thread_id, cid, state_json, sha, git_commit_hash, int(is_paused), created_at or 0),
+                (
+                    scope.project_id,
+                    scope.thread_id,
+                    cid,
+                    state_json,
+                    sha,
+                    git_commit_hash,
+                    int(is_paused),
+                    created_at or 0,
+                ),
             )
             self._conn.commit()
         except Exception:
@@ -74,7 +83,9 @@ class SqliteSaver:
             return None
         return self._row_to_dict(row)
 
-    def list(self, scope: Scope, *, limit: int = 100, offset: int = 0) -> list[dict[str, object]]:
+    def list(
+        self, scope: Scope, *, limit: int = 100, offset: int = 0
+    ) -> list[dict[str, object]]:
         """Newest-first checkpoints for a scope with cursor paging."""
         rows = self._conn.execute(
             "SELECT * FROM checkpoints WHERE project_id=? AND thread_id=? "

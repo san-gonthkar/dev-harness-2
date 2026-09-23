@@ -31,7 +31,10 @@ def test_ready_resume_illegal() -> None:
 
 
 def test_ready_stop_stopped() -> None:
-    assert apply_transition(ExecutionState.READY, CriticCommand.STOP).result == ExecutionState.STOPPED
+    assert (
+        apply_transition(ExecutionState.READY, CriticCommand.STOP).result
+        == ExecutionState.STOPPED
+    )
 
 
 def test_running_start_illegal() -> None:
@@ -40,7 +43,10 @@ def test_running_start_illegal() -> None:
 
 
 def test_running_pause_paused() -> None:
-    assert apply_transition(ExecutionState.RUNNING, CriticCommand.PAUSE).result == ExecutionState.PAUSED
+    assert (
+        apply_transition(ExecutionState.RUNNING, CriticCommand.PAUSE).result
+        == ExecutionState.PAUSED
+    )
 
 
 def test_running_resume_illegal() -> None:
@@ -49,7 +55,10 @@ def test_running_resume_illegal() -> None:
 
 
 def test_running_stop_stopped() -> None:
-    assert apply_transition(ExecutionState.RUNNING, CriticCommand.STOP).result == ExecutionState.STOPPED
+    assert (
+        apply_transition(ExecutionState.RUNNING, CriticCommand.STOP).result
+        == ExecutionState.STOPPED
+    )
 
 
 def test_paused_pause_idempotent_already_true() -> None:
@@ -59,11 +68,17 @@ def test_paused_pause_idempotent_already_true() -> None:
 
 
 def test_paused_resume_running() -> None:
-    assert apply_transition(ExecutionState.PAUSED, CriticCommand.RESUME).result == ExecutionState.RUNNING
+    assert (
+        apply_transition(ExecutionState.PAUSED, CriticCommand.RESUME).result
+        == ExecutionState.RUNNING
+    )
 
 
 def test_paused_stop_stopped() -> None:
-    assert apply_transition(ExecutionState.PAUSED, CriticCommand.STOP).result == ExecutionState.STOPPED
+    assert (
+        apply_transition(ExecutionState.PAUSED, CriticCommand.STOP).result
+        == ExecutionState.STOPPED
+    )
 
 
 def test_paused_start_illegal() -> None:

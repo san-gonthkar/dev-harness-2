@@ -51,12 +51,18 @@ class CostGovernor:
             self._roll_day()
             new_run = self._run_usd + cost
             new_day = self._day_usd + cost
-            if self.budget_usd_per_run is not None and new_run > self.budget_usd_per_run:
+            if (
+                self.budget_usd_per_run is not None
+                and new_run > self.budget_usd_per_run
+            ):
                 raise BudgetExceededError(
                     f"run budget ${self.budget_usd_per_run:.2f} would be exceeded",
                     remediation="Raise budget_usd_per_run or reduce model usage.",
                 )
-            if self.budget_usd_per_day is not None and new_day > self.budget_usd_per_day:
+            if (
+                self.budget_usd_per_day is not None
+                and new_day > self.budget_usd_per_day
+            ):
                 raise BudgetExceededError(
                     f"day budget ${self.budget_usd_per_day:.2f} would be exceeded",
                     remediation="Raise budget_usd_per_day or wait for the day rollover.",

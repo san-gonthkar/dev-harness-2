@@ -22,7 +22,9 @@ class FakeProviderServer:
     fault: str | None = None  # "429" | "500" | "529" | "401" | "timeout"
     requests: list[dict[str, object]] = field(default_factory=list)
 
-    async def __call__(self, scope: dict[str, object], receive: object, send: object) -> None:
+    async def __call__(
+        self, scope: dict[str, object], receive: object, send: object
+    ) -> None:
         """ASGI application entry point."""
         if scope["type"] != "http":
             return

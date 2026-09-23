@@ -31,7 +31,10 @@ def test_valid_scope_returns() -> None:
 
 def test_proj_a_rows_not_visible_under_proj_b(tmp_path: Path) -> None:
     saver = SqliteSaver(tmp_path / "db.sqlite")
-    saver.put(Scope("proj_A", "t1"), HarnessState(project_id="proj_A", workspace_path="/w", thread_id="t1"))
+    saver.put(
+        Scope("proj_A", "t1"),
+        HarnessState(project_id="proj_A", workspace_path="/w", thread_id="t1"),
+    )
     rows_b = saver.list(Scope("proj_B", "t1"))
     assert rows_b == []
     rows_a = saver.list(Scope("proj_A", "t1"))

@@ -33,7 +33,9 @@ def encode(msg: BrokerMessage) -> bytes:
     body = msg.model_dump_json().encode("utf-8")
     frame = _PREFIX.pack(len(body)) + body
     if len(frame) > MAX_BROKER_FRAME:
-        raise ValueError(f"broker frame of {len(frame)} bytes exceeds {MAX_BROKER_FRAME}")
+        raise ValueError(
+            f"broker frame of {len(frame)} bytes exceeds {MAX_BROKER_FRAME}"
+        )
     return frame
 
 
@@ -45,7 +47,9 @@ def decode_frame(data: bytes) -> BrokerMessage:
     if length > MAX_BROKER_FRAME:
         raise ValueError(f"frame body of {length} bytes exceeds ceiling")
     if len(data) < PREFIX_LEN + length:
-        raise ValueError(f"declared {length} body bytes but only {len(data) - PREFIX_LEN} available")
+        raise ValueError(
+            f"declared {length} body bytes but only {len(data) - PREFIX_LEN} available"
+        )
     body = data[PREFIX_LEN : PREFIX_LEN + length]
     return BrokerMessage.model_validate_json(body)
 

@@ -17,7 +17,10 @@ SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "coverage_gate.py"
 def _run_from_data(metrics: dict) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(SCRIPT), "--from-data"],
-        input=json.dumps(metrics), capture_output=True, text=True, check=False,
+        input=json.dumps(metrics),
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
 

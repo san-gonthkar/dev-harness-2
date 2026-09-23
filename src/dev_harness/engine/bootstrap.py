@@ -137,7 +137,9 @@ class EngineBootstrap:
             try:
                 client = self._client_factory(self.socket_path)
                 try:
-                    response = client.request(StatusCommand(workspace=str(self.workspace)))
+                    response = client.request(
+                        StatusCommand(workspace=str(self.workspace))
+                    )
                 finally:
                     client.close()
                 if not isinstance(response, StatusResponse):
@@ -175,7 +177,13 @@ class EngineBootstrap:
         env = dict(os.environ)
         env["DEV_HARNESS_WORKSPACE"] = str(workspace)
         return subprocess.Popen(
-            [sys.executable, "-m", "dev_harness.engine.daemon", "--workspace", str(workspace)],
+            [
+                sys.executable,
+                "-m",
+                "dev_harness.engine.daemon",
+                "--workspace",
+                str(workspace),
+            ],
             env=env,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

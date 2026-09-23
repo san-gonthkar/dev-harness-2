@@ -18,7 +18,12 @@ def _write_loop(db: Path, project: str, thread: str, count: int, errors: list) -
     try:
         saver = SqliteSaver(db)
         for i in range(count):
-            state = HarnessState(project_id=project, workspace_path=str(db), thread_id=thread, raw_input=f"{project}-{i}")
+            state = HarnessState(
+                project_id=project,
+                workspace_path=str(db),
+                thread_id=thread,
+                raw_input=f"{project}-{i}",
+            )
             saver.put(Scope(project, thread), state, checkpoint_id=f"c{i}")
         saver.close()
     except Exception as exc:  # noqa: BLE001 - collect any error for the assertion

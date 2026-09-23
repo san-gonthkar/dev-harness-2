@@ -17,6 +17,7 @@ from dev_harness.contracts.errors import IllegalTransitionError
 # Result: either a target state, or ILLEGAL.
 Result = ExecutionState | Literal["ILLEGAL"]
 
+
 # already flag semantics:
 #   already:false on a no-op means the command was accepted but required no transition
 #   already:true on an idempotent repeat means the requested state is already in effect
@@ -55,9 +56,7 @@ _TRANSITIONS: dict[ExecutionState, dict[CriticCommand, TransitionResult]] = {
 }
 
 
-def apply_transition(
-    state: ExecutionState, command: CriticCommand
-) -> TransitionResult:
+def apply_transition(state: ExecutionState, command: CriticCommand) -> TransitionResult:
     """Apply a (state, command) pair per the 0.22 table.
 
     Raises IllegalTransitionError on an ILLEGAL cell carrying the pair.
@@ -76,15 +75,28 @@ def apply_transition(
 def transition_table() -> dict[str, dict[str, str]]:
     """Return the table in a printable form for the CLI."""
     return {
-        state.value: {cmd.value: tr.result.value if tr.result != "ILLEGAL" else "ILLEGAL" for cmd, tr in cmds.items()}
+        state.value: {
+            cmd.value: tr.result.value if tr.result != "ILLEGAL" else "ILLEGAL"
+            for cmd, tr in cmds.items()
+        }
         for state, cmds in _TRANSITIONS.items()
     }
 
 
 def main() -> int:
     if "--table" in sys.argv:
-        states = [ExecutionState.READY, ExecutionState.RUNNING, ExecutionState.PAUSED, ExecutionState.STOPPED]
-        cmds = [CriticCommand.START, CriticCommand.PAUSE, CriticCommand.RESUME, CriticCommand.STOP]
+        states = [
+            ExecutionState.READY,
+            ExecutionState.RUNNING,
+            ExecutionState.PAUSED,
+            ExecutionState.STOPPED,
+        ]
+        cmds = [
+            CriticCommand.START,
+            CriticCommand.PAUSE,
+            CriticCommand.RESUME,
+            CriticCommand.STOP,
+        ]
         header = "State \\ Command | " + " | ".join(c.value for c in cmds)
         print(header)
         print("-" * len(header))

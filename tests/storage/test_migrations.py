@@ -14,7 +14,9 @@ pytestmark = pytest.mark.unit
 
 
 def _sqlite_master_count(conn: sqlite3.Connection) -> int:
-    return conn.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchone()[0]
+    return conn.execute(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+    ).fetchone()[0]
 
 
 def test_migrate_up_applies_0001(tmp_path: Path) -> None:

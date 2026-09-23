@@ -107,7 +107,10 @@ def test_tokens_never_exceed_capacity() -> None:
     from hypothesis import given, settings
     from hypothesis import strategies as st
 
-    @given(cap=st.floats(min_value=1.0, max_value=100.0), rate=st.floats(min_value=0.1, max_value=10.0))
+    @given(
+        cap=st.floats(min_value=1.0, max_value=100.0),
+        rate=st.floats(min_value=0.1, max_value=10.0),
+    )
     @settings(max_examples=20, deadline=None)
     def _check(cap: float, rate: float) -> None:
         clock = FrozenClock()

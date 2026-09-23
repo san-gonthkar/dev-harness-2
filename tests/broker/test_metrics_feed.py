@@ -33,7 +33,12 @@ class FailingClient:
 @pytest.mark.unit
 def test_metrics_update_carries_numeric_p95_and_usd() -> None:
     client = FakeClient(
-        {"p50_latency_ms": 1.5, "p95_latency_ms": 3.5, "tpm_burn": 120, "cumulative_usd": 0.75}
+        {
+            "p50_latency_ms": 1.5,
+            "p95_latency_ms": 3.5,
+            "tpm_burn": 120,
+            "cumulative_usd": 0.75,
+        }
     )
     emitted: list[object] = []
     feed = MetricsFeed(client, emitted.append, interval=0.05)
@@ -50,7 +55,14 @@ def test_metrics_update_carries_numeric_p95_and_usd() -> None:
 
 @pytest.mark.unit
 def test_feed_stops_cleanly() -> None:
-    client = FakeClient({"p50_latency_ms": 0.0, "p95_latency_ms": 0.0, "tpm_burn": 0, "cumulative_usd": 0.0})
+    client = FakeClient(
+        {
+            "p50_latency_ms": 0.0,
+            "p95_latency_ms": 0.0,
+            "tpm_burn": 0,
+            "cumulative_usd": 0.0,
+        }
+    )
     emitted: list[object] = []
     feed = MetricsFeed(client, emitted.append, interval=0.01)
     feed.start()

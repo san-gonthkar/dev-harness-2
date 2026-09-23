@@ -21,7 +21,7 @@ import struct
 import threading
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import pytest
 
@@ -34,6 +34,8 @@ from dev_harness.broker.daemon import (
     BrokerUnavailableError,
     _BrokerSocketServer,
     _health,
+)
+from dev_harness.broker.daemon import (
     main as daemon_main,
 )
 from dev_harness.broker.metrics_feed import MetricsFeed
@@ -132,7 +134,7 @@ class FakeSocket:
     def close(self) -> None:
         self.closed = True
 
-    def __enter__(self) -> FakeSocket:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *exc: object) -> None:
@@ -220,7 +222,9 @@ def test_socket_server_accept_loop_breaks_on_close(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
-def test_emit_interrupt_routes_to_callback_endpoint(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_emit_interrupt_routes_to_callback_endpoint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """_emit_interrupt writes the envelope to the callback socket."""
     from dev_harness.contracts.events import Envelope, InterruptRequestPayload
 
@@ -253,7 +257,9 @@ def test_emit_interrupt_routes_to_callback_endpoint(tmp_path: Path, monkeypatch:
 
 
 @pytest.mark.unit
-def test_emit_interrupt_ignores_non_budget_reason(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_emit_interrupt_ignores_non_budget_reason(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """_emit_interrupt ignores reasons that are not BUDGET: prefixed."""
     from dev_harness.contracts.events import Envelope, InterruptRequestPayload
 
@@ -285,7 +291,9 @@ def test_emit_interrupt_ignores_non_budget_reason(tmp_path: Path, monkeypatch: p
 
 
 @pytest.mark.unit
-def test_emit_interrupt_swallows_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_emit_interrupt_swallows_errors(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """_emit_interrupt never raises even if the callback fails."""
     from dev_harness.contracts.events import Envelope, InterruptRequestPayload
 
@@ -321,7 +329,11 @@ def test_commit_budget_breach_trips_kill_switch(tmp_path: Path) -> None:
     r = daemon._handle_message(
         BrokerMessage(
             op="RESERVE",
-            data={"provider": "anthropic", "tokens": 1.0, "callback_endpoint": "/tmp/e.sock"},
+            data={
+                "provider": "anthropic",
+                "tokens": 1.0,
+                "callback_endpoint": "/tmp/e.sock",
+            },
         )
     )
     rid = r.data["reservation_id"]
@@ -379,7 +391,9 @@ def test_drain_with_live_reservations(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
-def test_daemon_main_health_flag(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_daemon_main_health_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """daemon main() --health returns 0 and prints ok."""
     monkeypatch.setattr(
         "dev_harness.broker.daemon._health",
@@ -390,20 +404,28 @@ def test_daemon_main_health_flag(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.unit
-def test_daemon_main_already_running(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_daemon_main_already_running(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """daemon main() returns 3 when the broker is already running."""
     monkeypatch.setattr(
         "dev_harness.broker.daemon.BrokerDaemon.start",
-        lambda self: (_ for _ in ()).throw(AlreadyRunningError("busy", remediation="stop it")),
+        lambda self: (_ for _ in ()).throw(
+            AlreadyRunningError("busy", remediation="stop it")
+        ),
     )
-    rc = daemon_main(["--socket", str(tmp_path / "b.sock"), "--lock", str(tmp_path / "b.lock")])
+    rc = daemon_main(
+        ["--socket", str(tmp_path / "b.sock"), "--lock", str(tmp_path / "b.lock")]
+    )
     assert rc == 3
     err = capsys.readouterr().err
     assert "AlreadyRunning" in err
 
 
 @pytest.mark.unit
-def test_daemon_main_runs_and_drains(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_daemon_main_runs_and_drains(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """daemon main() runs the loop and drains on KeyboardInterrupt."""
     factory = FakeSocketFactory()
     daemon = _make_daemon(tmp_path, factory)
@@ -428,13 +450,18 @@ def test_daemon_main_runs_and_drains(tmp_path: Path, monkeypatch: pytest.MonkeyP
         real_sleep(0.001)
 
     monkeypatch.setattr("dev_harness.broker.daemon.time.sleep", _interrupt_sleep)
-    rc = daemon_main(["--socket", str(tmp_path / "b.sock"), "--lock", str(tmp_path / "b.lock")])
+    rc = daemon_main(
+        ["--socket", str(tmp_path / "b.sock"), "--lock", str(tmp_path / "b.lock")]
+    )
     assert rc == 0
 
 
 @pytest.mark.unit
-def test_health_ok(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_health_ok(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """_health returns 0 and prints ok when the broker is reachable."""
+
     class FakeClient:
         def __init__(self, path: Any) -> None:
             pass
@@ -453,8 +480,11 @@ def test_health_ok(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pyte
 
 
 @pytest.mark.unit
-def test_health_unavailable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_health_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """_health returns 1 when the broker is unreachable."""
+
     class BoomClient:
         def __init__(self, path: Any) -> None:
             pass
@@ -473,7 +503,9 @@ def test_health_unavailable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cap
 
 
 @pytest.mark.unit
-def test_release_lock_error_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_release_lock_error_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """release_lock tolerates unlock/close failures."""
     factory = FakeSocketFactory()
     daemon = _make_daemon(tmp_path, factory)
@@ -504,15 +536,36 @@ def test_reserve_saturated_when_limiter_full(tmp_path: Path) -> None:
     daemon = _make_daemon(tmp_path, factory)
     # Fill the ollama limiter (max_concurrency=2).
     r1 = daemon._handle_message(
-        BrokerMessage(op="RESERVE", data={"provider": "ollama", "tokens": 1.0, "callback_endpoint": "/tmp/e.sock"})
+        BrokerMessage(
+            op="RESERVE",
+            data={
+                "provider": "ollama",
+                "tokens": 1.0,
+                "callback_endpoint": "/tmp/e.sock",
+            },
+        )
     )
     r2 = daemon._handle_message(
-        BrokerMessage(op="RESERVE", data={"provider": "ollama", "tokens": 1.0, "callback_endpoint": "/tmp/e.sock"})
+        BrokerMessage(
+            op="RESERVE",
+            data={
+                "provider": "ollama",
+                "tokens": 1.0,
+                "callback_endpoint": "/tmp/e.sock",
+            },
+        )
     )
     assert r1.ok is True
     assert r2.ok is True
     r3 = daemon._handle_message(
-        BrokerMessage(op="RESERVE", data={"provider": "ollama", "tokens": 1.0, "callback_endpoint": "/tmp/e.sock"})
+        BrokerMessage(
+            op="RESERVE",
+            data={
+                "provider": "ollama",
+                "tokens": 1.0,
+                "callback_endpoint": "/tmp/e.sock",
+            },
+        )
     )
     assert r3.ok is False
     assert r3.data["reason"] == "saturated"
@@ -524,7 +577,14 @@ def test_release_with_limiter(tmp_path: Path) -> None:
     factory = FakeSocketFactory()
     daemon = _make_daemon(tmp_path, factory)
     r1 = daemon._handle_message(
-        BrokerMessage(op="RESERVE", data={"provider": "ollama", "tokens": 1.0, "callback_endpoint": "/tmp/e.sock"})
+        BrokerMessage(
+            op="RESERVE",
+            data={
+                "provider": "ollama",
+                "tokens": 1.0,
+                "callback_endpoint": "/tmp/e.sock",
+            },
+        )
     )
     rid = r1.data["reservation_id"]
     rel = daemon._handle_message(
@@ -533,7 +593,14 @@ def test_release_with_limiter(tmp_path: Path) -> None:
     assert rel.ok is True
     # The limiter slot is free again.
     r2 = daemon._handle_message(
-        BrokerMessage(op="RESERVE", data={"provider": "ollama", "tokens": 1.0, "callback_endpoint": "/tmp/e.sock"})
+        BrokerMessage(
+            op="RESERVE",
+            data={
+                "provider": "ollama",
+                "tokens": 1.0,
+                "callback_endpoint": "/tmp/e.sock",
+            },
+        )
     )
     assert r2.ok is True
 
@@ -544,7 +611,14 @@ def test_reserve_bad_provider_returns_error(tmp_path: Path) -> None:
     factory = FakeSocketFactory()
     daemon = _make_daemon(tmp_path, factory)
     r = daemon._handle_message(
-        BrokerMessage(op="RESERVE", data={"provider": "nope", "tokens": 1.0, "callback_endpoint": "/tmp/e.sock"})
+        BrokerMessage(
+            op="RESERVE",
+            data={
+                "provider": "nope",
+                "tokens": 1.0,
+                "callback_endpoint": "/tmp/e.sock",
+            },
+        )
     )
     assert r.ok is False
     assert r.data["reason"] == "error"
@@ -589,15 +663,24 @@ class FakeClient:
         self.releases = 0
         self.metrics_calls = 0
 
-    def reserve(self, provider: Any, *, tokens: float = 1.0, callback_endpoint: str = "") -> BrokerMessage:
+    def reserve(
+        self, provider: Any, *, tokens: float = 1.0, callback_endpoint: str = ""
+    ) -> BrokerMessage:
         self.reserves += 1
         if self.grants < self.grant_limit:
             self.grants += 1
             return BrokerMessage(
                 op="RESERVE",
-                data={"granted": True, "reservation_id": f"r{self.grants}", "provider": "anthropic", "tokens": 1.0},
+                data={
+                    "granted": True,
+                    "reservation_id": f"r{self.grants}",
+                    "provider": "anthropic",
+                    "tokens": 1.0,
+                },
             )
-        return BrokerMessage(op="RESERVE", data={"granted": False, "reason": "rate_limited"})
+        return BrokerMessage(
+            op="RESERVE", data={"granted": False, "reason": "rate_limited"}
+        )
 
     def commit(self, provider: Any, rid: str, **kw: Any) -> BrokerMessage:
         self.commits += 1
@@ -611,7 +694,12 @@ class FakeClient:
         self.metrics_calls += 1
         return BrokerMessage(
             op="METRICS",
-            data={"p50_latency_ms": 1.0, "p95_latency_ms": 2.0, "tpm_burn": 10, "cumulative_usd": 0.5},
+            data={
+                "p50_latency_ms": 1.0,
+                "p95_latency_ms": 2.0,
+                "tpm_burn": 10,
+                "cumulative_usd": 0.5,
+            },
         )
 
     def close(self) -> None:
@@ -619,7 +707,9 @@ class FakeClient:
 
 
 @pytest.mark.unit
-def test_loadgen_budget_path_commits(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_loadgen_budget_path_commits(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """loadgen with --run-budget/--unit-cost commits instead of releasing."""
     client = FakeClient(grant_limit=5)
     monkeypatch.setattr(cli_mod, "_make_client", lambda args: client)
@@ -647,7 +737,9 @@ def test_loadgen_budget_path_commits(tmp_path: Path, monkeypatch: pytest.MonkeyP
 
 
 @pytest.mark.unit
-def test_metrics_follow_streams(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_metrics_follow_streams(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """metrics --follow streams until KeyboardInterrupt."""
     client = FakeClient()
     monkeypatch.setattr(cli_mod, "_make_client", lambda args: client)
@@ -669,8 +761,11 @@ def test_metrics_follow_streams(tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 
 
 @pytest.mark.unit
-def test_cli_broker_unavailable_returns_2(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_broker_unavailable_returns_2(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """CLI main() catches BrokerUnavailableError and returns 2."""
+
     def _boom(args: Any) -> Any:
         raise BrokerUnavailableError("down", remediation="start the broker")
 
@@ -744,6 +839,7 @@ def test_encode_oversize_raises() -> None:
 @pytest.mark.unit
 def test_read_frame_eof_in_prefix() -> None:
     """read_frame raises when EOF occurs inside the length prefix."""
+
     class ShortStream:
         def __init__(self) -> None:
             self._data = b"\x00\x01"
@@ -760,6 +856,7 @@ def test_read_frame_eof_in_prefix() -> None:
 @pytest.mark.unit
 def test_read_frame_eof_in_body() -> None:
     """read_frame raises when EOF occurs inside the frame body."""
+
     class ShortBodyStream:
         def __init__(self) -> None:
             self._data = struct.pack(">I", 100) + b"short"
@@ -776,6 +873,7 @@ def test_read_frame_eof_in_body() -> None:
 @pytest.mark.unit
 def test_read_frame_oversized_body() -> None:
     """read_frame raises when the declared body exceeds the ceiling."""
+
     class OversizedStream:
         def __init__(self) -> None:
             self._data = struct.pack(">I", 2 * 1024 * 1024) + b"x"
@@ -844,7 +942,9 @@ class FakeSocketClient:
 
 
 @pytest.mark.unit
-def test_client_request_failure_raises_unavailable(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_client_request_failure_raises_unavailable(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """A failed request raises BrokerUnavailableError and resets the conn."""
     from dev_harness.broker import client as client_mod
 
@@ -871,11 +971,18 @@ def test_client_close_noop_when_no_conn() -> None:
 @pytest.mark.unit
 def test_metrics_feed_stop_joins_thread() -> None:
     """stop() joins the sampling thread."""
-    from dev_harness.broker.metrics_feed import MetricsFeed
 
     class FakeClient:
         def metrics(self) -> BrokerMessage:
-            return BrokerMessage(op="METRICS", data={"p50_latency_ms": 0.0, "p95_latency_ms": 0.0, "tpm_burn": 0, "cumulative_usd": 0.0})
+            return BrokerMessage(
+                op="METRICS",
+                data={
+                    "p50_latency_ms": 0.0,
+                    "p95_latency_ms": 0.0,
+                    "tpm_burn": 0,
+                    "cumulative_usd": 0.0,
+                },
+            )
 
     emitted: list[object] = []
     feed = MetricsFeed(FakeClient(), emitted.append, interval=0.01)

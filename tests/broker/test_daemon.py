@@ -146,7 +146,11 @@ def test_reserve_granted_and_released(tmp_path: Path) -> None:
     reply = daemon._handle_message(
         BrokerMessage(
             op="RESERVE",
-            data={"provider": "anthropic", "tokens": 1.0, "callback_endpoint": "/tmp/e.sock"},
+            data={
+                "provider": "anthropic",
+                "tokens": 1.0,
+                "callback_endpoint": "/tmp/e.sock",
+            },
         )
     )
     assert reply.ok is True
@@ -154,7 +158,9 @@ def test_reserve_granted_and_released(tmp_path: Path) -> None:
     rid = reply.data["reservation_id"]
     # Release returns the tokens.
     rel = daemon._handle_message(
-        BrokerMessage(op="RELEASE", data={"provider": "anthropic", "reservation_id": rid})
+        BrokerMessage(
+            op="RELEASE", data={"provider": "anthropic", "reservation_id": rid}
+        )
     )
     assert rel.ok is True
     assert rel.data["tokens"] == 1.0
@@ -169,14 +175,22 @@ def test_reserve_rate_limited_when_bucket_empty(tmp_path: Path) -> None:
         r = daemon._handle_message(
             BrokerMessage(
                 op="RESERVE",
-                data={"provider": "anthropic", "tokens": 1.0, "callback_endpoint": "/tmp/e.sock"},
+                data={
+                    "provider": "anthropic",
+                    "tokens": 1.0,
+                    "callback_endpoint": "/tmp/e.sock",
+                },
             )
         )
         assert r.ok is True
     r = daemon._handle_message(
         BrokerMessage(
             op="RESERVE",
-            data={"provider": "anthropic", "tokens": 1.0, "callback_endpoint": "/tmp/e.sock"},
+            data={
+                "provider": "anthropic",
+                "tokens": 1.0,
+                "callback_endpoint": "/tmp/e.sock",
+            },
         )
     )
     assert r.ok is False
@@ -191,7 +205,11 @@ def test_commit_with_budget_breach_trips_kill_switch(tmp_path: Path) -> None:
     r = daemon._handle_message(
         BrokerMessage(
             op="RESERVE",
-            data={"provider": "anthropic", "tokens": 1.0, "callback_endpoint": "/tmp/e.sock"},
+            data={
+                "provider": "anthropic",
+                "tokens": 1.0,
+                "callback_endpoint": "/tmp/e.sock",
+            },
         )
     )
     rid = r.data["reservation_id"]
@@ -218,7 +236,11 @@ def test_commit_with_budget_breach_trips_kill_switch(tmp_path: Path) -> None:
     r2 = daemon._handle_message(
         BrokerMessage(
             op="RESERVE",
-            data={"provider": "anthropic", "tokens": 1.0, "callback_endpoint": "/tmp/e.sock"},
+            data={
+                "provider": "anthropic",
+                "tokens": 1.0,
+                "callback_endpoint": "/tmp/e.sock",
+            },
         )
     )
     assert r2.ok is False

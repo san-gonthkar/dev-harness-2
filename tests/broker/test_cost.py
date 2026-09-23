@@ -26,9 +26,7 @@ class FrozenClock:
 def _registry() -> ModelRegistry:
     config = HarnessConfig(
         providers={
-            "anthropic": ProviderConfig(
-                usd_per_mtok_in=3.0, usd_per_mtok_out=15.0
-            )
+            "anthropic": ProviderConfig(usd_per_mtok_in=3.0, usd_per_mtok_out=15.0)
         }
     )
     return ModelRegistry(config)
@@ -83,9 +81,7 @@ def test_day_ceiling_breach_raises() -> None:
 @pytest.mark.unit
 def test_day_rollover_resets_day_budget() -> None:
     clock = FrozenClock()
-    gov = CostGovernor(
-        _registry(), budget_usd_per_day=0.50, clock=clock
-    )
+    gov = CostGovernor(_registry(), budget_usd_per_day=0.50, clock=clock)
     gov.commit("anthropic-default", Usage(100_000, 0))  # $0.30
     clock.advance(DAY_SECONDS + 1)
     # Day window rolled: the same commit is allowed again.
@@ -97,7 +93,9 @@ def test_day_rollover_resets_day_budget() -> None:
 def test_cost_usd_matches_commit() -> None:
     gov = CostGovernor(_registry())
     usage = Usage(500_000, 250_000)
-    assert gov.cost_usd("anthropic-default", usage) == gov.commit("anthropic-default", usage)
+    assert gov.cost_usd("anthropic-default", usage) == gov.commit(
+        "anthropic-default", usage
+    )
 
 
 @pytest.mark.unit

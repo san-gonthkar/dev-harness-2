@@ -12,7 +12,9 @@ from dev_harness.contracts.errors import ConfigError
 pytestmark = pytest.mark.unit
 
 
-def test_env_override_beats_toml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_env_override_beats_toml(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     cfg = tmp_path / "c.toml"
     cfg.write_text("[providers.anthropic]\nrpm = 50\n", encoding="utf-8")
     monkeypatch.setenv("DEV_HARNESS_ANTHROPIC__RPM", "10")

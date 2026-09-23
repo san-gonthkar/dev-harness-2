@@ -26,15 +26,24 @@ class FakeClient:
         self.releases = 0
         self.metrics_calls = 0
 
-    def reserve(self, provider: Any, *, tokens: float = 1.0, callback_endpoint: str = "") -> BrokerMessage:
+    def reserve(
+        self, provider: Any, *, tokens: float = 1.0, callback_endpoint: str = ""
+    ) -> BrokerMessage:
         self.reserves += 1
         if self.grants < self.grant_limit:
             self.grants += 1
             return BrokerMessage(
                 op="RESERVE",
-                data={"granted": True, "reservation_id": f"r{self.grants}", "provider": "anthropic", "tokens": 1.0},
+                data={
+                    "granted": True,
+                    "reservation_id": f"r{self.grants}",
+                    "provider": "anthropic",
+                    "tokens": 1.0,
+                },
             )
-        return BrokerMessage(op="RESERVE", data={"granted": False, "reason": "rate_limited"})
+        return BrokerMessage(
+            op="RESERVE", data={"granted": False, "reason": "rate_limited"}
+        )
 
     def commit(self, provider: Any, rid: str, **kw: Any) -> BrokerMessage:
         self.commits += 1
@@ -48,7 +57,12 @@ class FakeClient:
         self.metrics_calls += 1
         return BrokerMessage(
             op="METRICS",
-            data={"p50_latency_ms": 1.0, "p95_latency_ms": 2.0, "tpm_burn": 10, "cumulative_usd": 0.5},
+            data={
+                "p50_latency_ms": 1.0,
+                "p95_latency_ms": 2.0,
+                "tpm_burn": 10,
+                "cumulative_usd": 0.5,
+            },
         )
 
     def close(self) -> None:
@@ -56,11 +70,25 @@ class FakeClient:
 
 
 @pytest.mark.unit
-def test_loadgen_respects_policy_ceiling(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_loadgen_respects_policy_ceiling(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     client = FakeClient(grant_limit=50)
     monkeypatch.setattr(cli_mod, "_make_client", lambda args: client)
     monkeypatch.chdir(tmp_path)
-    rc = main(["loadgen", "--provider", "anthropic", "--rpm-target", "200", "--policy-rpm", "50", "--duration", "0.3"])
+    rc = main(
+        [
+            "loadgen",
+            "--provider",
+            "anthropic",
+            "--rpm-target",
+            "200",
+            "--policy-rpm",
+            "50",
+            "--duration",
+            "0.3",
+        ]
+    )
     assert rc == 0
     # The fake grants at most the ceiling (50); the loadgen never exceeds it.
     assert client.grants <= 50
@@ -75,7 +103,9 @@ def test_loadgen_respects_policy_ceiling(tmp_path: Path, monkeypatch: pytest.Mon
 
 
 @pytest.mark.unit
-def test_reserve_then_kill_releases_at_ttl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_reserve_then_kill_releases_at_ttl(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     client = FakeClient()
     monkeypatch.setattr(cli_mod, "_make_client", lambda args: client)
     rc = main(["reserve", "--provider", "anthropic", "--then-kill"])
@@ -108,7 +138,9 @@ def test_reserve_commit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
 
 
 @pytest.mark.unit
-def test_reserve_refused_returns_1(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_reserve_refused_returns_1(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     client = FakeClient(grant_limit=0)
     monkeypatch.setattr(cli_mod, "_make_client", lambda args: client)
     rc = main(["reserve", "--provider", "anthropic"])
@@ -116,7 +148,9 @@ def test_reserve_refused_returns_1(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.unit
-def test_metrics_once(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_metrics_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     client = FakeClient()
     monkeypatch.setattr(cli_mod, "_make_client", lambda args: client)
     rc = main(["metrics"])
@@ -128,7 +162,9 @@ def test_metrics_once(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: p
 
 
 @pytest.mark.unit
-def test_broker_unavailable_returns_2(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_broker_unavailable_returns_2(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from dev_harness.broker.daemon import BrokerUnavailableError
 
     def _boom(args: Any) -> Any:

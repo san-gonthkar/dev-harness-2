@@ -74,20 +74,29 @@ def test_health_ok(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
-def test_reserve_sends_callback_endpoint(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_reserve_sends_callback_endpoint(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     sock = FakeSocket(
         [
             _reply(
                 BrokerMessage(
                     op="RESERVE",
-                    data={"granted": True, "reservation_id": "abc", "provider": "anthropic", "tokens": 1.0},
+                    data={
+                        "granted": True,
+                        "reservation_id": "abc",
+                        "provider": "anthropic",
+                        "tokens": 1.0,
+                    },
                 )
             )
         ]
     )
     monkeypatch.setattr(client_mod.socket, "socket", lambda *a, **k: sock)
     client = BrokerClient(tmp_path / "broker.sock")
-    reply = client.reserve(ProviderId.ANTHROPIC, tokens=1.0, callback_endpoint="/tmp/e.sock")
+    reply = client.reserve(
+        ProviderId.ANTHROPIC, tokens=1.0, callback_endpoint="/tmp/e.sock"
+    )
     assert reply.data["granted"] is True
     # The sent frame contains the callback_endpoint.
     sent = b"".join(sock.sent)
@@ -118,7 +127,9 @@ def test_commit_and_release(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     )
     monkeypatch.setattr(client_mod.socket, "socket", lambda *a, **k: sock)
     client = BrokerClient(tmp_path / "broker.sock")
-    c = client.commit("anthropic", "rid1", actual=0.5, model="m", usage_in=10, usage_out=5)
+    c = client.commit(
+        "anthropic", "rid1", actual=0.5, model="m", usage_in=10, usage_out=5
+    )
     assert c.data["delta"] == 0.5
     r = client.release("anthropic", "rid1")
     assert r.data["tokens"] == 1.0
@@ -132,7 +143,12 @@ def test_metrics(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
             _reply(
                 BrokerMessage(
                     op="METRICS",
-                    data={"p50_latency_ms": 1.0, "p95_latency_ms": 2.0, "tpm_burn": 10, "cumulative_usd": 0.5},
+                    data={
+                        "p50_latency_ms": 1.0,
+                        "p95_latency_ms": 2.0,
+                        "tpm_burn": 10,
+                        "cumulative_usd": 0.5,
+                    },
                 )
             )
         ]

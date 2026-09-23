@@ -140,7 +140,9 @@ class BrokerDaemon:
             self._lock_handle = self.lock_path.open("a+", encoding="utf-8")
             import portalocker
 
-            portalocker.lock(self._lock_handle, portalocker.LOCK_EX | portalocker.LOCK_NB)
+            portalocker.lock(
+                self._lock_handle, portalocker.LOCK_EX | portalocker.LOCK_NB
+            )
         except (OSError, ValueError, portalocker.exceptions.AlreadyLocked) as exc:
             raise AlreadyRunningError(
                 "another broker instance holds the host lock",
@@ -194,12 +196,16 @@ class BrokerDaemon:
             callback = str(msg.data.get("callback_endpoint", ""))
             bucket = self._buckets.get(provider)
             if bucket is not None and not bucket.try_acquire(tokens):
-                return BrokerMessage(op="RESERVE", ok=False, data={"reason": "rate_limited"})
+                return BrokerMessage(
+                    op="RESERVE", ok=False, data={"reason": "rate_limited"}
+                )
             limiter = self._limiters.get(provider)
             if limiter is not None and not limiter.acquire(timeout=0):
                 if bucket is not None:
                     bucket.release(tokens)
-                return BrokerMessage(op="RESERVE", ok=False, data={"reason": "saturated"})
+                return BrokerMessage(
+                    op="RESERVE", ok=False, data={"reason": "saturated"}
+                )
             res = self._reservations.create(provider, tokens, callback)
             return BrokerMessage(
                 op="RESERVE",
@@ -370,8 +376,12 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(prog="dev-harness-broker")
     parser.add_argument("--config", default=None, help="Path to a TOML config")
-    parser.add_argument("--socket", default=None, help="Override the host-scoped socket path")
-    parser.add_argument("--lock", default=None, help="Override the host-scoped lock path")
+    parser.add_argument(
+        "--socket", default=None, help="Override the host-scoped socket path"
+    )
+    parser.add_argument(
+        "--lock", default=None, help="Override the host-scoped lock path"
+    )
     parser.add_argument("--health", action="store_true", help="Check health and exit")
     args = parser.parse_args(argv)
 

@@ -92,7 +92,9 @@ def main() -> int:
     if "--errors" in args:
         unreachable = check_error_reachability()
         if unreachable:
-            print(f"unreachable HarnessError subclasses: {unreachable}", file=sys.stderr)
+            print(
+                f"unreachable HarnessError subclasses: {unreachable}", file=sys.stderr
+            )
             return 1
         print("all HarnessError subclasses reachable")
         return 0
@@ -125,11 +127,17 @@ def _run_coverage() -> dict[str, dict[str, float]]:
     """Run pytest --cov and aggregate per-package line/branch percentages."""
     subprocess.run(
         [
-            sys.executable, "-m", "pytest", "tests",
-            "-q", "--cov=dev_harness", "--cov-branch",
+            sys.executable,
+            "-m",
+            "pytest",
+            "tests",
+            "-q",
+            "--cov=dev_harness",
+            "--cov-branch",
             "--cov-report=json:" + str(REPO / "coverage.json"),
         ],
-        cwd=REPO, check=False,
+        cwd=REPO,
+        check=False,
     )
     report_path = REPO / "coverage.json"
     if not report_path.exists():
@@ -154,13 +162,19 @@ def _run_coverage() -> dict[str, dict[str, float]]:
         summary = metrics.get("summary", {})
         pkg_covered[pkg] = pkg_covered.get(pkg, 0) + summary.get("covered_lines", 0)
         pkg_total[pkg] = pkg_total.get(pkg, 0) + summary.get("num_statements", 0)
-        pkg_branch_cov[pkg] = pkg_branch_cov.get(pkg, 0) + summary.get("covered_branches", 0)
-        pkg_branch_total[pkg] = pkg_branch_total.get(pkg, 0) + summary.get("num_branches", 0)
+        pkg_branch_cov[pkg] = pkg_branch_cov.get(pkg, 0) + summary.get(
+            "covered_branches", 0
+        )
+        pkg_branch_total[pkg] = pkg_branch_total.get(pkg, 0) + summary.get(
+            "num_branches", 0
+        )
     result: dict[str, dict[str, float]] = {}
     for pkg, total in pkg_total.items():
         result[pkg] = {
             "line": (pkg_covered[pkg] / total * 100) if total else 0.0,
-            "branch": (pkg_branch_cov[pkg] / pkg_branch_total[pkg] * 100) if pkg_branch_total[pkg] else 0.0,
+            "branch": (pkg_branch_cov[pkg] / pkg_branch_total[pkg] * 100)
+            if pkg_branch_total[pkg]
+            else 0.0,
         }
     return result
 

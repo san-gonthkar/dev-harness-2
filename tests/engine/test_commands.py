@@ -38,7 +38,9 @@ def handler(tmp_path: Path) -> CommandHandler:
 
 
 @pytest.mark.unit
-def test_start_session_returns_typed_response(handler: CommandHandler, tmp_path: Path) -> None:
+def test_start_session_returns_typed_response(
+    handler: CommandHandler, tmp_path: Path
+) -> None:
     """START_SESSION returns a StartSessionResponse with thread_id and state."""
     resp = handler.handle(StartSessionCommand(workspace=str(tmp_path)))
     assert isinstance(resp, StartSessionResponse)
@@ -80,7 +82,9 @@ def test_status_returns_typed_response(handler: CommandHandler, tmp_path: Path) 
 
 
 @pytest.mark.unit
-def test_shutdown_returns_typed_response(handler: CommandHandler, tmp_path: Path) -> None:
+def test_shutdown_returns_typed_response(
+    handler: CommandHandler, tmp_path: Path
+) -> None:
     """SHUTDOWN returns a ShutdownResponse and invokes the callback."""
     called: list[bool] = []
 
@@ -95,7 +99,9 @@ def test_shutdown_returns_typed_response(handler: CommandHandler, tmp_path: Path
 
 
 @pytest.mark.unit
-def test_status_without_session_returns_ready(handler: CommandHandler, tmp_path: Path) -> None:
+def test_status_without_session_returns_ready(
+    handler: CommandHandler, tmp_path: Path
+) -> None:
     """STATUS with no session reports READY and no thread_id."""
     resp = handler.handle(StatusCommand(workspace=str(tmp_path)))
     assert isinstance(resp, StatusResponse)
@@ -104,7 +110,9 @@ def test_status_without_session_returns_ready(handler: CommandHandler, tmp_path:
 
 
 @pytest.mark.unit
-def test_attach_without_session_returns_error(handler: CommandHandler, tmp_path: Path) -> None:
+def test_attach_without_session_returns_error(
+    handler: CommandHandler, tmp_path: Path
+) -> None:
     """ATTACH with no session returns an ErrorResponse (connection stays open)."""
     resp = handler.handle(AttachCommand(workspace=str(tmp_path)))
     assert isinstance(resp, ErrorResponse)
@@ -113,7 +121,9 @@ def test_attach_without_session_returns_error(handler: CommandHandler, tmp_path:
 
 
 @pytest.mark.unit
-def test_detach_without_session_returns_error(handler: CommandHandler, tmp_path: Path) -> None:
+def test_detach_without_session_returns_error(
+    handler: CommandHandler, tmp_path: Path
+) -> None:
     """DETACH with no session returns an ErrorResponse (connection stays open)."""
     resp = handler.handle(DetachCommand(workspace=str(tmp_path)))
     assert isinstance(resp, ErrorResponse)
@@ -121,7 +131,9 @@ def test_detach_without_session_returns_error(handler: CommandHandler, tmp_path:
 
 
 @pytest.mark.unit
-def test_second_start_session_returns_error(handler: CommandHandler, tmp_path: Path) -> None:
+def test_second_start_session_returns_error(
+    handler: CommandHandler, tmp_path: Path
+) -> None:
     """A second START_SESSION returns an ErrorResponse naming the live thread_id."""
     first = handler.handle(StartSessionCommand(workspace=str(tmp_path)))
     assert isinstance(first, StartSessionResponse)

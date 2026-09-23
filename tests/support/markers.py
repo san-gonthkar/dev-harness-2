@@ -9,10 +9,21 @@ from __future__ import annotations
 
 import pytest
 
-ALLOWED_MARKERS = {"unit", "property", "contract", "integration", "negative", "timing", "slow", "e2e"}
+ALLOWED_MARKERS = {
+    "unit",
+    "property",
+    "contract",
+    "integration",
+    "negative",
+    "timing",
+    "slow",
+    "e2e",
+}
 
 
-def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
     for item in items:
         func_markers = {
             m.name for m in item.iter_markers() if m.name in ALLOWED_MARKERS

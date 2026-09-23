@@ -123,7 +123,9 @@ def test_binds_derived_socket(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
 
 
 @pytest.mark.unit
-def test_binds_under_two_seconds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_binds_under_two_seconds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Binding the socket completes well under the 2s SLO."""
     monkeypatch.setattr(server_mod, "require_posix", lambda: None)
     factory = FakeSocketFactory()
@@ -154,7 +156,9 @@ def test_sigterm_exits_zero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
 
 
 @pytest.mark.unit
-def test_sigint_requests_shutdown(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_sigint_requests_shutdown(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """SIGINT also requests a clean shutdown."""
     monkeypatch.setattr(server_mod, "require_posix", lambda: None)
     factory = FakeSocketFactory()
@@ -168,7 +172,9 @@ def test_sigint_requests_shutdown(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 
 
 @pytest.mark.unit
-def test_socket_removed_on_drain(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_socket_removed_on_drain(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Drain unlinks the socket file."""
     monkeypatch.setattr(server_mod, "require_posix", lambda: None)
     factory = FakeSocketFactory()
@@ -184,7 +190,9 @@ def test_socket_removed_on_drain(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.unit
-def test_stop_closes_server_socket(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_stop_closes_server_socket(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """stop() closes the server socket and marks the daemon not running."""
     monkeypatch.setattr(server_mod, "require_posix", lambda: None)
     factory = FakeSocketFactory()
@@ -197,7 +205,9 @@ def test_stop_closes_server_socket(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.unit
-def test_run_blocks_until_shutdown(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_blocks_until_shutdown(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """run() returns the exit code once shutdown is requested."""
     monkeypatch.setattr(server_mod, "require_posix", lambda: None)
     factory = FakeSocketFactory()
@@ -220,7 +230,9 @@ def test_run_blocks_until_shutdown(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.unit
-def test_install_signal_handlers_restores(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_install_signal_handlers_restores(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Installed signal handlers are restored after run() completes."""
     monkeypatch.setattr(server_mod, "require_posix", lambda: None)
     factory = FakeSocketFactory()
@@ -234,7 +246,9 @@ def test_install_signal_handlers_restores(tmp_path: Path, monkeypatch: pytest.Mo
 
 
 @pytest.mark.unit
-def test_drain_without_server_is_noop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_drain_without_server_is_noop(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """drain() with no bound server is a safe no-op."""
     monkeypatch.setattr(server_mod, "require_posix", lambda: None)
     daemon = _make_daemon(tmp_path, FakeSocketFactory())
@@ -244,7 +258,9 @@ def test_drain_without_server_is_noop(tmp_path: Path, monkeypatch: pytest.Monkey
 
 
 @pytest.mark.unit
-def test_stop_without_server_is_noop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_stop_without_server_is_noop(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """stop() with no bound server is a safe no-op."""
     monkeypatch.setattr(server_mod, "require_posix", lambda: None)
     daemon = _make_daemon(tmp_path, FakeSocketFactory())
@@ -259,7 +275,9 @@ def test_signal_install_skips_on_error(
     """Signal installation tolerates environments where signals cannot be set."""
     monkeypatch.setattr(server_mod, "require_posix", lambda: None)
     monkeypatch.setattr(
-        daemon_mod.signal, "signal", lambda sig, handler: (_ for _ in ()).throw(ValueError())
+        daemon_mod.signal,
+        "signal",
+        lambda sig, handler: (_ for _ in ()).throw(ValueError()),
     )
     daemon = _make_daemon(tmp_path, FakeSocketFactory())
     daemon._install_signal_handlers()

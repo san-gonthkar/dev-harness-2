@@ -38,7 +38,13 @@ class RetentionPolicy:
             "  WHERE project_id=? AND thread_id=? AND is_paused=0 "
             "  ORDER BY created_at DESC, checkpoint_id DESC LIMIT ?"
             ")",
-            (scope.project_id, scope.thread_id, scope.project_id, scope.thread_id, self.keep),
+            (
+                scope.project_id,
+                scope.thread_id,
+                scope.project_id,
+                scope.thread_id,
+                self.keep,
+            ),
         ).rowcount
         conn.commit()
         return deleted

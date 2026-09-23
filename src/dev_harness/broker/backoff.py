@@ -41,10 +41,10 @@ class Backoff:
             raise ValueError("attempt must be >= 0")
         if retry_after is not None:
             return retry_after
-        pre_jitter = min(self.max_delay, self.base * float(2 ** attempt))
+        pre_jitter = min(self.max_delay, self.base * float(2**attempt))
         jitter_val = float(self._random())
         return pre_jitter + jitter_val * self.jitter
 
     def pre_jitter(self, attempt: int) -> float:
         """The deterministic (pre-jitter) delay for ``attempt``."""
-        return min(self.max_delay, self.base * float(2 ** attempt))
+        return min(self.max_delay, self.base * float(2**attempt))

@@ -37,7 +37,10 @@ def test_frozen_clock_install_restore() -> None:
 def test_tmp_workspace_is_git_repo(tmp_workspace: Path) -> None:
     r = subprocess.run(
         ["git", "rev-parse", "HEAD"],
-        cwd=tmp_workspace, capture_output=True, text=True, check=False,
+        cwd=tmp_workspace,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     assert r.returncode == 0
     assert len(r.stdout.strip()) == 40

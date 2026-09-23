@@ -168,7 +168,9 @@ def encode_command(command: Command) -> bytes:
     body = command.model_dump_json().encode("utf-8")
     frame = _PREFIX.pack(len(body)) + body
     if len(frame) > MAX_COMMAND_FRAME:
-        raise ValueError(f"command frame of {len(frame)} bytes exceeds {MAX_COMMAND_FRAME}")
+        raise ValueError(
+            f"command frame of {len(frame)} bytes exceeds {MAX_COMMAND_FRAME}"
+        )
     return frame
 
 
@@ -177,7 +179,9 @@ def encode_response(response: CommandResponse) -> bytes:
     body = response.model_dump_json().encode("utf-8")
     frame = _PREFIX.pack(len(body)) + body
     if len(frame) > MAX_COMMAND_FRAME:
-        raise ValueError(f"response frame of {len(frame)} bytes exceeds {MAX_COMMAND_FRAME}")
+        raise ValueError(
+            f"response frame of {len(frame)} bytes exceeds {MAX_COMMAND_FRAME}"
+        )
     return frame
 
 

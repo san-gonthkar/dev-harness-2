@@ -225,6 +225,7 @@ def test_cold_start_spawns_daemon(tmp_path: Path) -> None:
     spawned: list[Path] = []
     factory = FakeSocketFactory()
     factory.make_server()
+
     def _fake_spawn(ws: Path) -> None:
         spawned.append(ws)
         # The spawned daemon creates the socket file, then the handshake
@@ -360,6 +361,7 @@ def test_main_unavailable_exits_one(
 def test_handshake_timeout_constant() -> None:
     """The handshake SLO is 3 seconds per the validation matrix."""
     assert HANDSHAKE_TIMEOUT == 3.0
+
 
 @pytest.mark.unit
 def test_request_failure_raises_unreachable(tmp_path: Path) -> None:

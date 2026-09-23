@@ -19,7 +19,9 @@ def _token(seq: int) -> Envelope:
     return Envelope(
         type=EventType.AGENT_TOKEN_STREAM,
         seq=seq,
-        payload=AgentTokenStreamPayload(type="AGENT_TOKEN_STREAM", seq=seq, token=f"t{seq}"),
+        payload=AgentTokenStreamPayload(
+            type="AGENT_TOKEN_STREAM", seq=seq, token=f"t{seq}"
+        ),
     )
 
 
@@ -59,7 +61,7 @@ def test_killing_client_2_leaves_1_and_3_gapless() -> None:
         events = fanout.drain(cid)
         assert [e.payload.seq for e in events] == list(range(100))  # type: ignore[union-attr]
 
-    # Client 2's queue was dropped on detach.
+        # Client 2's queue was dropped on detach.
         assert fanout.drain("c2") == []
 
 

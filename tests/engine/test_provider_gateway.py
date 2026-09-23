@@ -40,8 +40,16 @@ class _FakeBroker:
         self.reply_data: dict[str, object] = {"reservation_id": "res-1"}
         self.raise_on: str | None = None
 
-    def reserve(self, provider: object, *, tokens: float = 1.0, callback_endpoint: str = "") -> object:
-        self.calls.append(("reserve", (provider,), {"tokens": tokens, "callback_endpoint": callback_endpoint}))
+    def reserve(
+        self, provider: object, *, tokens: float = 1.0, callback_endpoint: str = ""
+    ) -> object:
+        self.calls.append(
+            (
+                "reserve",
+                (provider,),
+                {"tokens": tokens, "callback_endpoint": callback_endpoint},
+            )
+        )
         if self.raise_on == "reserve":
             raise BrokerUnavailableError("down", remediation="start broker")
         return _Reply(self.reply_ok, self.reply_data)
@@ -105,16 +113,16 @@ def test_engine_never_imports_provider_adapters() -> None:
                         f"{py.name} imports provider adapter {alias.name}"
                     )
             elif isinstance(node, ast.ImportFrom):
-                assert node.module is None or not node.module.startswith(_ADAPTER_MODULES), (
-                    f"{py.name} imports provider adapter {node.module}"
-                )
+                assert node.module is None or not node.module.startswith(
+                    _ADAPTER_MODULES
+                ), f"{py.name} imports provider adapter {node.module}"
             elif (
-                                isinstance(node, ast.Attribute)
-                                and isinstance(node.value, ast.Name)
-                                and node.value.id == "providers"
-                            ):
-                                # e.g. providers.anthropic.something — never allowed in engine/
-                                raise AssertionError(f"{py.name} references providers.{node.attr}")
+                isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name)
+                and node.value.id == "providers"
+            ):
+                # e.g. providers.anthropic.something — never allowed in engine/
+                raise AssertionError(f"{py.name} references providers.{node.attr}")
 
 
 @pytest.mark.unit
@@ -130,7 +138,9 @@ def test_gateway_uses_broker_client_not_adapters() -> None:
 
 
 @pytest.mark.unit
-def test_reserve_routes_through_broker(gateway: ProviderGateway, fake_broker: _FakeBroker) -> None:
+def test_reserve_routes_through_broker(
+    gateway: ProviderGateway, fake_broker: _FakeBroker
+) -> None:
     """reserve() calls the broker and returns the reservation id."""
     rid = gateway.reserve(ProviderId.ANTHROPIC, tokens=2.5, callback_endpoint="ep")
     assert rid == "res-1"
@@ -140,7 +150,9 @@ def test_reserve_routes_through_broker(gateway: ProviderGateway, fake_broker: _F
 
 
 @pytest.mark.unit
-def test_commit_routes_through_broker(gateway: ProviderGateway, fake_broker: _FakeBroker) -> None:
+def test_commit_routes_through_broker(
+    gateway: ProviderGateway, fake_broker: _FakeBroker
+) -> None:
     """commit() calls the broker with usage details."""
     gateway.commit(
         "anthropic",
@@ -163,7 +175,9 @@ def test_commit_routes_through_broker(gateway: ProviderGateway, fake_broker: _Fa
 
 
 @pytest.mark.unit
-def test_release_routes_through_broker(gateway: ProviderGateway, fake_broker: _FakeBroker) -> None:
+def test_release_routes_through_broker(
+    gateway: ProviderGateway, fake_broker: _FakeBroker
+) -> None:
     """release() calls the broker."""
     gateway.release("anthropic", "res-1")
     assert fake_broker.calls[0][0] == "release"
@@ -171,27 +185,35 @@ def test_release_routes_through_broker(gateway: ProviderGateway, fake_broker: _F
 
 
 @pytest.mark.unit
-def test_metrics_routes_through_broker(gateway: ProviderGateway, fake_broker: _FakeBroker) -> None:
+def test_metrics_routes_through_broker(
+    gateway: ProviderGateway, fake_broker: _FakeBroker
+) -> None:
     """metrics() returns the broker's snapshot."""
     assert gateway.metrics() == {"tpm": 100}
     assert fake_broker.calls[0][0] == "metrics"
 
 
 @pytest.mark.unit
-def test_health_true_when_broker_ok(gateway: ProviderGateway, fake_broker: _FakeBroker) -> None:
+def test_health_true_when_broker_ok(
+    gateway: ProviderGateway, fake_broker: _FakeBroker
+) -> None:
     """health() is True when the broker replies ok."""
     assert gateway.health() is True
 
 
 @pytest.mark.unit
-def test_health_false_when_broker_down(gateway: ProviderGateway, fake_broker: _FakeBroker) -> None:
+def test_health_false_when_broker_down(
+    gateway: ProviderGateway, fake_broker: _FakeBroker
+) -> None:
     """health() is False when the broker is unreachable."""
     fake_broker.raise_on = "health"
     assert gateway.health() is False
 
 
 @pytest.mark.unit
-def test_close_closes_broker(gateway: ProviderGateway, fake_broker: _FakeBroker) -> None:
+def test_close_closes_broker(
+    gateway: ProviderGateway, fake_broker: _FakeBroker
+) -> None:
     """close() closes the underlying broker connection."""
     gateway.close()
     assert fake_broker.calls[-1][0] == "close"
@@ -201,7 +223,9 @@ def test_close_closes_broker(gateway: ProviderGateway, fake_broker: _FakeBroker)
 
 
 @pytest.mark.unit
-def test_reserve_raises_when_broker_down(gateway: ProviderGateway, fake_broker: _FakeBroker) -> None:
+def test_reserve_raises_when_broker_down(
+    gateway: ProviderGateway, fake_broker: _FakeBroker
+) -> None:
     """Broker down: reserve() raises BrokerUnavailableError."""
     fake_broker.raise_on = "reserve"
     with pytest.raises(BrokerUnavailableError):
@@ -209,7 +233,9 @@ def test_reserve_raises_when_broker_down(gateway: ProviderGateway, fake_broker: 
 
 
 @pytest.mark.unit
-def test_commit_raises_when_broker_down(gateway: ProviderGateway, fake_broker: _FakeBroker) -> None:
+def test_commit_raises_when_broker_down(
+    gateway: ProviderGateway, fake_broker: _FakeBroker
+) -> None:
     """Broker down: commit() raises BrokerUnavailableError."""
     fake_broker.raise_on = "commit"
     with pytest.raises(BrokerUnavailableError):
@@ -217,7 +243,9 @@ def test_commit_raises_when_broker_down(gateway: ProviderGateway, fake_broker: _
 
 
 @pytest.mark.unit
-def test_release_raises_when_broker_down(gateway: ProviderGateway, fake_broker: _FakeBroker) -> None:
+def test_release_raises_when_broker_down(
+    gateway: ProviderGateway, fake_broker: _FakeBroker
+) -> None:
     """Broker down: release() raises BrokerUnavailableError."""
     fake_broker.raise_on = "release"
     with pytest.raises(BrokerUnavailableError):
@@ -225,7 +253,9 @@ def test_release_raises_when_broker_down(gateway: ProviderGateway, fake_broker: 
 
 
 @pytest.mark.unit
-def test_metrics_raises_when_broker_down(gateway: ProviderGateway, fake_broker: _FakeBroker) -> None:
+def test_metrics_raises_when_broker_down(
+    gateway: ProviderGateway, fake_broker: _FakeBroker
+) -> None:
     """Broker down: metrics() raises BrokerUnavailableError."""
     fake_broker.raise_on = "metrics"
     with pytest.raises(BrokerUnavailableError):
