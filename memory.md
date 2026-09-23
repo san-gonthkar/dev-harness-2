@@ -621,6 +621,14 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
   - 6.D: 6 steps (transition table, cooperative interrupt, hostile interrupt, idempotency, illegal transition, seal verification)
 - **Next**: dispatch 6.1-6.3 to python-developer (smoke lane).
 
+## SESSION S13 - P6 6.1-6.3 (python-developer, 2026-09-22)
+
+- **Session**: S13, python-developer, tasks 6.1-6.3 (core/critic.py, core/critic_commands.py, core/task_registry.py).
+- **Skills loaded**: python-dev-harness, asyncio-concurrency, ponytail, karpathy-agentic-engineering, karpathy-understanding-first.
+- **Context estimate**: ~10% at start.
+- **Key findings**: `contracts/transitions.py` (0.22) already implements the normative 16-cell table + `apply_transition` + `TransitionResult` — 6.1's `CriticGatekeeper` wraps it (state holder + `transition()` delegating to `apply_transition`). `InterruptAckPayload` already exists in `contracts/events.py` (command + already fields). `IllegalTransitionError` already exists in `contracts/errors.py` (carries state+command). `ExecutionState`/`CriticCommand` enums canonical. Engine `commands.py` (5.3) shows the typed-handler pattern.
+- **Plan**: 6.1 `CriticGatekeeper` (state + transition via apply_transition); 6.2 `CriticCommandHandler` (idempotent, emits INTERRUPT_ACK via sink); 6.3 `TaskRegistry` (per thread_id, cancel_all with 1s join via asyncio.wait). Tests in `tests/core/` with exactly one marker each.
+
 ---
 
 ## P5 REVIEWER SIGN-OFF (2026-09-22, reviewer-agent S12)
