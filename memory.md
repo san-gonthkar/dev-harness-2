@@ -778,3 +778,27 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Validation**: `python -m pytest tests/support/test_stubborn_runner.py -q --timeout=60` → **8 passed, 2 skipped**; `tests/support` → **30 passed, 2 skipped**. ruff check + format clean; `mypy src` clean (81 files). Bounded-run smoke: `--max-iterations 5` exits 0 with 5 lines.
 - **Deviations**: none. POSIX live tests skip on Windows (mirrors `test_process_group.py`); the `.ps1` platform stub covers the live kill path.
 - **Next**: 6.8 `scripts/verify_phase_06.sh` + `.ps1` (now unblocked — 6.9a CLI and 6.9b runner both exist).
+
+## SESSION S26 - P6 6.8 verify_phase_06 (python-developer, 2026-09-23)
+
+- **Session**: S26, python-developer, task 6.8 ONLY (`scripts/verify_phase_06.sh` + `scripts/verify_phase_06.ps1`). Last P6 task; 6.1-6.7 + 6.9a/6.9b all DONE.
+- **Skills loaded**: python-dev-harness, ponytail, karpathy-minimalism, karpathy-agentic-engineering, karpathy-understanding-first.
+- **Plan (6.D)**: 10-step acceptance protocol. Pattern = `scripts/verify_phase_05.sh` (embedded driver + control socket + EXIT trap + fail-loud step numbering). `.ps1` = platform-limit stub (native Windows has no `killpg`/`pgrep`/`ps`; plan R2).
+- **Hazard guard (S20)**: every wait/poll loop bounded (`seq 1 100` / `range(100)`); EXIT trap kills driver + runner group + grandchildren; no unbounded `while true`.
+- **Do NOT investigate mutmut**: step 9 shells out to `python scripts/mutation_gate.py --packages core` and checks exit code + report only.
+- **Status**: starting implementation.
+
+### 6.8a DONE — `scripts/verify_phase_06.ps1`
+
+- **Deliverable**: `scripts/verify_phase_06.ps1` — platform-limit stub mirroring `verify_phase_05.ps1`. `$ErrorActionPreference = "Stop"`, `Set-Location (Join-Path $PSScriptRoot "..")`, 3 Yellow `Write-Host` lines (P6 protocol requires POSIX `killpg`/`pgrep`/`ps`; run `bash scripts/verify_phase_06.sh` on WSL2/POSIX; see plan R2), `exit 1`.
+- **Validation**: `powershell -ExecutionPolicy Bypass -File scripts/verify_phase_06.ps1; "exit=$LASTEXITCODE"` → 3 Yellow lines then `exit=1`. ✅
+- **Commit**: `a608333` (pushed to `origin/main`).
+- **Deviations**: none. `scripts/verify_phase_06.sh` (6.8b) untouched.
+- **Next**: 6.8b `scripts/verify_phase_06.sh` (POSIX acceptance driver).
+
+### 6.8b DONE — scripts/verify_phase_06.sh (steps 1-2)
+- Deliverable: `scripts/verify_phase_06.sh` — embedded python driver composing real P6 parts (CriticGatekeeper, CriticCommandHandler, TaskRegistry, PauseSealer, InterruptMetrics) over two AF_UNIX sockets (line-JSON control + INTERRUPT_ACK replay/live stream).
+- Steps 1-2 implemented; steps 3-10 left as TODO(6.8c)/TODO(6.8d) placeholders. Ends with `P6 acceptance (partial: steps 1-2) OK`.
+- Commit: e3abc66 (pushed to origin/main).
+- Validation: `bash -n scripts/verify_phase_06.sh` -> syntax_exit=0; `python -m dev_harness.core.cli transitions --table` -> 16-cell table, no UNDEFINED.
+- Unverified: full protocol cannot run on native Windows (no killpg/AF_UNIX) — plan R2 platform limit; steps 3-10 not implemented.
