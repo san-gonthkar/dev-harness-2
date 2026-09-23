@@ -570,3 +570,15 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **5.8 DONE** (commit `c3de08b`): `engine/state_broadcast.py` — `StateBroadcast` delivers `SNAPSHOT` (full `HarnessState`) as first frame on attach via new `Fanout.publish_to()` (existing clients never see a duplicate). Tests `tests/engine/test_state_broadcast.py` 7 passed; fanout 8 passed; ruff+mypy clean. Validation: `pytest tests/engine/test_state_broadcast.py -q` exit 0.
 - **Next**: 5.9 `scripts/verify_phase_05.sh` (+ `.ps1` stub).
+
+## SESSION S11 (python-developer) - P5 5.9-5.11 (2026-09-22)
+
+- **Session**: S11, python-developer agent, implementing the REMAINING P5 tasks 5.9, 5.10, 5.11 (verify_phase_05, stub_workload, workspace_watcher). 5.1-5.8 DONE (5.7 `dffffa2`, 5.8 `c3de08b`).
+- **Context estimate**: ~10% at start; budget ~50-70 tool calls.
+- **Skills loaded**: python-dev-harness, ponytail, karpathy-agentic-engineering, karpathy-understanding-first.
+- **Verified**: HEAD `067406a` (5.8 `c3de08b`); 5.9-5.11 files absent; `scripts/verify_phase_05.sh` absent.
+- **Plan**: 5.9 verify_phase_05.sh/.ps1 -> 5.10 stub_workload -> 5.11 workspace_watcher; commit each with Task-Id trailer; no push.
+
+### S11 progress
+
+- **5.9 IN PROGRESS**: writing `scripts/verify_phase_05.sh` (all 9 in-lane steps of §5.D) + `.ps1` AF_UNIX platform-limit stub (mirrors P4).
