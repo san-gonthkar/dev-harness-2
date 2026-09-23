@@ -691,3 +691,19 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Key findings**: `ProcessGroupManager` (6.4) exposes `pgids`/`forget`; `is_posix()` guard pattern established. `GitAdapter.head_sha()` (1.9) + `CheckpointBinding.put_bound` (1.11) already bind checkpoints to HEAD. `HarnessState` has `is_paused` field. `tmp_workspace` fixture = git repo with initial commit. Frozen clock in `tests/support/clock.py`. Marker plugin: exactly one marker per test (module-level `pytestmark` counts). `os.killpg`/`os.waitpid` are POSIX-only; mypy strict on src.
 - **Plan**: 6.5 `EscalatingInterrupt` (killpg SIGINT -> grace -> killpg SIGKILL + waitpid reaping, injectable grace + clock, is_posix guard); 6.6 `PauseSeal` (is_paused, timestamp, bound hash via injectable hash provider). Tests in `tests/core/` with exactly one marker each. Smoke lane only.
 - **Heartbeat**: this is the first append; next at ~30 min or per task.
+
+## SESSION S19 - P6 6.5 only (python-developer, 2026-09-23)
+
+- **Session**: S19, python-developer, task 6.5 ONLY (`core/signals.py`). 6.4 DONE at `1dcf1fb` (7 passed/2 skipped). 6.6 NOT in scope this dispatch.
+- **Platform**: native Windows — `os.killpg`/`signal.SIGKILL`/`os.WNOHANG`/`os.setsid` all MISSING. Live POSIX path cannot run here; deliverable is the fake-injected path (mirrors 6.4). Live test is `skipif(not is_posix())`.
+- **Plan**: `EscalatingInterrupt` with injectable grace (3.0), clock, sleep, killpg, waitpid, alive-probe. Four branches: grace expiry, early exit, already-dead PGID, reap failure. Uses `ProcessGroupManager.pgids`/`forget`/`forget_all`. `UnsupportedPlatformError` for non-POSIX live path.
+- **Status**: starting implementation.
+
+## SESSION S20 - P6 6.5 verified + hang fixed (orchestrator, 2026-09-23)
+
+- **Outcome**: S19 produced `signals.py` + `test_signals.py` but did not commit; the test file **hung** (pytest-timeout thread kill, 60-line asyncio stack). This was the "loop again" the user saw — a real infinite loop in a test, not an agent loop.
+- **Root cause**: `test_live_waitpid_resolution_on_posix` injected a fake `os.waitpid` that **always returned a pid and never raised `ChildProcessError`**. `EscalatingInterrupt._reap` drains with `while True: waitpid(pgid, WNOHANG)` and only exits on `ChildProcessError` (no child) or `pid == 0`. A fake that never terminates the drain spins forever.
+- **Fix**: fake returns a pid once, then raises `ChildProcessError`; assertion updated to expect the terminating call (`[(pgid, WNOHANG), (pgid, WNOHANG)]`).
+- **Result**: 6.5 `tests/core/test_signals.py` **17 passed, 1 skipped**; ruff + mypy clean. Commit `26070ba`.
+- **Lesson (general)**: any fake for a `while True` drain loop MUST have a terminating condition. A fake that always returns "more work" is an infinite loop, not a test.
+- **Next**: 6.6 pause_seal + 6.7 metrics (batched).
