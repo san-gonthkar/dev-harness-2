@@ -315,3 +315,96 @@ def test_read_command_frame_eof() -> None:
 
     with pytest.raises(ValueError):
         read_command_frame(io.BytesIO(b""))
+
+
+def test_encode_command_oversized() -> None:
+    """encode_command raises when the body exceeds the ceiling."""
+    from dev_harness.engine.commands import MAX_COMMAND_FRAME, encode_command
+
+    class _Huge:
+        def model_dump_json(self) -> str:
+            return "x" * (MAX_COMMAND_FRAME + 1)
+
+    with pytest.raises(ValueError):
+        encode_command(_Huge())  # type: ignore[arg-type]
+
+
+def test_encode_response_oversized() -> None:
+    """encode_response raises when the body exceeds the ceiling."""
+    from dev_harness.engine.commands import MAX_COMMAND_FRAME, encode_response
+
+    class _Huge:
+        def model_dump_json(self) -> str:
+            return "x" * (MAX_COMMAND_FRAME + 1)
+
+    with pytest.raises(ValueError):
+        encode_response(_Huge())  # type: ignore[arg-type]
+
+
+def test_decode_response_frame_short_prefix() -> None:
+    """decode_response_frame rejects a frame shorter than the prefix."""
+    from dev_harness.engine.commands import decode_response_frame
+
+    with pytest.raises(ValueError):
+        decode_response_frame(b"\x00\x00")
+
+
+def test_decode_response_frame_body_truncated() -> None:
+    """decode_response_frame rejects a declared body longer than the data."""
+    import struct
+
+    from dev_harness.engine.commands import decode_response_frame
+
+    frame = struct.pack(">I", 64) + b"x"
+    with pytest.raises(ValueError):
+        decode_response_frame(frame)
+
+
+def test_read_command_frame_eof_in_prefix() -> None:
+    """read_command_frame raises on EOF inside the length prefix."""
+    import io
+
+    from dev_harness.engine.commands import read_command_frame
+
+    with pytest.raises(ValueError):
+        read_command_frame(io.BytesIO(b"\x00\x00"))
+
+
+def test_read_command_frame_eof_in_body() -> None:
+    """read_command_frame raises when the body is shorter than declared."""
+    import io
+    import struct
+
+    from dev_harness.engine.commands import read_command_frame
+
+    with pytest.raises(ValueError):
+        read_command_frame(io.BytesIO(struct.pack(">I", 32) + b"x"))
+
+
+def test_read_response_frame_eof_in_prefix() -> None:
+    """read_response_frame raises on EOF inside the length prefix."""
+    import io
+
+    from dev_harness.engine.commands import read_response_frame
+
+    with pytest.raises(ValueError):
+        read_response_frame(io.BytesIO(b"\x00\x00"))
+
+
+def test_read_response_frame_eof_in_body() -> None:
+    """read_response_frame raises when the body is shorter than declared."""
+    import io
+    import struct
+
+    from dev_harness.engine.commands import read_response_frame
+
+    with pytest.raises(ValueError):
+        read_response_frame(io.BytesIO(struct.pack(">I", 32) + b"x"))
+
+
+def test_shutdown_command_without_hook(tmp_path: Path) -> None:
+    """SHUTDOWN with no on_shutdown hook still returns a ShutdownResponse."""
+    handler = CommandHandler(SessionManager(), on_shutdown=None)
+    resp = handler.handle(ShutdownCommand(workspace=str(tmp_path)))
+    assert isinstance(resp, ShutdownResponse)
+    assert resp.ok is True
