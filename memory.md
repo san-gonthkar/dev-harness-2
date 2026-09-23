@@ -498,3 +498,12 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **`.gitignore` fixed**: `.github/*` was ignoring ALL customizations, so `git add` silently skipped new files and every add needed `-f`. Added negations for `agents/`, `prompts/`, `skills/`, `hooks/`, `workflows/`, and `copilot-instructions.md`.
 - **Validation**: all `.github/*.md` frontmatter parses (no BOM); semantic-token check confirms resume/retry/re-dispatch/escalate/blocked/signed_by/Task-Id/smoke/gates all survive; hook decisions correct after the rewrite; smoke lane still 432 passed / 17s; ruff clean on the hook.
 - **Next**: agents run the smoke lane; the hook blocks (asks) on any full-suite command unless the user authorizes it.
+
+
+## SESSION S7 (orchestrator) - RESUME (2026-09-22)
+
+- **Resumed from**: P5 IN PROGRESS (HALTED - user directive 2026-09-20; S6 re-authorization 'goahead and resume' on record but P5 work was never completed) - last commit d9897b9 (pushed).
+- **Verified**: git clean on main; engine tests 104 passed (1.6s); smoke lane 432 passed (16.6s); no uncommitted work.
+- **State**: P5 IN PROGRESS. 5.1-5.6 committed/pushed (0632954..536d31f); 5.7 shutdown, 5.8 state_broadcast, 5.9 verify_phase_05, 5.10 stub_workload, 5.11 workspace_watcher pending. P5 requires human sign-off per plan line 135.
+- **Tooling note**: this session has NO agent-dispatch tool (subagent session - the `agent` alias is root-only). Per the No-Dispatch-Tool rule: do NOT retry, do NOT implement P5 tasks directly, do NOT loop. Report and await user direction.
+- **Next**: await user direction on P5 (re-authorize resume of 5.7-5.11, or other instruction).
