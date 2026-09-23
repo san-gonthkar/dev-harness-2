@@ -94,6 +94,12 @@ class Driver:
             gatekeeper=self.gatekeeper, emit=self._emit
         )
         self.loop = asyncio.new_event_loop()
+        # Cooperative-workload state (step 7): the file each unit is recorded
+        # in, the worker/iteration shape, and the per-worker resume cursor.
+        self.work_path: Path | None = None
+        self.work_workers = 0
+        self.work_count = 0
+        self.work_progress: dict[str, int] = {}
 
     # -- envelope sink -------------------------------------------------------
     def _emit(self, envelope: Envelope) -> None:
@@ -118,6 +124,26 @@ class Driver:
                 task = self.loop.create_task(self._sleeper())
                 self.registry.register(THREAD_ID, task)
             return count
+
+        return asyncio.run_coroutine_threadsafe(make(), self.loop).result(5.0)
+
+    async def _cooperative(self, task_id: str, total: int, path: Path) -> None:
+        # Resume from the last completed unit so a PAUSE -> RESUME cycle never
+        # re-executes work. The write and the cursor update are adjacent with no
+        # await between them, so cancellation cannot split them into a duplicate.
+        for i in range(self.work_progress.get(task_id, 0), total):
+            with path.open("a", encoding="utf-8") as fh:
+                fh.write(f"{task_id}:{i}\n")
+            self.work_progress[task_id] = i + 1
+            await asyncio.sleep(0.02)
+
+    def _start_cooperative(self, workers: int, count: int, path: Path) -> int:
+        async def make() -> int:
+            for w in range(workers):
+                task_id = f"w{w + 1}"
+                task = self.loop.create_task(self._cooperative(task_id, count, path))
+                self.registry.register(THREAD_ID, task)
+            return workers
 
         return asyncio.run_coroutine_threadsafe(make(), self.loop).result(5.0)
 
@@ -206,6 +232,14 @@ class Driver:
                     "tasks": self.registry.count(THREAD_ID),
                 }
             if cmd == "start-workload":
+                if req.get("kind") == "cooperative" and req.get("file"):
+                    self.work_path = Path(req["file"])
+                    self.work_workers = int(req.get("workers", 3))
+                    self.work_count = int(req.get("count", 10))
+                    started = self._start_cooperative(
+                        self.work_workers, self.work_count, self.work_path
+                    )
+                    return {"ok": True, "tasks": started}
                 count = self._start_workload(int(req.get("count", WORKLOAD_SIZE)))
                 return {"ok": True, "tasks": count}
             if cmd == "pause":
@@ -230,10 +264,18 @@ class Driver:
                 }
             if cmd == "resume":
                 envelope = self.handler.handle(CriticCommand.RESUME)
+                # Continue the cooperative workload from its sealed cursor so
+                # no completed unit is re-executed.
+                restarted = 0
+                if self.work_path is not None:
+                    restarted = self._start_cooperative(
+                        self.work_workers, self.work_count, self.work_path
+                    )
                 return {
                     "ok": True,
                     "state": self.gatekeeper.state.value,
                     "already": envelope.payload.already,
+                    "restarted": restarted,
                 }
             if cmd == "stop":
                 envelope = self.handler.handle(CriticCommand.STOP)
@@ -502,6 +544,86 @@ if not (before - 1 <= ts <= after + 1):
     raise SystemExit(f'seal timestamp {ts} outside [{before - 1}, {after + 1}]')
 " "$ts" "$t_before" "$t_after" || { echo "seal timestamp out of range: $ts" >&2; exit 1; }
 
-# TODO(6.8d): steps 7-10 (resume correctness, latency-drill, mutation gate, emit)
+echo "[P6] step 7: resume correctness (no duplicate work after PAUSE -> RESUME)"
+# Fresh driver: RUNNING, no stale ACKs, no workload state.
+stop_driver
+run_driver
+WORK="${TMPDIR:-/tmp}/dev-harness-p6-work.log"
+rm -f "$WORK"
+start7="$(ctl "{\"cmd\":\"start-workload\",\"kind\":\"cooperative\",\"workers\":3,\"count\":10,\"file\":\"$WORK\"}")"
+echo "  start-workload -> $start7"
+grep -q '"ok": true' <<<"$start7" || { echo "cooperative start-workload failed: $start7" >&2; exit 1; }
+# Bounded wait for the first unit so the pause lands mid-flight.
+for _ in $(seq 1 100); do
+    [ -s "$WORK" ] && break
+    sleep 0.1
+done
+[ -s "$WORK" ] || { echo "cooperative workload produced no output within 10s" >&2; exit 1; }
+pause7="$(ctl '{"cmd":"pause"}')"
+echo "  pause -> $pause7"
+grep -q '"state": "PAUSED"' <<<"$pause7" || { echo "pause did not reach PAUSED: $pause7" >&2; exit 1; }
+resume7="$(ctl '{"cmd":"resume"}')"
+echo "  resume -> $resume7"
+grep -q '"state": "RUNNING"' <<<"$resume7" || { echo "resume did not reach RUNNING: $resume7" >&2; exit 1; }
+# Bounded wait for all 3 workers x 10 units to complete.
+for _ in $(seq 1 100); do
+    lines="$(wc -l <"$WORK" 2>/dev/null || echo 0)"
+    [ "$lines" -ge 30 ] && break
+    sleep 0.1
+done
+lines="$(wc -l <"$WORK")"
+uniq_lines="$(sort -u "$WORK" | wc -l)"
+echo "  work units: $lines (unique: $uniq_lines)"
+[ "$lines" -eq 30 ] || { echo "expected 30 work units, got $lines" >&2; exit 1; }
+[ "$uniq_lines" -eq "$lines" ] || { echo "duplicate work units after resume ($uniq_lines unique of $lines)" >&2; exit 1; }
 
-echo "P6 acceptance (partial: steps 1-6) OK"
+echo "[P6] step 8: SLO measurement (latency-drill --trials 50)"
+if ! python -m dev_harness.core.cli latency-drill --trials 50; then
+    echo "latency-drill exited non-zero" >&2
+    exit 1
+fi
+LAT_REPORT="reports/interrupt_latency.json"
+[ -f "$LAT_REPORT" ] || { echo "latency report missing: $LAT_REPORT" >&2; exit 1; }
+python -c "
+import json
+with open('$LAT_REPORT', encoding='utf-8') as fh:
+    data = json.load(fh)
+p95 = data['p95_ms']
+mx = data['max_ms']
+if not p95 < 500:
+    raise SystemExit(f'p95_ms {p95} >= 500')
+if not mx < 1000:
+    raise SystemExit(f'max_ms {mx} >= 1000')
+print(f'  p95={p95:.1f}ms max={mx:.1f}ms')
+" || { echo "latency SLO not met" >&2; exit 1; }
+
+echo "[P6] step 9: mutation gate (core >= 85.0)"
+if ! python scripts/mutation_gate.py --packages core; then
+    echo "mutation gate failed for core" >&2
+    exit 1
+fi
+MUT_REPORT="reports/mutation_report.json"
+[ -f "$MUT_REPORT" ] || { echo "mutation report missing: $MUT_REPORT" >&2; exit 1; }
+python -c "
+import json
+with open('$MUT_REPORT', encoding='utf-8') as fh:
+    data = json.load(fh)
+entry = data.get('core')
+if entry is None:
+    raise SystemExit('mutation report has no core entry')
+score = entry.get('score')
+if score is None or score < 85.0:
+    raise SystemExit(f'core mutation score {score} < 85.0')
+print(f'  core mutation score={score:.1f}')
+" || { echo "core mutation score below 85.0" >&2; exit 1; }
+
+echo "[P6] step 10: emit acceptance report"
+if ! python scripts/verify_phase.py --emit 06; then
+    echo "verify_phase --emit 06 failed" >&2
+    exit 1
+fi
+REPORT="reports/phase_06_acceptance.json"
+[ -f "$REPORT" ] || { echo "acceptance report missing: $REPORT" >&2; exit 1; }
+grep -q '"verdict": "ACCEPTED"' "$REPORT" || { echo "verdict not ACCEPTED: $REPORT" >&2; exit 1; }
+
+echo "P6 acceptance OK"
