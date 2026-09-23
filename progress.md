@@ -5,7 +5,7 @@
 > `memory.md` remains the authoritative shared memory for agents; this file is the
 > **monitoring view** — concise, current, and always up to date.
 >
-> Last updated: 2026-09-20
+> Last updated: 2026-09-22
 
 ## Overall Progress
 
@@ -16,7 +16,7 @@
 | Phases remaining | **5** (P6–P10) |
 | Current phase | **P6 — Critic Gatekeeper & Interrupt Engine** |
 | Current task | P6 6.1 CriticGatekeeper with legal-transition table |
-| Last commit | `756ead1` (pushed to `origin/main`) |
+| Last commit | `e76900a` (pushed to `origin/main`) |
 | Last push | ✅ `1a825c9` → origin/main (2026-09-20) |
 
 ## Resume Point
@@ -27,9 +27,9 @@
 | :--- | :--- |
 | Last known step | P5 CLOSED (human-signed); P6 opened |
 | Next action | Dispatch 6.1-6.3 to python-developer (smoke lane) |
-| Last commit | `756ead1` (pushed to `origin/main`) |
+| Last commit | `e76900a` (pushed to `origin/main`) |
 | Working tree | clean (reports/*.json gitignored by design) |
-| Prereqs | P4 closed; engine tests 104 passed (verified 2026-09-20) |
+| Prereqs | P5 closed; smoke lane 470 passed (verified 2026-09-22) |
 
 ## Phase Status
 
