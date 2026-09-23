@@ -31,7 +31,7 @@ The orchestrator (`phase-orchestrator`) is the keeper of phase state and updates
 | P3 LLM Provider Abstraction | closed | `scripts/verify_phase_03.sh` | reviewer-agent |
 | P4 Rate-Limit Broker & Cost Governor | closed | `scripts/verify_phase_04.sh` | reviewer-agent |
 | P5 Execution Engine Daemon | closed | `scripts/verify_phase_05.sh` | human signed 2026-09-22 |
-| P6 Critic Gatekeeper & Interrupt Engine | in progress | `scripts/verify_phase_06.sh` | — |
+| P6 Critic Gatekeeper & Interrupt Engine | closed | `scripts/verify_phase_06.sh` | reviewer-agent |
 | P7 Hermes TUI Core Subsystem | not started | `scripts/verify_phase_07.sh` | — |
 | P8 SDLC Pipeline & Worker Pool | not started | `scripts/verify_phase_08.sh` | human required |
 | P9 Error Handling & Recovery | not started | `scripts/verify_phase_09.sh` | — |
@@ -59,11 +59,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P6 — Critic Gatekeeper & Interrupt Engine (in progress; all tasks done, awaiting reviewer sign-off)
+- **Phase**: P6 — Critic Gatekeeper & Interrupt Engine (closed; reviewer-agent signed 2026-09-23)
 - **Lane**: C
-- **Current task**: 6.8 verify_phase_06 (done, chunked 6.8a-6.8d); next: reviewer-agent P6 sign-off
+- **Current task**: P6 closed; next: P7 7.1 HermesApp shell
 - **Last completed task**: P6 6.8d verify_phase_06.sh steps 7-10
-- **Next task**: dispatch reviewer-agent for P6 acceptance (6.1-6.9 + 6.8a-d all done); no human sign-off required for P6
+- **Next task**: dispatch P7 (Hermes TUI Core Subsystem)
 
 ## Phase 0 — Scaffolding, Shared Contracts & Test Infrastructure
 
@@ -830,3 +830,37 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **DEFECT FOUND + FIXED (orchestrator)**: `tests/core/test_cli.py` (6.9a) collided with `tests/storage/test_cli.py` - both import as bare `test_cli` because `tests/core/` had no `__init__.py`. The smoke lane failed collection (`import file mismatch`). S24 ran only the single file, so it never saw this. Fix: added `tests/core/__init__.py` (matches `tests/broker/`, `tests/support/`). Commit `feb4fa1`.
 - **Smoke lane**: 575 passed, 7 skipped, 14 deselected (20.1s) - green after the fix.
 - **Next**: dispatch reviewer-agent for P6 sign-off (6.1-6.9 + 6.8a-d all done).
+---
+
+## P6 REVIEWER SIGN-OFF (2026-09-23, reviewer-agent)
+
+- **Session**: reviewer-agent, independent review of P6 (6.1-6.9 + 6.8a-d), commits `dabf7ff..67c4b2b` (HEAD `67c4b2b`). Reviewer did not implement P6.
+- **Skills loaded**: ponytail-review, asyncio-concurrency, karpathy-understanding-first.
+- **Lane**: smoke only. No full suite, no NIGHTLY marker run.
+
+### Verification evidence
+
+- **6.B rows (smoke lane)**: `python -m pytest tests/core -q --timeout=120` -> **97 passed, 3 skipped** (2.38s). Named rows (`test_critic_state`, `test_critic_commands`, `test_task_registry`, `test_process_group`, `test_signals`, `test_pause_seal`, `test_cli`) -> **86 passed, 3 skipped**. The 3 skips are the POSIX-only live tests (`is_posix()` guard) - expected on native Windows.
+- **6.C coverage** (`--cov=dev_harness.core --cov-branch`): `core/` **99.7% line / 94.6% branch** (>= 95/90 PASS); `core/signals.py` **100% line / 100% branch** (>= 100/95 PASS). Per-module: cli 100/100, critic 100/50, critic_commands 100/100, metrics 100/100, pause_seal 100/100, process_group 100/100, signals 100/100, task_registry 97.4/85.7. Totals: 359 stmts, 1 miss, 56 branches, 3 partial.
+- **6.D protocol by inspection**: `scripts/verify_phase_06.sh` implements all 10 steps and matches 6.D (1 transition table, 2 cooperative, 3 hostile, 4 idempotency, 5 illegal transition, 6 seal, 7 resume, 8 SLO, 9 mutation gate, 10 emit). `scripts/verify_phase_06.ps1` is the platform-limit stub (exit 1, actionable message). `bash -n scripts/verify_phase_06.sh` -> **exit 0** (Git Bash; WSL has no distro installed).
+- **Step 1 live**: `python -m dev_harness.core.cli transitions --table` -> 16 cells, no `UNDEFINED`, matches 0.22.
+- **Invariants**: one marker per test (100 collected under the marker filter, no unmarked); no bare `raise Exception`/`RuntimeError` in `src/`; `tui/` and `engine/` do not import each other; no `time.sleep()` in `tests/core/` (the only hits are inside embedded subprocess source strings and the POSIX-only live test's bounded spawn wait).
+- **Ponytail delete-list**: empty. No unjustified abstractions or new deps; `signals.py` injects its syscall surface for testability (justified - it is the only way to reach every escalation branch on Windows), `metrics.py` is a hand-rolled collector (no third-party metrics lib), `cli.py` reads the table from `contracts/transitions.py` (no second copy).
+
+### Rejection criteria
+
+| Criterion | Status |
+| :--- | :--- |
+| Any surviving process in step 3 | PENDING WSL2 (live kill path not runnable on native Windows) |
+| Any zombie | PENDING WSL2 |
+| p95 above SLO on 2 of 3 nightly runs | PENDING (NIGHTLY `-m timing` row deferred per instruction) |
+| A surviving escalation mutant | PENDING (mutation gate requires an authorized mutmut run; `reports/mutation_report.json` has no `core` entry) |
+
+No rejection criterion is *failed*; three are *unverifiable on this host* and are recorded as pending, not passed.
+
+### Verdict
+
+**ACCEPTED** - all PR-tier 6.B rows green, 6.C coverage contract met (core 99.7/94.6; signals 100/100), 6.D protocol complete by inspection with `bash -n` clean, no rejection-criterion failure, no ponytail findings. Signed `reviewer-agent`; report commit-pinned to `67c4b2b`.
+
+- **Unverified (pending WSL2)**: the live `bash scripts/verify_phase_06.sh` run (steps 3 and 7 kill/reap paths), the NIGHTLY SLO row, and the mutation gate. Same platform limit (plan R2) P1-P5 closed under.
+- **Report**: `reports/phase_06_acceptance.json` (verdict ACCEPTED, signed_by reviewer-agent).
