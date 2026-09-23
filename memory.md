@@ -59,11 +59,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P6 — Critic Gatekeeper & Interrupt Engine (in progress)
+- **Phase**: P6 — Critic Gatekeeper & Interrupt Engine (in progress; all tasks done, awaiting reviewer sign-off)
 - **Lane**: C
-- **Current task**: 6.9b stubborn_runner (done); next 6.8 verify_phase_06
-- **Last completed task**: P6 6.9b StubbornRunner hostile workload
-- **Next task**: 6.8 verify_phase_06 (unblocked — 6.9a CLI + 6.9b runner both exist); no human sign-off required for P6
+- **Current task**: 6.8 verify_phase_06 (done, chunked 6.8a-6.8d); next: reviewer-agent P6 sign-off
+- **Last completed task**: P6 6.8d verify_phase_06.sh steps 7-10
+- **Next task**: dispatch reviewer-agent for P6 acceptance (6.1-6.9 + 6.8a-d all done); no human sign-off required for P6
 
 ## Phase 0 — Scaffolding, Shared Contracts & Test Infrastructure
 
@@ -816,3 +816,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - Driver: added cooperative workload (`_cooperative`/`_start_cooperative`, per-worker resume cursor `work_progress`), `start-workload` kind=cooperative branch, and resume restarts the workload from the sealed cursor. IllegalTransitionError still returns error JSON (never crashes).
 - Validation: `bash -n scripts/verify_phase_06.sh` -> syntax_exit=0; `python scripts/verify_phase.py --emit 06` -> emit_exit=0, reports/phase_06_acceptance.json written.
 - Unverified: full protocol not run (native Windows lacks killpg/AF_UNIX; plan R2 platform limit). Steps 7-10 logic not executed end-to-end.
+
+## SESSION S27 - P6 6.8 chunked into 4 sub-tasks (orchestrator, 2026-09-23)
+
+- **Why chunked**: S22/S23 (batched 6.8+6.9) returned empty twice; S24/S25 (single-task briefs) both succeeded. Evidence: multi-task briefs fail, single-task briefs succeed. User directive: chunk 6.8 and execute one at a time.
+- **Chunks**: 6.8a `.ps1` stub; 6.8b `.sh` driver + steps 1-2; 6.8c steps 3-6; 6.8d steps 7-10. Each dispatched as its own python-developer session with a <=25-tool-call budget and a commit-after-each-task contract.
+- **Results (all 4 succeeded, no empty returns)**:
+  - 6.8a `a608333` - `scripts/verify_phase_06.ps1` platform-limit stub (17 lines, exit 1).
+  - 6.8b `e3abc66` - `scripts/verify_phase_06.sh` header + embedded driver (control + streaming sockets) + steps 1-2.
+  - 6.8c `73fec02` - steps 3-6 (hostile interrupt via StubbornRunner + EscalatingInterrupt, idempotency, illegal transition, seal).
+  - 6.8d `47ae58d` - steps 7-10 (resume correctness, latency-drill, mutation gate, emit).
+- **Validation**: `bash -n scripts/verify_phase_06.sh` exit 0 (Git bash); `python scripts/verify_phase.py --emit 06` exit 0 -> `reports/phase_06_acceptance.json` ACCEPTED. Full protocol NOT run (native Windows: no killpg/AF_UNIX; plan R2 - same limit P1-P5 closed under).
+- **DEFECT FOUND + FIXED (orchestrator)**: `tests/core/test_cli.py` (6.9a) collided with `tests/storage/test_cli.py` - both import as bare `test_cli` because `tests/core/` had no `__init__.py`. The smoke lane failed collection (`import file mismatch`). S24 ran only the single file, so it never saw this. Fix: added `tests/core/__init__.py` (matches `tests/broker/`, `tests/support/`). Commit `feb4fa1`.
+- **Smoke lane**: 575 passed, 7 skipped, 14 deselected (20.1s) - green after the fix.
+- **Next**: dispatch reviewer-agent for P6 sign-off (6.1-6.9 + 6.8a-d all done).
