@@ -453,3 +453,19 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **End-to-end validation (dispatched a live phase-orchestrator subagent)**: the guardrail WORKED - with no dispatch tool the subagent reported `blocked - no dispatch tool` and STOPPED (4 tool calls, no files modified, no loop). Identical prompt previously would loop for hours.
 - **LImit found (confirms exact cause)**: a session running **as a subagent** never receives the `agent` alias - subagents cannot spawn subagents (VS Code docs: `agents:` restricts allowed subagents; nesting is not supported). So dispatch is available only when the orchestrator runs as the **root** agent. If the user invokes `/phase-orchestrator` as the top-level agent, dispatch works. Added Operating Rule 0 ("Run as the root agent") to the agent and the cause note to the skill.
 - **Next**: orchestrator can now dispatch (`agent` tool) when launched as the root agent. P5 still requires explicit user re-authorization before 5.7-5.11 resume.
+
+
+## TEST SUITE SPLIT - FAST LANE vs FULL SUITE (2026-09-22)
+
+- **Baseline measured**: full suite = 562 collected / 559 passed, 3 skipped, ~37s wall. Dominated by coverage-padding `*gaps*` files (97 tests across 9 files) and NIGHTLY-tier `slow`/`timing` tests (storage 12.4s, vcs 9.3s).
+- **Two lanes (V11 10.5 tiering)**:
+  - **FAST lane (default for routine work)**: `make test` or `scripts/test_lane.ps1 smoke` -> 432 passed, 2 skipped, 14 deselected in ~16.7s. Excludes NIGHTLY markers (`timing`/`slow`/`e2e`), coverage-padding `*gaps*` files, `tests/spikes`, `tests/tooling` (meta-tests); `--timeout=120`.
+  - **FULL suite (on demand)**: `make test-full` or `scripts/test_lane.ps1 full` -> 559 passed, 3 skipped, ~36s. Run before phase gates/release or when the smoke lane passes and full coverage is wanted.
+  - `make test-nightly` (NIGHTLY only), `make coverage` (full suite under `--cov-branch`, needed by the coverage gate).
+- **Why not just make `make test` tiny**: the coverage gate (`scripts/coverage_gate.py`, baseline `coverage_baseline.json`) needs the full suite, and `make ci` depends on it. The fast lane is therefore an ADDITIONAL lane, not a weakening of the gate.
+- **HANG FIX (root cause of "ran forever with no output")**: `pytest.ini` had NO timeout, so a hung test would block a lane indefinitely. Added `timeout = 600` + `timeout_method = thread`; smoke lane tightens to 120. Verified with a deliberate 3s-sleep probe under `--timeout=1`: pytest-timeout dumped the stack and interrupted.
+- **Makefile was INVALID**: it contained a UTF-8 BOM and recipe lines with NO leading tabs (spaces/none), so no rule could execute. Also command lines are only executed if they start with a tab. Rewrote: BOM stripped, real tabs, LF only.
+- **Deliverables**: `scripts/test_lane.ps1`, `scripts/test_lane.sh` (cross-platform runner), Makefile targets (`test`, `test-smoke`, `test-full`, `test-nightly`, `coverage`, `ci`, `mutation`), `.gitattributes` (keeps `.sh`/Makefile LF under core.autocrlf=true), docs updated (`.github/copilot-instructions.md` build section + `python-developer.agent.md` Operating Rule 7).
+- **Validation**: smoke lane 432 passed/16.7s; full lane 559 passed/35.9s; `tests/tooling`+`tests/support` 31 passed (no meta-test regressions; nothing greps the Makefile); ruff on changed paths clean (the 4 existing errors are pre-existing in `tests/broker/test_coverage_gaps.py`).
+- **Commits**: `49b66d6` (lanes) + `36e8dd6` (.gitattributes), pushed.
+- **Next**: agents use `make test` by default; `make test-full` only on demand.
