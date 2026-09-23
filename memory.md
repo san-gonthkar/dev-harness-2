@@ -523,3 +523,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **HALT lifted**: the 2026-09-20 "dont resume P5" directive is superseded. P5 is IN PROGRESS (not HALTED).
 - **Verified**: 5.6 complete (engine/bootstrap.py + tests/engine/test_bootstrap.py present); 5.7-5.11 files absent; engine tests 104 passed (1.5s); tree clean at 756ead1.
 - **Next**: implement 5.7 shutdown, 5.8 state_broadcast, 5.9 verify_phase_05, 5.10 stub_workload, 5.11 workspace_watcher; run 5.B validation matrix + 5.C coverage contract; reviewer + human sign-off.
+
+## SESSION S8 (python-developer) - P5 5.7-5.11 (2026-09-22)
+
+- **Session**: S8, python-developer agent, implementing P5 tasks 5.7-5.11 (shutdown, state_broadcast, verify_phase_05, stub_workload, workspace_watcher).
+- **Context estimate**: ~5% at start; budget ~60-90 tool calls / ~60 min.
+- **Skills loaded**: python-dev-harness (procedure), ponytail (YAGNI), karpathy-agentic-engineering (one increment/round), karpathy-understanding-first (report contract).
+- **Verified**: tree clean at 1c04335; engine tests 104 passed; 5.1-5.6 committed; 5.7-5.11 files absent.
+- **Plan**: 5.7 shutdown -> 5.8 state_broadcast -> 5.9 verify_phase_05 -> 5.10 stub_workload -> 5.11 workspace_watcher; smoke lane + lint/typecheck per task; commit per task with Task-Id trailer; no push (orchestrator pushes).
