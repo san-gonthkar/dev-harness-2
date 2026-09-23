@@ -22,7 +22,12 @@ The authoritative plan is `requirements/Dev_Harness_Implementation_Plan_V11_Fina
 
 ## Build and Test
 
-- Install: `pip install -e .` · Full gate: `make ci` (ruff → mypy → pytest → coverage gate) · Lint: `make lint` · Typecheck: `make typecheck` · Tests: `make test`
+- Install: `pip install -e .` · Full gate: `make ci` (ruff → mypy → coverage → coverage gate) · Lint: `make lint` · Typecheck: `make typecheck`
+- **Two test lanes (V11 task 10.5 tiering).**
+  - **Fast lane (default, use for every routine run):** `make test` / `scripts/test_lane.ps1 smoke` — the PR tier. Excludes NIGHTLY markers (`timing`/`slow`/`e2e`), coverage-padding `*gaps*` files, spikes, and meta-tests; `--timeout=120`. ~432 tests in <20s.
+  - **Full suite (on demand only):** `make test-full` — the entire suite (~560 tests, ~36s). Run it before a phase gate, a release, or when the smoke lane passes but you need the full coverage picture. **Do not run the full suite during routine work.**
+  - `make test-nightly` runs only the NIGHTLY tier; `make coverage` runs the full suite under `--cov-branch` (needed for the coverage gate).
+- **Never let a run hang:** `pytest.ini` sets a global `timeout = 600`; the smoke lane tightens it to 120. A hung suite is a defect, not a wait.
 - **Every test declares exactly one marker** (`unit`, `property`, `contract`, `integration`, `negative`, `timing`, `slow`, `e2e`). Unmarked tests fail collection.
 - **Branch coverage is mandatory** (`--cov-branch`). Per-package thresholds are in `.coveragerc`; the ratchet blocks any PR that drops a package by >0.5pp.
 - **`# pragma: no cover` requires a trailing justification comment** on the same line. Bare pragmas fail CI.

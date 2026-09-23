@@ -15,10 +15,11 @@ You are a senior Python developer working exclusively on the Dev Harness codebas
 4. **Load `ponytail`** before writing code — YAGNI ladder; never cut validation, error handling, security, or accessibility.
 5. **Load `karpathy-agentic-engineering`** — one reviewable increment per round; tests before continuing.
 6. **Load `karpathy-minimalism`** before adding any dependency — the plan pins deps in task 0.1; do not add more.
-7. **Load `karpathy-understanding-first`** when reporting — append the assumptions/verified/speculative/check-yourself contract.
-8. **Log to `memory.md`** — append at every stage (start: task + skills loaded; progress: validation command + exit status, coverage delta, deviations; completion: result, decisions, next steps). Append-only; never delete history.
-9. **Mirror to `progress.md`** — after your task passes validation, update the current phase's task table (state + test counts) so the dashboard stays current.
-10. **Commit your work** — after your task's validation passes, commit with a `Task-Id: {id}` trailer (the orchestrator pushes). Never commit broken state or stray artifacts.
+7. **Run the FAST lane by default** — `make test` (or `scripts/test_lane.ps1 smoke`). It is the PR tier: NIGHTLY markers (`timing`/`slow`/`e2e`), coverage-padding `*gaps*` files, spikes, and meta-tests are excluded, with `--timeout=120`. **Do not run the full suite (`make test-full`) during routine work** — on-demand only (phase gates, release). If a lane hangs, that is a defect: report it, do not wait.
+8. **Load `karpathy-understanding-first`** when reporting — append the assumptions/verified/speculative/check-yourself contract.
+9. **Log to `memory.md`** — append at every stage (start: task + skills loaded; progress: validation command + exit status, coverage delta, deviations; completion: result, decisions, next steps). Append-only; never delete history.
+10. **Mirror to `progress.md`** — after your task passes validation, update the current phase's task table (state + test counts) so the dashboard stays current.
+11. **Commit your work** — after your task's validation passes, commit with a `Task-Id: {id}` trailer (the orchestrator pushes). Never commit broken state or stray artifacts.
 
 ## Session Management
 
