@@ -595,6 +595,14 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Phase gate PENDING**: (1) 5.B validation matrix green - task-level rows green; (2) 5.C coverage contract - pending user-authorized full-suite run; (3) acceptance protocol `scripts/verify_phase_05.sh` - live run is POSIX/WSL2 (native Windows has no AF_UNIX); report not yet emitted. P5 also requires a HUMAN signature (plan line 135).
 - **Next**: run the coverage contract + acceptance protocol on a user-authorized full-suite/POSIX run, then `reviewer-agent` sign-off + human signature to close P5.
 
+## P5 CLOSED - HUMAN SIGN-OFF (2026-09-22)
+
+- **Human signature**: user signed off P5 ("i sign off P5"). P5 is CLOSED.
+- **Gate record**: 5.B rows green (engine+support 142 passed); 5.C MET (all engine modules >=92/85, provider_gateway 100/100); 5.D reviewer-agent ACCEPTED (reports/phase_05_acceptance.json, commit ffebaa7); human signed_by recorded.
+- **TODO (user)**: the live POSIX acceptance run `bash scripts/verify_phase_05.sh` is PENDING WSL2 (no WSL distro installed on this machine; AF_UNIX is POSIX-only, plan R2). Same constraint P1-P4 closed under. **User must come back to run it on WSL2.**
+- **Commits**: ffebaa7 (coverage), b8bb2fd (reviewer sign-off), 083fb18 (dashboard), + this close.
+- **Next**: P6 - Critic Gatekeeper & Interrupt Engine.
+
 ---
 
 ## P5 REVIEWER SIGN-OFF (2026-09-22, reviewer-agent S12)
