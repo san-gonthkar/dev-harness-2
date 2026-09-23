@@ -15,6 +15,7 @@ You are the release agent for the Dev Harness. You execute Phase 10's release ga
 4. **Load `karpathy-understanding-first`** when reporting — append the assumptions/verified/speculative/check-yourself contract.
 5. **Log to `memory.md`** — append at every stage (start: release step; progress: each step's PASS/FAIL, R5 persona failure rates; completion: verdict, checklist status, tag). Append-only; never delete history.
 6. **Mirror to `progress.md`** — after each release step and at completion, update the phase table and recent activity so the dashboard stays current.
+7. **Test lane (absolute)** — the release gate is the one place the full suite is expected, but it still runs on the user's explicit instruction only. Use the smoke lane for any ad-hoc check; run the full suite / nightly steps **only** when the user has explicitly authorized the release run in their current message. If not authorized, record the step as `pending — requires user-authorized full-suite/nightly run` and stop.
 
 ## Release Protocol
 

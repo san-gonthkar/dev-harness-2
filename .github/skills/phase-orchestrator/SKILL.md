@@ -215,7 +215,7 @@ Before closing any phase, all three must hold:
 2. **Coverage contract met** — the phase's `X.C` line/branch/mutation targets are met; the coverage gate exits 0.
 3. **Acceptance protocol signed** — `scripts/verify_phase_{NN}.sh` runs end-to-end and `reviewer-agent` signs the report. Phases 5/8/10 additionally require a human signature.
 
-If any gate fails, treat it as a failure and recover (retry → re-dispatch → escalate). Never advance past a phase whose gate is not verified.
+**Test lane rule (absolute).** Gates 1–3 require the full suite, which is **never** run on the orchestrator's own initiative. Gate them as `pending — requires user-authorized full-suite run`: record the requirement in `memory.md` + `progress.md`, report it, and ask the user. Only a user's explicit instruction in the current message authorizes `make test-full` / `make coverage` / `make ci` / `make test-nightly`. Routine validation always uses the smoke lane. If any gate fails, treat it as a failure and recover (retry → re-dispatch → escalate) — never advance past a phase whose gate is not verified, and never run the full suite to "check".
 
 ### Completion Condition
 

@@ -15,7 +15,7 @@ You are a senior Python developer working exclusively on the Dev Harness codebas
 4. **Load `ponytail`** before writing code — YAGNI ladder; never cut validation, error handling, security, or accessibility.
 5. **Load `karpathy-agentic-engineering`** — one reviewable increment per round; tests before continuing.
 6. **Load `karpathy-minimalism`** before adding any dependency — the plan pins deps in task 0.1; do not add more.
-7. **Run the FAST lane by default** — `make test` (or `scripts/test_lane.ps1 smoke`). It is the PR tier: NIGHTLY markers (`timing`/`slow`/`e2e`), coverage-padding `*gaps*` files, spikes, and meta-tests are excluded, with `--timeout=120`. **Do not run the full suite (`make test-full`) during routine work** — on-demand only (phase gates, release). If a lane hangs, that is a defect: report it, do not wait.
+7. **Run the SMOKE lane only** — `make test` (or `scripts/test_lane.ps1 smoke`, `scripts/test_lane.sh smoke`). It is the PR tier: NIGHTLY markers (`timing`/`slow`/`e2e`), coverage-padding `*gaps*` files, spikes, and meta-tests are excluded, with `--timeout=120`. **NEVER run the full suite** (`make test-full`, `make coverage`, `make ci`, `make test-nightly`) unless the user explicitly asks for it in their current message — a phase-gate or coverage requirement is a *requirement to track*, not permission. Targeted `pytest tests/<your-package> -q` is also allowed. If a lane hangs, that is a defect: report it, do not wait.
 8. **Load `karpathy-understanding-first`** when reporting — append the assumptions/verified/speculative/check-yourself contract.
 9. **Log to `memory.md`** — append at every stage (start: task + skills loaded; progress: validation command + exit status, coverage delta, deviations; completion: result, decisions, next steps). Append-only; never delete history.
 10. **Mirror to `progress.md`** — after your task passes validation, update the current phase's task table (state + test counts) so the dashboard stays current.
@@ -45,6 +45,7 @@ The orchestrator monitors you for liveness. You MUST:
 - DO NOT introduce untyped code. `mypy --strict` must pass across `src/`.
 - DO NOT write tests without exactly one marker (`unit`, `property`, `contract`, `integration`, `negative`, `timing`, `slow`, `e2e`). Unmarked tests fail collection.
 - DO NOT call provider adapters directly from engine code — all calls route through the broker client.
+- DO NOT run the full suite — smoke lane only (`make test` / `scripts/test_lane.ps1 smoke`). `make test-full`, `make coverage`, `make ci`, `make test-nightly` require the user's explicit instruction in their current message.
 - DO NOT use `time.sleep()` in tests; use the frozen clock fixture.
 - DO NOT raise bare `Exception`/`RuntimeError` — use `HarnessError` subclasses with `remediation`.
 - ONLY implement the task you were given. Do not scope-creep into adjacent tasks.

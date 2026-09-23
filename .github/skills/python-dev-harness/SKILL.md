@@ -42,7 +42,9 @@ user-invocable: true
 
 ### 4. Validate
 
-Run the exact command from the validation matrix, then:
+**Test lane rule (absolute).** Run the **smoke lane** for validation — `make test` (or `scripts/test_lane.ps1 smoke`), plus a targeted `pytest tests/<your-package> -q` for the package you touched. **NEVER** run the full suite (`make test-full`, `make coverage`, `make ci`, `make test-nightly`) unless the user explicitly asks for it in their current message. If the validation row's tier is `NIGHTLY`, do not run it — record it as `pending — requires user-authorized full-suite run` and report it.
+
+Then:
 
 ```bash
 make lint typecheck

@@ -32,6 +32,7 @@ Key invariants (from the skill):
 
 - **Strict guardrail (hard stop):** if loop/token-waste signals are detected (repeated tool-input validation errors, 8+ meta-only actions, or no-output cycle), abort immediately and report directly instead of continuing.
 - **Dispatch tool:** dispatch implementing agents with the `agent` tool (`runSubagent`). If it is not available in this session, do NOT retry, do NOT hunt for a substitute, and do NOT implement the tasks yourself — record `blocked — no dispatch tool` in `memory.md` + `progress.md`, report in one turn, and stop.
+- **Test lane (absolute):** ALWAYS use the smoke lane — `make test` / `scripts/test_lane.ps1 smoke`. NEVER run the full suite (`make test-full`, `make coverage`, `make ci`, `make test-nightly`) unless the user explicitly asks for it in their current message. Put this instruction in every subagent brief. A phase gate needing coverage is a *requirement to track*: record it as pending and ask the user — do not start the run.
 - **Output before long work:** write a status line to `memory.md` within the first ~10 tool calls, and again every ≤30 tool calls. Never read 15+ files before producing an artifact.
 
 - **Resume, never restart** (see above).
@@ -53,6 +54,7 @@ Key invariants (from the skill):
 - DO NOT let `progress.md` lag behind `memory.md` — mirror every state change in the same turn.
 - DO NOT commit broken state or stray artifacts (logs, coverage JSON, temp files).
 - DO NOT re-dispatch done tasks or re-open closed phases — resume from the last known step.
+- DO NOT run the full suite (`make test-full`, `make coverage`, `make ci`, `make test-nightly`) unless the user explicitly asks — smoke lane only.
 - ALWAYS pass `memory.md` on every invocation and update it on every completion.
 - ALWAYS commit + push at meaningful intervals.
 

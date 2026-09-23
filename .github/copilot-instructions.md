@@ -22,12 +22,17 @@ The authoritative plan is `requirements/Dev_Harness_Implementation_Plan_V11_Fina
 
 ## Build and Test
 
-- Install: `pip install -e .` · Full gate: `make ci` (ruff → mypy → coverage → coverage gate) · Lint: `make lint` · Typecheck: `make typecheck`
-- **Two test lanes (V11 task 10.5 tiering).**
-  - **Fast lane (default, use for every routine run):** `make test` / `scripts/test_lane.ps1 smoke` — the PR tier. Excludes NIGHTLY markers (`timing`/`slow`/`e2e`), coverage-padding `*gaps*` files, spikes, and meta-tests; `--timeout=120`. ~432 tests in <20s.
-  - **Full suite (on demand only):** `make test-full` — the entire suite (~560 tests, ~36s). Run it before a phase gate, a release, or when the smoke lane passes but you need the full coverage picture. **Do not run the full suite during routine work.**
-  - `make test-nightly` runs only the NIGHTLY tier; `make coverage` runs the full suite under `--cov-branch` (needed for the coverage gate).
-- **Never let a run hang:** `pytest.ini` sets a global `timeout = 600`; the smoke lane tightens it to 120. A hung suite is a defect, not a wait.
+- Install: `pip install -e .` · Lint: `make lint` · Typecheck: `make typecheck`
+
+### Test Lane Policy (MANDATORY — every agent, every turn)
+
+- **ALWAYS run the smoke lane. NEVER run the full suite unless the user explicitly asks for it in their current message.** "The full suite" = `make test-full`, `make coverage`, `make ci`, or any `pytest tests ...` without the smoke exclusions.
+- **Smoke lane (the default for all work):** `make test` · `scripts/test_lane.ps1 smoke` · `scripts/test_lane.sh smoke`. It is the PR tier — excludes NIGHTLY markers (`timing`/`slow`/`e2e`), coverage-padding `*gaps*` files, spikes, and meta-tests; `--timeout=120`. ~432 tests in <20s.
+- **Explicit permission is required** from the user for exactly these, and nothing else: `make test-full`, `make coverage`, `make ci`, `make test-nightly`, `scripts/*/test_lane.(ps1|sh) full|coverage|nightly`. A task's phase-gate or coverage requirement is **not** permission — ask the user first.
+- **Word rules:** never use the words "run the full suite", "run everything", or "make ci" in a plan, brief, todo list, or progress note unless the user granted permission. Phase gates and coverage contracts are *requirements to track*, not instructions to start a multi-minute run.
+- **If smoke passes, that is sufficient for routine work.** Do not escalate to the full suite to gain confidence — record what is unverified and move on.
+- **If smoke fails:** fix it and re-run smoke. Full suite is not the next step.
+- **Never let a run hang:** a lane with no output is a defect. `pytest.ini` sets a global `timeout = 600`; the smoke lane tightens it to 120. Stop and report; do not wait.
 - **Every test declares exactly one marker** (`unit`, `property`, `contract`, `integration`, `negative`, `timing`, `slow`, `e2e`). Unmarked tests fail collection.
 - **Branch coverage is mandatory** (`--cov-branch`). Per-package thresholds are in `.coveragerc`; the ratchet blocks any PR that drops a package by >0.5pp.
 - **`# pragma: no cover` requires a trailing justification comment** on the same line. Bare pragmas fail CI.

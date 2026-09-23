@@ -23,6 +23,10 @@ user-invocable: true
 - PR suite < 10 min on the standard runner.
 - Timing-sensitive tests are never PR-blocking.
 
+## Local Lane Rule (absolute)
+
+CI tiers describe what *CI* runs. Locally, agents run the **smoke lane only** (`make test` / `scripts/test_lane.ps1 smoke`) — the PR tier. The full suite, coverage, nightly, and mutation runs happen **only** on the user's explicit instruction in their current message. A phase gate or coverage contract is a *requirement to track*, not permission to start a multi-minute run: record it as `pending — requires user-authorized full-suite run` and ask.
+
 ## Gates
 
 - **Coverage ratchet**: `scripts/coverage_gate.py` — a PR may not drop any package by >0.5pp; bare `# pragma: no cover` fails.

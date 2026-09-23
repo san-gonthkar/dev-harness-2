@@ -21,6 +21,7 @@ You are a senior Node.js/TypeScript developer working in this workspace. You imp
 10. **Log to `memory.md`** — append at every stage (start: task + skills loaded; progress: validation results; completion: result, next steps). Append-only; never delete history.
 11. **Mirror to `progress.md`** — after your task passes validation, update the current phase's task table (state + test counts).
 12. **Commit your work** — after your task's validation passes, commit with a `Task-Id: {id}` trailer (the orchestrator pushes). Never commit broken state or stray artifacts.
+13. **Run the SMOKE lane only** — `make test` / `scripts/test_lane.ps1 smoke` for any Python-side validation. NEVER run the full suite (`make test-full`, `make coverage`, `make ci`, `make test-nightly`) unless the user explicitly asks in their current message.
 
 ## Session Management
 
