@@ -469,3 +469,20 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Validation**: smoke lane 432 passed/16.7s; full lane 559 passed/35.9s; `tests/tooling`+`tests/support` 31 passed (no meta-test regressions; nothing greps the Makefile); ruff on changed paths clean (the 4 existing errors are pre-existing in `tests/broker/test_coverage_gaps.py`).
 - **Commits**: `49b66d6` (lanes) + `36e8dd6` (.gitattributes), pushed.
 - **Next**: agents use `make test` by default; `make test-full` only on demand.
+
+
+## LANE POLICY ENFORCED - SMOKE ONLY, FULL SUITE ON EXPLICIT PROMPT (2026-09-22)
+
+- **User directive**: the orchestrator and every other agent must ALWAYS run the smoke test and NEVER the full cycle unless explicitly prompted.
+- **Enforcement added to 10 customization files** (commit `9a9e016`, pushed):
+  - `.github/copilot-instructions.md` - new mandatory "Test Lane Policy" section (always-on, applies to every agent): smoke lane always; full suite only on the user's explicit instruction in the current message; explicit permission list; word rules; "if smoke passes that is sufficient".
+  - `phase-orchestrator.agent.md` - Operating Rule 8 + new "Rule: Test Lane Selection (Mandatory)": every dispatch brief must carry the smoke-only instruction; verify subagent reports and log a lane-policy breach if a subagent ran the full suite unauthorized; gate coverage as `pending - requires user-authorized full-suite run`; permission is per-run, never carried forward; exempt commands listed.
+  - `orchestrate-phase.prompt.md` - lane invariant + constraint.
+  - `phase-orchestrator/SKILL.md` - Quality Gates section no longer implies running the suite; gates are tracked as pending and the user is asked.
+  - `python-dev-harness/SKILL.md` - "run the exact command from the validation matrix" replaced: NIGHTLY-tier rows are NOT run; smoke lane + targeted package pytest only.
+  - `ci-cd/SKILL.md` - new "Local Lane Rule": CI tiers describe CI, not local agent behavior.
+  - `python-developer.agent.md` - rule 7 tightened (removed the "phase gates" escape hatch) + a DO NOT constraint.
+  - `reviewer-agent.agent.md`, `release-agent.agent.md`, `nodejs-developer.agent.md` - lane rule added.
+- **Key design point**: a phase gate or coverage contract is a *requirement to track*, NOT permission to run. The agent records it as pending and asks the user.
+- **Validation**: YAML frontmatter parses clean on all 9 edited customization files (no BOM); smoke lane still green (432 passed, 2 skipped, 17s); audit confirms every remaining full-suite mention across `.github/` is a prohibition or permission-gated.
+- **Next**: agents run `make test` by default; `make test-full` only when the user explicitly asks.
