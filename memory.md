@@ -582,3 +582,15 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 ### S11 progress
 
 - **5.9 IN PROGRESS**: writing `scripts/verify_phase_05.sh` (all 9 in-lane steps of §5.D) + `.ps1` AF_UNIX platform-limit stub (mirrors P4).
+
+- **5.10 DONE** (commit `ff53650`): `tests/support/stub_workload.py` - scripted `AGENT_TOKEN_STREAM` emitter, pausable/resumable, strictly increasing `seq`. Tests `tests/support/test_stub_workload.py`.
+- **5.11 DONE** (commit `c6d600e`): `src/dev_harness/engine/workspace_watcher.py` - polls per-file content digests (not st_mtime) + git state (branch, dirty count), emits `FILE_CHANGE` and `GIT_STATUS_UPDATE`. Tests `tests/engine/test_workspace_watcher.py` (10 tests).
+- **5.9 DONE** (commit `facfeaa`): `scripts/verify_phase_05.sh` - all 9 in-lane steps of plan 5.D (cold start, session uniqueness, multi-client attach, independent detach, late-attach SNAPSHOT, broker enforcement, autostart, graceful shutdown, crash residue) + watcher demo + report emission via `verify_phase.py --emit 05`. `verify_phase_05.ps1` = platform-limit stub (AF_UNIX POSIX-only, plan R2; mirrors verify_phase_04.ps1).
+
+## P5 ALL TASKS DONE (5.1-5.11) - 2026-09-22
+
+- **Tasks**: 5.1-5.11 all implemented and committed. Commits 0632954..facfeaa.
+- **Validation (smoke lane)**: 461 passed, 2 skipped, 14 deselected (18.7s); engine+support 133 passed. ruff check/format clean (179 files); mypy clean (73 source files).
+- **Coverage contract 5.C**: engine PKG >=92/85; provider_gateway 100/95 - NOT yet measured (needs a full-suite coverage run: user authorization required, see Test Lane Policy).
+- **Phase gate PENDING**: (1) 5.B validation matrix green - task-level rows green; (2) 5.C coverage contract - pending user-authorized full-suite run; (3) acceptance protocol `scripts/verify_phase_05.sh` - live run is POSIX/WSL2 (native Windows has no AF_UNIX); report not yet emitted. P5 also requires a HUMAN signature (plan line 135).
+- **Next**: run the coverage contract + acceptance protocol on a user-authorized full-suite/POSIX run, then `reviewer-agent` sign-off + human signature to close P5.
