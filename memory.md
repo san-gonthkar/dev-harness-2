@@ -802,3 +802,10 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - Commit: e3abc66 (pushed to origin/main).
 - Validation: `bash -n scripts/verify_phase_06.sh` -> syntax_exit=0; `python -m dev_harness.core.cli transitions --table` -> 16-cell table, no UNDEFINED.
 - Unverified: full protocol cannot run on native Windows (no killpg/AF_UNIX) — plan R2 platform limit; steps 3-10 not implemented.
+
+### 6.8c DONE — scripts/verify_phase_06.sh (steps 3-6)
+- Commit: 73fec02 (pushed to origin/main).
+- Added steps 3-6 to the P6 acceptance protocol: hostile interrupt (killpg SIGINT->grace 3.0s->SIGKILL + reap, bounded pgrep poll), idempotency (3x PAUSE -> 1 transition, 3 INTERRUPT_ACK, ACKs 2-3 already:true), illegal transition (STOP then RESUME -> IllegalTransitionError, state unchanged), pause seal (is_paused, checkpoint_hash==HEAD, timestamp within 1s).
+- Driver: added interrupt-hostile control cmd (EscalatingInterrupt over ProcessGroupManager), seal fields on pause response, gatekeeper starts RUNNING. Added ACK recorder heredoc. Runner cleanup in EXIT trap.
+- Validation: bash -n scripts/verify_phase_06.sh -> syntax_exit=0; both embedded Python heredocs py_compile OK.
+- Unverified: full protocol not run (native Windows lacks killpg/AF_UNIX; plan R2). Steps 7-10 remain TODO(6.8d).
