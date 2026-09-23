@@ -671,3 +671,9 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **ACCEPTED** - report `reports/phase_05_acceptance.json`, commit `ffebaa7`, signed_by `reviewer-agent`.
 - **HUMAN SIGNATURE STILL REQUIRED** (plan line 135: P5 is Lane D). reviewer-agent signature does not satisfy this.
+## SESSION S16 - P6 6.4-6.6 dispatch FAILED (python-developer, 2026-09-23)
+
+- **Dispatch**: batched brief 6.4-6.6 (process_group, signals, pause_seal) to python-developer.
+- **Result**: subagent returned with NO output — no commit, no file writes, no memory.md append. Verified state once (git log/status + target file existence): all False, tree clean at `5cae228`.
+- **Verdict**: failed dispatch (empty return = no evidence of work). Per Subagent Health Check: record, re-dispatch fresh with resume brief.
+- **Next**: re-dispatch 6.4-6.6 with explicit "produce output continuously" + "commit after each task" emphasis.
