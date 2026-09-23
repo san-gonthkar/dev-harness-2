@@ -137,6 +137,9 @@
 | 2026-09-20 | `fe80899` | P2: IPC transport & event bus | ✅ pushed (in c8e9ece push) |
 | 2026-09-20 | `fd6e507` | P1 closed: coverage contract met, acceptance ACCEPTED | ✅ pushed (in c8e9ece push) |
 | 2026-09-20 | `4126131` | P1: coverage contract met | ✅ pushed (in c8e9ece push) |
+| 2026-09-22 | `dabf7ff` | P6 6.1 CriticGatekeeper with legal-transition table | ✅ pushed |
+| 2026-09-22 | `c4e44fb` | P6 6.2 idempotent critic command handler | ✅ pushed |
+| 2026-09-22 | `d7f4894` | P6 6.3 TaskRegistry (cancel_all + 1s join) + asyncio test fixes | ✅ pushed |
 
 ## How the Orchestrator Updates This File
 
@@ -158,6 +161,7 @@
 - **2026-09-22** - **Guardrail verified live**: dispatched a throwaway `phase-orchestrator` subagent → with no dispatch tool it reported `blocked — no dispatch tool` and **stopped** (4 tool calls, no files touched, no loop). Same prompt previously looped for hours. Confirmed dispatch (`agent` alias) is granted only to the **root** agent — subagents cannot spawn subagents. Orchestrator now has Operating Rule 0: run as the root agent.
 - **2026-09-22** - **Test suite split**: fast smoke lane (`make test` / `scripts/test_lane.ps1 smoke`, 432 tests <20s) for routine runs; full suite on demand (`make test-full`, ~560 tests ~36s). Added global `timeout=600` to pytest.ini (a hung run was previously unbounded - the "no output forever" failure mode), fixed the Makefile (it had a BOM and no tabs, so it could not run), added cross-platform lane scripts + `.gitattributes`. Coverage gate unchanged (still full suite). Commits `49b66d6`, `36e8dd6`.
 - **2026-09-22** - **Lane policy enforced**: every agent (orchestrator, python-developer, reviewer, release, nodejs) now runs the **smoke lane only**; the full suite (`make test-full`/`make coverage`/`make ci`/`make test-nightly`) requires the user's explicit instruction in the current message. Phase gates/coverage contracts are tracked as `pending - requires user-authorized full-suite run` instead of triggering a run. Applied to 10 customization files (commit `9a9e016`).
+- **2026-09-22** - **P6 6.1–6.3 done**: CriticGatekeeper (6.1, `dabf7ff`), idempotent CriticCommandHandler (6.2, `c4e44fb`), TaskRegistry with per-thread `cancel_all` + 1s join (6.3, `d7f4894`). 6.3 had order-dependent failures + a hang (never-started task cancelled instantly → never returned as leftover; teardowns awaiting a 3600s sleep; `defaultdict` phantom keys). Fixed impl (`.get`/`.pop`) + tests (`await asyncio.sleep(0)` before cancel; tolerant teardown). 14 tests pass order-independently; smoke lane 502 passed / 2 skipped (20s). Next: 6.4–6.6.
 - **2026-09-22** - **Lane hook + AI-first docs**: added a deterministic `PreToolUse` hook (`.github/hooks/test-lane-guard.json` -> `scripts/check_test_lane.py`) that prompts (ask) on any full-suite command; smoke lane/targeted pytest/lint pass through. Condensed all `.github` customizations for AI readers (phase-orchestrator skill 318->164 lines; total 1450->1191). Fixed `.gitignore` (`.github/*` was hiding new customization files). Commits `7f2e1a4` (hook), `d5646a8` (condense + gitignore).
 - **2026-09-22** - **P5 tasks 5.7-5.11 DONE**: shutdown (5.7), state_broadcast (5.8), verify_phase_05 (5.9), stub_workload (5.10), workspace_watcher (5.11) all implemented and committed (dffffa2, c3de08b, ff53650, c6d600e, facfeaa). Smoke lane 461 passed; ruff/mypy clean. P5 gate pending: coverage contract (needs user-authorized full-suite run), acceptance protocol (POSIX/WSL2), reviewer + human sign-off.
 
