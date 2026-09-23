@@ -739,3 +739,9 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Result**: subagent returned with NO output - no commit, no file writes, no memory.md append. Verified state once (git log/status + target file existence): all False, tree clean at 3a827ef.
 - **Verdict**: failed dispatch (empty return = no evidence of work). Per Subagent Health Check: record, re-dispatch fresh with resume brief.
 - **Next**: re-dispatch 6.8-6.9 with explicit "produce output continuously" + "commit after each task" emphasis.
+
+## SESSION S23 - P6 6.8-6.9 re-dispatch (python-developer, 2026-09-23)
+
+- **Dispatch**: re-dispatch of 6.8 (verify_phase_06.sh + .ps1) + 6.9 (core/cli.py + stubborn_runner.py + test_cli.py) after S22 empty-return failure.
+- **Plan**: read memory/progress/plan §6.D; implement 6.8 first, commit; then 6.9, commit. Smoke lane only.
+- **Output contract**: append memory.md early, commit after each task, stop-and-report on loops.
