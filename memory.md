@@ -30,8 +30,8 @@ The orchestrator (`phase-orchestrator`) is the keeper of phase state and updates
 | P2 IPC Transport & Event Bus | closed | `scripts/verify_phase_02.sh` | reviewer-agent |
 | P3 LLM Provider Abstraction | closed | `scripts/verify_phase_03.sh` | reviewer-agent |
 | P4 Rate-Limit Broker & Cost Governor | closed | `scripts/verify_phase_04.sh` | reviewer-agent |
-| P5 Execution Engine Daemon | in progress | `scripts/verify_phase_05.sh` | human required |
-| P6 Critic Gatekeeper & Interrupt Engine | not started | `scripts/verify_phase_06.sh` | — |
+| P5 Execution Engine Daemon | closed | `scripts/verify_phase_05.sh` | human signed 2026-09-22 |
+| P6 Critic Gatekeeper & Interrupt Engine | in progress | `scripts/verify_phase_06.sh` | — |
 | P7 Hermes TUI Core Subsystem | not started | `scripts/verify_phase_07.sh` | — |
 | P8 SDLC Pipeline & Worker Pool | not started | `scripts/verify_phase_08.sh` | human required |
 | P9 Error Handling & Recovery | not started | `scripts/verify_phase_09.sh` | — |
@@ -628,6 +628,27 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Context estimate**: ~10% at start.
 - **Key findings**: `contracts/transitions.py` (0.22) already implements the normative 16-cell table + `apply_transition` + `TransitionResult` — 6.1's `CriticGatekeeper` wraps it (state holder + `transition()` delegating to `apply_transition`). `InterruptAckPayload` already exists in `contracts/events.py` (command + already fields). `IllegalTransitionError` already exists in `contracts/errors.py` (carries state+command). `ExecutionState`/`CriticCommand` enums canonical. Engine `commands.py` (5.3) shows the typed-handler pattern.
 - **Plan**: 6.1 `CriticGatekeeper` (state + transition via apply_transition); 6.2 `CriticCommandHandler` (idempotent, emits INTERRUPT_ACK via sink); 6.3 `TaskRegistry` (per thread_id, cancel_all with 1s join via asyncio.wait). Tests in `tests/core/` with exactly one marker each.
+
+## SESSION S14 - P6 6.2-6.3 (python-developer, 2026-09-22)
+
+- **Session**: S14, python-developer, tasks 6.2-6.3 (core/critic_commands.py, core/task_registry.py). 6.1 DONE at `dabf7ff` (19 tests).
+- **Skills loaded**: python-dev-harness, asyncio-concurrency, ponytail, karpathy-agentic-engineering, karpathy-understanding-first.
+- **Context estimate**: ~15% at start.
+- **Key findings**: `InterruptAckPayload` (command + already) exists in `contracts/events.py`; `Envelope` validates type/payload match; `Fanout.publish` is the emit sink pattern (engine 5.4); `asyncio_mode = auto` in pytest.ini; `pytestmark = pytest.mark.unit` per file; frozen clock in `tests/support/clock.py`; `make lint` = ruff check+format, `make typecheck` = mypy src.
+- **Plan**: 6.2 `CriticCommandHandler` (idempotent via CriticGatekeeper, emits INTERRUPT_ACK envelope via injectable sink); 6.3 `TaskRegistry` (per thread_id, cancel_all with 1s join via asyncio.wait). Tests in `tests/core/` with exactly one marker each. Smoke lane only.
+
+---
+
+## SESSION S15 - P6 6.2-6.3 verification + fix (orchestrator, 2026-09-22)
+
+- **Outcome**: S14 returned without committing; orchestrator verified state once (no polling). 6.2 passed 7/7; 6.3 had 2 order-dependent failures + a hang.
+- **Root causes (6.3)**:
+  1. `_stubborn` test task was registered then `cancel_all`'d **before it ever ran** → `Task.cancel()` on a not-started task is instant; `asyncio.wait` returns it in `done` (0.00s), never `pending`, so `leftover == []`. Fix: `await asyncio.sleep(0)` after `create_task` so cancel lands in a running task.
+  2. Teardowns did `await task` on `_cooperative`/`_stubborn` parked in `asyncio.sleep(3600)`; `stop.set()` cannot wake a sleep → hang → pytest-timeout thread kill. Fix: `task.cancel()` + tolerant `await` (try/except CancelledError); note a task cancelled before its first await raises at coroutine entry.
+  3. `TaskRegistry` used `defaultdict`; read paths `self._tasks[thread_id]` auto-vivified empty keys → `thread_ids()` returned `['t']` with `count()==0`. Fix: `.get()` / `.pop()` in `unregister` and `cancel_all`.
+- **Also (process)**: the orchestrator itself looped running unbounded `pytest`/`python -c` probes that reproduced the real hang and dumped 60-line asyncio stacks. Lesson: bound every repro with `asyncio.wait_for(..., timeout=N)`; once the root cause is known, fix + run the test instead of re-confirming.
+- **Commits**: `c4e44fb` (6.2), `d7f4894` (6.3), pushed to `origin/main`. 14 tests pass, order-independent (10 random seeds). ruff+mypy clean.
+- **Next**: dispatch 6.4-6.6 to python-developer (smoke lane).
 
 ---
 

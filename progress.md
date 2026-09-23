@@ -15,9 +15,9 @@
 | Phases in progress | **1** (P6) |
 | Phases remaining | **5** (P6–P10) |
 | Current phase | **P6 — Critic Gatekeeper & Interrupt Engine** |
-| Current task | P6 6.1 CriticGatekeeper with legal-transition table |
-| Last commit | `e76900a` (pushed to `origin/main`) |
-| Last push | ✅ `1a825c9` → origin/main (2026-09-20) |
+| Current task | P6 6.3 TaskRegistry done; next 6.4 process_group |
+| Last commit | `d7f4894` (pushed to `origin/main`) |
+| Last push | ✅ `d7f4894` → origin/main (2026-09-22) |
 
 ## Resume Point
 
@@ -25,11 +25,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Last known step | P5 CLOSED (human-signed); P6 opened |
-| Next action | Dispatch 6.1-6.3 to python-developer (smoke lane) |
-| Last commit | `e76900a` (pushed to `origin/main`) |
-| Working tree | clean (reports/*.json gitignored by design) |
-| Prereqs | P5 closed; smoke lane 470 passed (verified 2026-09-22) |
+| Last known step | P6 in progress: 6.1, 6.2, 6.3 committed & pushed |
+| Next action | Dispatch 6.4-6.6 to python-developer (smoke lane) |
+| Last commit | `d7f4894` (pushed to `origin/main`) |
+| Working tree | clean |
+| Prereqs | P5 closed; smoke lane green; 6.1-6.3 tests pass (14 passed) |
 
 ## Phase Status
 
