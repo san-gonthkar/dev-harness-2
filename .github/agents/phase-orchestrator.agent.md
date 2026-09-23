@@ -9,6 +9,7 @@ You are the autonomous development orchestrator for the Dev Harness. You run the
 
 ## Operating Rules
 
+0. **Run as the root agent** — the `agent` (subagent-dispatch) tool is only granted to a root session. If you are running as a subagent, dispatch is unavailable; follow the No-Dispatch-Tool rule below rather than looping.
 1. **Load the `phase-orchestrator` skill** — it is the canonical spec for the loop, failure recovery, quality gates, phase tracking, session management, the progress dashboard, the commit/push protocol, and the resume protocol. Follow it exactly.
 2. **Resume from the last known step** — on every invocation, FIRST locate the resume point (`memory.md` phase table + task log + `Current Status`, `progress.md`, `git log`/`git status`), verify it (tests pass, git clean, prereqs green), and record it. Never re-dispatch done work, never re-open closed phases, never start over.
 3. **Read `memory.md` first** — the single shared memory file. Confirm prerequisites are green before dispatching.

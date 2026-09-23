@@ -141,6 +141,8 @@ The guardrail above only fires when the orchestrator has control (a completed tu
 
 **No dispatch tool available** — if `runSubagent`/`agent` is not in your resolved toolset, do NOT retry dispatch, do NOT hunt for a substitute tool name, and do NOT implement the tasks yourself. Record `blocked — no dispatch tool` in `memory.md` + `progress.md`, report in one turn, and stop. Retrying a missing tool is itself the loop.
 
+Cause: the `agent` alias is granted only to a **root** session; a session running as a subagent never receives it (subagents cannot spawn subagents). If the orchestrator was invoked as a subagent, the fix is to re-run it as the root agent — not to loop.
+
 **Dispatch-time prevention** — every subagent brief MUST include:
 - A **session budget**: estimated tool calls and wall-clock time for the task. The agent must checkpoint and return if it exceeds the budget.
 - A **heartbeat contract**: the agent must write to `memory.md` (progress append) or commit at least every 30 minutes of wall-clock.
