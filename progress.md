@@ -25,8 +25,8 @@
 
 | Field | Value |
 | :--- | :--- |
-| Last known step | P5 tasks 5.1-5.11 all DONE; 5.C coverage MET; 5.D reviewer ACCEPTED |
-| Next action | Obtain the **human signature** for P5 (plan line 135), then close P5 and start P6 |
+| Last known step | P5 CLOSED (human-signed); P6 opened |
+| Next action | Dispatch 6.1-6.3 to python-developer (smoke lane) |
 | Last commit | `756ead1` (pushed to `origin/main`) |
 | Working tree | clean (reports/*.json gitignored by design) |
 | Prereqs | P4 closed; engine tests 104 passed (verified 2026-09-20) |
@@ -41,6 +41,7 @@
 | P3 LLM Provider Abstraction | ✅ closed | providers 94.4/88.5 | `verify_phase_03` | reviewer-agent |
 | P4 Rate-Limit Broker & Cost Governor | ✅ closed | broker 94.0/86.7 · cost+kill_switch 100/100 | `verify_phase_04` | reviewer-agent |
 | P5 Execution Engine Daemon | ✅ closed | engine 97.4–100 / 85.7–100 | `verify_phase_05` | reviewer-agent + human |
+| P6 Critic Gatekeeper & Interrupt Engine | 🔄 in progress | — | `verify_phase_06` | — |
 | P6 Critic Gatekeeper & Interrupt Engine | 🔄 in progress | — | `verify_phase_06` | — |
 | P7 Hermes TUI Core Subsystem | ⬜ not started | — | `verify_phase_07` | — |
 | P8 SDLC Pipeline & Worker Pool | ⬜ not started | — | `verify_phase_08` | human required |

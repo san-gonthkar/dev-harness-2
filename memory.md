@@ -603,6 +603,24 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Commits**: ffebaa7 (coverage), b8bb2fd (reviewer sign-off), 083fb18 (dashboard), + this close.
 - **Next**: P6 - Critic Gatekeeper & Interrupt Engine.
 
+## P6 OPENED - CRITIC GATEKEEPER & INTERRUPT ENGINE (2026-09-22)
+
+- **Prereqs**: P5 closed (human-signed). core/ package empty; tests/core empty.
+- **Verified**: smoke lane 470 passed (19.4s); tree clean at 8d75073.
+- **Contract (6.A/6.B/6.C/6.D)**:
+  - 6.1 core/critic.py - CriticGatekeeper with legal-transition table (0.22)
+  - 6.2 core/critic_commands.py - idempotent command handler (PAUSE while PAUSED -> already:true); INTERRUPT_ACK
+  - 6.3 core/task_registry.py - task registry per thread_id; cancel_all() with 1s join
+  - 6.4 core/process_group.py - subprocess group manager (start_new_session=True, PGID registry)
+  - 6.5 core/signals.py - escalation killpg(SIGINT) -> 3.0s -> killpg(SIGKILL) with waitpid reaping
+  - 6.6 core/pause_seal.py - pause seal with is_paused, timestamp, bound hash
+  - 6.7 core/metrics.py - interrupt latency histogram on METRICS_UPDATE
+  - 6.8 scripts/verify_phase_06.sh
+  - 6.9 core/cli.py + tests/support/stubborn_runner.py - transitions --table, latency-drill; StubbornRunner (3 grandchildren, traps SIGINT, writes continuously)
+  - 6.C: core/ >=95 line / >=90 branch / mutation >=85; signals.py 100/95
+  - 6.D: 6 steps (transition table, cooperative interrupt, hostile interrupt, idempotency, illegal transition, seal verification)
+- **Next**: dispatch 6.1-6.3 to python-developer (smoke lane).
+
 ---
 
 ## P5 REVIEWER SIGN-OFF (2026-09-22, reviewer-agent S12)
