@@ -1,0 +1,5 @@
+# Normalize line endings: shell scripts and the Makefile must stay LF on
+# checkout (CRLF breaks `sh` execution and Makefile recipes).
+* text=auto
+*.sh text eol=lf
+Makefile text eol=lf
