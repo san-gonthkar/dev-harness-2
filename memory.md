@@ -809,3 +809,10 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - Driver: added interrupt-hostile control cmd (EscalatingInterrupt over ProcessGroupManager), seal fields on pause response, gatekeeper starts RUNNING. Added ACK recorder heredoc. Runner cleanup in EXIT trap.
 - Validation: bash -n scripts/verify_phase_06.sh -> syntax_exit=0; both embedded Python heredocs py_compile OK.
 - Unverified: full protocol not run (native Windows lacks killpg/AF_UNIX; plan R2). Steps 7-10 remain TODO(6.8d).
+
+### 6.8d DONE — scripts/verify_phase_06.sh (steps 7-10)
+- Commit: 47ae58d (pushed to origin/main). Completes task 6.8.
+- Added steps 7-10 to the P6 acceptance protocol: resume correctness (cooperative workload appends `task_id:iteration` to a file; PAUSE mid-flight then RESUME; bounded wait for 3x10 units; `sort -u` count == line count -> no duplicate work), SLO measurement (`latency-drill --trials 50`; parse reports/interrupt_latency.json; assert p95_ms<500 and max_ms<1000), mutation gate (`mutation_gate.py --packages core`; assert exit 0 and reports/mutation_report.json core score>=85.0), emit (`verify_phase.py --emit 06`; assert reports/phase_06_acceptance.json verdict ACCEPTED). Final echo now `P6 acceptance OK`.
+- Driver: added cooperative workload (`_cooperative`/`_start_cooperative`, per-worker resume cursor `work_progress`), `start-workload` kind=cooperative branch, and resume restarts the workload from the sealed cursor. IllegalTransitionError still returns error JSON (never crashes).
+- Validation: `bash -n scripts/verify_phase_06.sh` -> syntax_exit=0; `python scripts/verify_phase.py --emit 06` -> emit_exit=0, reports/phase_06_acceptance.json written.
+- Unverified: full protocol not run (native Windows lacks killpg/AF_UNIX; plan R2 platform limit). Steps 7-10 logic not executed end-to-end.
