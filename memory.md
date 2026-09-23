@@ -677,3 +677,9 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Result**: subagent returned with NO output — no commit, no file writes, no memory.md append. Verified state once (git log/status + target file existence): all False, tree clean at `5cae228`.
 - **Verdict**: failed dispatch (empty return = no evidence of work). Per Subagent Health Check: record, re-dispatch fresh with resume brief.
 - **Next**: re-dispatch 6.4-6.6 with explicit "produce output continuously" + "commit after each task" emphasis.
+## SESSION S17 - P6 6.4-6.6 dispatch (python-developer, 2026-09-23)
+
+- **Dispatch**: batched brief 6.4 (process_group), 6.5 (signals), 6.6 (pause_seal) to python-developer.
+- **Start**: repo clean at `bd40533`. Skills loaded: python-dev-harness, ponytail, karpathy-*.
+- **Plan**: implement 6.4 -> test -> commit; 6.5 -> test -> commit; 6.6 -> test -> commit; then memory/progress + dashboard.
+- **Heartbeat**: this is the first append; next at ~30 min or per task.
