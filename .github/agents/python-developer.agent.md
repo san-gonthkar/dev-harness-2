@@ -34,7 +34,7 @@ You run in a finite-context session; the orchestrator tracks sessions in `memory
 The orchestrator monitors you for liveness. You MUST:
 
 1. **Produce output continuously** — write to `memory.md` (progress append) or commit at least every **30 minutes** of wall-clock. A long silent stretch looks like a loop.
-2. **Reply to status checks** — if the orchestrator sends a status-check message, reply within one turn (report current task, next action, blockers). Do not continue making tool calls without responding.
+2. **Write a status line early** — before any long read sweep, append a one-line status (task + next action) to `memory.md`. Never read 15+ files before producing an artifact.
 3. **Respect your session budget** — the brief gives an estimated tool-call count and wall-clock time. If you exceed it, checkpoint and return control instead of pushing on.
 4. **Stop-and-report on loops** — if you catch yourself repeating the same tool call without producing output (no file writes, no commits, no test runs), STOP immediately and report the issue instead of continuing. Do not loop.
 

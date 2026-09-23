@@ -3,7 +3,7 @@ description: "Run the Dev Harness V11 plan autonomously end-to-end. Use when you
 name: "orchestrate-phase"
 argument-hint: "Run the full plan autonomously (or specify a starting phase, e.g. 'start at P0')"
 agent: "phase-orchestrator"
-tools: [read, search, execute, todo]
+tools: [read, search, execute, todo, agent]
 ---
 
 Run the Dev Harness V11 plan **autonomously, end-to-end**, from `requirements/Dev_Harness_Implementation_Plan_V11_Final.md`. Do not stop until all 11 phases are complete.
@@ -31,6 +31,8 @@ Then continue the loop from there. **Never re-dispatch done tasks, never re-open
 Key invariants (from the skill):
 
 - **Strict guardrail (hard stop):** if loop/token-waste signals are detected (repeated tool-input validation errors, 8+ meta-only actions, or no-output cycle), abort immediately and report directly instead of continuing.
+- **Dispatch tool:** dispatch implementing agents with the `agent` tool (`runSubagent`). If it is not available in this session, do NOT retry, do NOT hunt for a substitute, and do NOT implement the tasks yourself — record `blocked — no dispatch tool` in `memory.md` + `progress.md`, report in one turn, and stop.
+- **Output before long work:** write a status line to `memory.md` within the first ~10 tool calls, and again every ≤30 tool calls. Never read 15+ files before producing an artifact.
 
 - **Resume, never restart** (see above).
 - Run continuously: `while any phase is not closed: dispatch tasks → verify gates → close phase → advance`.

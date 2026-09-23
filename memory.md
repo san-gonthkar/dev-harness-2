@@ -437,3 +437,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Dispatch mechanism**: NO agent-dispatch tool (write_agent/read_agent) is exposed in this session's toolset (only view/powershell/sql/skill). Previous orchestrator sessions had it; this one does not. Per user's explicit 'goahead and resume', the orchestrator implements 5.7-5.11 directly, documenting this deviation transparently.
 - **State**: P5 IN PROGRESS. 5.1-5.6 committed/pushed (0632954..536d31f); 5.7 shutdown, 5.8 state_broadcast, 5.9 verify_phase_05, 5.10 stub_workload, 5.11 workspace_watcher pending.
 - **Next**: implement 5.7-5.11, run 5.B validation matrix + 5.C coverage contract, then reviewer + human sign-off.
+
+
+## ROOT-CAUSE FIX - ORCHESTRATOR INFINITE LOOP (2026-09-22)
+
+- **Symptom**: `/phase-orchestrator` sessions ran for hours with no user-visible output (S3: 16,491s / 1,844 tool calls / 0 completed turns; session a287a876: ~46 min, 77 file reads before any artifact).
+- **Root cause**: `phase-orchestrator.agent.md` frontmatter declared `tools: [read, search, execute, todo]` - it had NO subagent-dispatch tool - while the skill/agent/prompt all instructed dispatch via `write_agent` / `read_agent` (tool names that DO NOT EXIST; the real alias is `agent` / `runSubagent`). The orchestrator retried a non-existent tool forever and never completed a turn. Confirmed by S6 log entry ("NO agent-dispatch tool ... exposed in this session's toolset").
+- **Secondary causes**: (1) the health-check guardrail was self-referential - it told the orchestrator to poll `read_agent` "at every turn boundary", but a loop that never completes a turn can never run the check; (2) no heartbeat rule before/during long work - progress.md/memory.md were only written AFTER a task, so pre-work reads produced zero visible output; (3) unbounded read sweep (77 files) before any artifact; (4) un-terminating loop when a phase needs human authorization and no dispatch tool exists.
+- **Fix applied** (4 files):
+  - `phase-orchestrator.agent.md`: added `agent` to `tools`; rewrote Subagent Health Check for the blocking `runSubagent` model (verify commit/file change after return); added **Rule: No Dispatch Tool Available** (never retry a missing tool; record blocked, report, stop); added **Rule: Emit Output Before Long Work** (status within ~10 tool calls; heartbeat <=30 calls; <=15-file read cap).
+  - `orchestrate-phase.prompt.md`: added `agent` to `tools`; added dispatch-tool + output-before-long-work invariants.
+  - `phase-orchestrator/SKILL.md`: rewrote Subagent Health Check to the blocking-dispatch model; added No-dispatch-tool rule + Output-Before-Long-Work rule; made "Invoke the Agent" name the real tool.
+  - `python-developer.agent.md`: heartbeat rule 2 now "write a status line early" (removed the impossible "reply to status checks" - dispatch is blocking).
+- **Validation**: YAML frontmatter parses clean on all 4 files (no BOM); `agent` alias confirmed as the official VS Code tool alias ("Invoke custom agents as subagents") in the shipped agents reference; grep for `read_agent|write_agent` across `.github/` returns NONE; `tools` lists verified by Select-String.
+- **Next**: orchestrator can now dispatch (`agent` tool). P5 still requires explicit user re-authorization before 5.7-5.11 resume.
