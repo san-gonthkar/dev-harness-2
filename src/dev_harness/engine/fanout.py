@@ -33,6 +33,17 @@ class Fanout:
         for queue in self._queues.values():
             queue.put(envelope)
 
+    def publish_to(self, client_id: str, envelope: Envelope) -> None:
+        """Enqueue an envelope into one client's queue only.
+
+        Used by the state broadcast (5.8) to deliver the SNAPSHOT first
+        frame to exactly the attaching client, without duplicating it into
+        the other clients' queues.
+        """
+        queue = self._queues.get(client_id)
+        if queue is not None:
+            queue.put(envelope)
+
     def drain(self, client_id: str) -> list[Envelope]:
         """Return and clear all pending envelopes for a client."""
         queue = self._queues.get(client_id)
