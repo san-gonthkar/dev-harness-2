@@ -16,7 +16,7 @@
 | Phases remaining | **6** (P6–P10) |
 | Current phase | **P5 — Execution Engine Daemon & Session Lifecycle** |
 | Current task | P5 5.7 graceful shutdown (implementing directly - no dispatch tool in session) |
-| Last commit | `4b511c1` (pushed to `origin/main`) |
+| Last commit | `756ead1` (pushed to `origin/main`) |
 | Last push | ✅ `1a825c9` → origin/main (2026-09-20) |
 
 ## Resume Point
@@ -25,9 +25,9 @@
 
 | Field | Value |
 | :--- | :--- |
-| Last known step | P5 IN PROGRESS (re-authorized 2026-09-20); 5.1-5.6 committed/pushed, 5.7-5.11 pending |
-| Next action | Implement 5.7 shutdown, 5.8 state_broadcast, 5.9 verify_phase_05, 5.10 stub_workload, 5.11 workspace_watcher |
-| Last commit | `4b511c1` (pushed to `origin/main`) |
+| Last known step | P5 IN PROGRESS (re-authorized 2026-09-22); 5.1-5.6 committed/pushed, 5.7-5.11 pending |
+| Next action | Dispatch 5.7-5.11 to python-developer (smoke lane); then 5.B/5.C gates + reviewer + human sign-off |
+| Last commit | `756ead1` (pushed to `origin/main`) |
 | Working tree | clean |
 | Prereqs | P4 closed; engine tests 104 passed (verified 2026-09-20) |
 

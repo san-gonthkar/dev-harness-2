@@ -430,6 +430,14 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **Next**: await user direction on P5 (re-authorize resume of 5.7-5.11, or other instruction).
 
 
+## P5 RE-AUTHORIZED - RESUME 5.7-5.11 (2026-09-22, user directive)
+
+- **User directive**: "that was a temporary halt. now remove this and start again from P5.6 if complete resume the process and take the next logical section."
+- **HALT lifted**: the 2026-09-20 "dont resume P5" directive is superseded. P5 is IN PROGRESS (not HALTED).
+- **Verified**: 5.6 complete (engine/bootstrap.py + tests/engine/test_bootstrap.py present); 5.7-5.11 files absent; engine tests 104 passed (1.5s); tree clean at 756ead1.
+- **Next**: implement 5.7 shutdown, 5.8 state_broadcast, 5.9 verify_phase_05, 5.10 stub_workload, 5.11 workspace_watcher; run 5.B validation matrix + 5.C coverage contract; reviewer + human sign-off.
+
+
 ## SESSION S6 (orchestrator) - RESUME (2026-09-20)
 
 - **Resumed from**: P5 IN PROGRESS (re-authorized by user: 'goahead and resume') - last commit 4b511c1 (pushed).
@@ -507,3 +515,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - **State**: P5 IN PROGRESS. 5.1-5.6 committed/pushed (0632954..536d31f); 5.7 shutdown, 5.8 state_broadcast, 5.9 verify_phase_05, 5.10 stub_workload, 5.11 workspace_watcher pending. P5 requires human sign-off per plan line 135.
 - **Tooling note**: this session has NO agent-dispatch tool (subagent session - the `agent` alias is root-only). Per the No-Dispatch-Tool rule: do NOT retry, do NOT implement P5 tasks directly, do NOT loop. Report and await user direction.
 - **Next**: await user direction on P5 (re-authorize resume of 5.7-5.11, or other instruction).
+
+
+## P5 RE-AUTHORIZED - RESUME 5.7-5.11 (2026-09-22, user directive)
+
+- **User directive**: "that was a temporary halt. now remove this and start again from P5.6 if complete resume the process and take the next logical section."
+- **HALT lifted**: the 2026-09-20 "dont resume P5" directive is superseded. P5 is IN PROGRESS (not HALTED).
+- **Verified**: 5.6 complete (engine/bootstrap.py + tests/engine/test_bootstrap.py present); 5.7-5.11 files absent; engine tests 104 passed (1.5s); tree clean at 756ead1.
+- **Next**: implement 5.7 shutdown, 5.8 state_broadcast, 5.9 verify_phase_05, 5.10 stub_workload, 5.11 workspace_watcher; run 5.B validation matrix + 5.C coverage contract; reviewer + human sign-off.
