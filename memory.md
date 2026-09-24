@@ -971,3 +971,9 @@ No rejection criterion is *failed*; three are *unverifiable on this host* and ar
 - Decisions: Approve/Reject map to RESUME/STOP (CriticCommand has no distinct HITL member — 0.3 enum). No sink -> envelopes buffered in emitted for socket-free assertions. Unknown button id ignored (no raise). No dedup at this layer (documented). No engine import; contracts+textual only. No new deps.
 - Deviation: the 'click twice' negative test clicks two *different* buttons (PAUSE then RESUME) rather than the same button twice — Textual swallows a second click on a button still in its pressed state, so same-button double-click is not observable via pilot.click. No-dedup is still demonstrated (2 distinct envelopes).
 - Unverified: full suite / coverage / mutation gates not run (smoke lane only per policy). HITL consumer not wired (7.D scope boundary).
+
+### 7.9 DONE — tui/bindings.py + test_bindings.py
+- Commit: 3f13531 (pushed to origin/main).
+- Deliverables: `src/dev_harness/tui/bindings.py` (`ConfirmQuitScreen(ModalScreen[bool])` + `HERMES_BINDINGS`), wired into `HermesApp` (`BINDINGS`, `action_pause`, `action_request_quit`, `pause_requests` accessor).
+- Tests: `tests/tui/test_bindings.py` — 8 tests (3 unit, 3 integration, 2 negative). Validation: `pytest tests/tui/test_bindings.py tests/tui/test_layout.py tests/contracts/test_enums.py` -> 19 passed; ruff clean; mypy strict clean (93 files).
+- Decisions: ctrl+c priority binding emits one `INTERRUPT_REQUEST{PAUSE}` via the mounted `CriticBar` (reuses 7.6 contract, no engine import); ctrl+q pushes modal, exits only on confirmed Yes. Modal CSS uses fixed `width: 40` — `width: auto` clipped the buttons container so the No button was unreachable by the pilot. No state string literals (uses `CriticCommand.PAUSE`).
