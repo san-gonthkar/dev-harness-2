@@ -62,9 +62,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE, 8.12 DONE (`4d4871d`), 8.13 DONE, 8.14 DONE.
-- **Last completed task**: P8 8.14 Critic node (strict binary gate; `CriticScopeViolation` on out-of-scope writes; PAUSE/RESUME diff confined to `tui_state`).
-- **Next task**: dispatch 8.15 (see plan §8.A/§8.B).
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE, 8.12 DONE (`4d4871d`), 8.13 DONE, 8.14 DONE, 8.15 DONE.
+- **Last completed task**: P8 8.15 HITL gate (`interrupt_before` + `Command(resume=...)`; halts at approval with a persisted checkpoint; resume advances exactly one node).
+- **Next task**: dispatch 8.16 (see plan §8.A/§8.B).
+
+### 8.15 DONE — engine/hitl.py + tests/engine/test_hitl.py
+- Files: `src/dev_harness/engine/hitl.py`, `tests/engine/test_hitl.py`.
+- Deliverable: `HitlGate(*, checkpointer=None, resume_source=None, approval_node=None, prepare_node=None, thread_id="hitl")` — builds a MINIMAL graph (`prepare` -> `approval` -> END) compiled with `interrupt_before=[APPROVAL_NODE]`. `start(initial)` runs to the breakpoint; `is_halted()`/`pending_node()` report the suspension; `checkpoint_persisted()` asserts the saver holds a checkpoint; `resume()` pulls one command from the injected `ResumeSource` and invokes `Command(resume=<value>)`, advancing exactly one node. `QueueResumeSource` is the deterministic test double (no socket). `HitlResumeError(EngineError)` fails closed when no source/command. `executed_nodes` records the exact node sequence.
+- Validation: `pytest tests/engine/test_hitl.py -q` -> **6 passed**, exit 0. Acceptance exact: (a) after `start`, `is_halted()` True, `pending_node()=="approval"`, `checkpoint_persisted()` True, `executed_nodes==["prepare"]`; (b) after `resume()`, `executed_nodes==["prepare","approval"]` (delta exactly 1) and `pending_node() is None` (reached END). `mypy --strict` + `ruff check`/`format` clean; `tests/engine` 292 passed (no regressions).
+- Tests: 6 (unit 2, integration 2, negative 2). No `time.sleep`, no network, no `tui/` import.
+- Deviations: the plan says "compiled with `SqliteSaver`", but `langgraph.checkpoint.sqlite` is NOT an installed dependency (only `langgraph-checkpoint` base -> `InMemorySaver`) and the project's `storage.sqlite_saver.SqliteSaver` is a custom `HarnessState` store, not a LangGraph `BaseCheckpointSaver`. The gate therefore takes an injectable checkpointer defaulting to `InMemorySaver`; a SQLite-backed saver can be swapped in without touching the module. Flagged for reviewer.
+- Unverified: full-suite coverage + the `engine/` (nodes, pipeline) 88/80 gate (smoke-only per brief; 8.C gate is a tracked requirement, not permission).
 
 ### 8.14 DONE — engine/nodes/critic.py + tests/engine/test_critic_scope.py
 - Files: `src/dev_harness/engine/nodes/critic.py`, `tests/engine/test_critic_scope.py`.
