@@ -62,9 +62,16 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE.
-- **Last completed task**: P8 8.4 Groomer persona graph node.
-- **Next task**: dispatch 8.5 (`engine/nodes/architect.py`).
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE.
+- **Last completed task**: P8 8.5 Architect persona graph node.
+- **Next task**: dispatch 8.6 (`engine/dag.py`).
+
+### 8.5 DONE — engine/nodes/architect.py + tests/engine/test_architect.py
+- Files: `src/dev_harness/engine/nodes/architect.py`, `tests/engine/test_architect.py`.
+- Deliverable: `ArchitectNode(client, *, model=None)` — async LangGraph node over `HarnessStateChannels`. Consumes `state["groomed_requirements"]` (raises `EngineError` with remediation if absent), loads `engine/personas/architect.md`, calls the injected `CompletionClient`, validates via `validator_for("architect")` -> `TechnicalDesign`, returns `{"technical_design": <value>}`. Re-invocation with a set channel returns `{}` (no client call).
+- Contract gates (`_enforce_contract`): a non-empty `openapi_spec` must `json.loads` (stdlib; non-JSON raises `PersonaOutputError`); an empty design (blank `architecture_spec` or empty contracts) that is `APPROVED` is downgraded to `REJECTED` so `status != APPROVED` always holds for an empty design.
+- Validation: `pytest tests/engine/test_architect.py -q` -> 7 passed, exit 0. Regression: `tests/engine` + `tests/contracts/test_enums.py` -> 191 passed (literal-ban + AST adapter guard clean). `mypy --strict` + `ruff` clean.
+- Deviations: none from brief. Design decision: enforced the OpenAPI parse gate with stdlib `json.loads` (persona contract emits JSON-serializable OpenAPI; no new dependency). `# pragma: no cover`: none. Unverified: coverage/full suite (smoke-only per brief).
 
 ### 8.4 DONE — engine/nodes/groomer.py + tests/engine/test_groomer.py
 - Files: `src/dev_harness/engine/nodes/__init__.py` (new package), `src/dev_harness/engine/nodes/groomer.py`, `tests/engine/test_groomer.py`.
