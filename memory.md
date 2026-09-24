@@ -363,3 +363,10 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Canonical constants `CHUNK_IMPLEMENTATION_BUG` / `INTEGRATION_SPEC_MISMATCH` added to `contracts/state.py` (single source; classifier imports them - no state literals outside contracts). Drift-guard test ties them to the `E2EReport` Literal.
 - Validation: `pytest tests/engine/test_classifier.py -q` -> **20 passed** (10 labelled fixtures 100% correct; 7 unparseable -> HITL). ruff + mypy --strict clean.
 - Deviation: none. Note: `Literal[...]` cannot reference module constants (mypy valid-type), so the `E2EReport` field keeps its inline Literal strings (in contracts, permitted) and the constants mirror them, guarded by a test.
+
+### 8.18 DONE — engine/pipeline.py + tests/engine/test_sdlc_pipeline.py
+- Commit: d396349 (pushed origin/main). Task-Id: 8.18.
+- Deliverable: `build_graph(config)` assembles Groomer -> Architect -> Developer -> Tester -> Critic with the chunk DAG, worker pool, retry routing, HITL gate, and context budgeting; compiled with an injectable checkpointer (InMemorySaver default - langgraph-checkpoint-sqlite is NOT installed).
+- Validation: `pytest tests/engine/test_sdlc_pipeline.py -q` -> 3 passed (integration 2, negative 1). Acceptance exact: requirement -> green unit test; final checkpoint schema-valid; chunk_dag[0].status == COMPLETED; failing chunk escalates to HITL with bounded retry (Developer called exactly 2x, not a loop); 0 live network calls (MockLLM).
+- **GUARD FINDING (important):** the provider-adapter AST guard (`tests/engine/test_provider_gateway.py`) was ALREADY BROKEN by 8.16 - `engine/context.py` imports `providers.registry`, which the guard's `_ADAPTER_MODULES` banned. I missed it because I did not run that guard test after 8.16. The 8.18 subagent narrowed the guard to the 4 real network adapters (anthropic/openrouter/ollama/base); `providers.registry` is a pure metadata table (imports only config/contracts, no network). Verified: the narrowed guard still catches a real adapter import and passes. Flagged for the 8.D reviewer.
+- Unverified: full-suite coverage + the engine/ 88/80 gate (smoke-only).
