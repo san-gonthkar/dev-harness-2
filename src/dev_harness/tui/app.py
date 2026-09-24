@@ -13,6 +13,7 @@ from textual.app import App, ComposeResult
 from textual.widgets import Static
 
 from dev_harness.contracts.enums import PanelId
+from dev_harness.tui.panels.execution_canvas import ExecutionCanvas
 
 #: CSS grid region IDs — the four panels mount here (7.2/7.3/7.5/7.6).
 REPO_MANAGER_ID = "#repo-manager"
@@ -40,7 +41,7 @@ class HermesApp(App[None]):
     def compose(self) -> ComposeResult:
         """Yield the four region placeholders as direct grid children."""
         yield Static("repo-manager", id="repo-manager")
-        yield Static("execution-canvas", id="execution-canvas")
+        yield ExecutionCanvas(id="execution-canvas")
         yield Static("model-registry", id="model-registry")
         yield Static("critic-bar", id="critic-bar")
 
