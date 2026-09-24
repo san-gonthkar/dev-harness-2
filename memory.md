@@ -893,3 +893,11 @@ No rejection criterion is *failed*; three are *unverifiable on this host* and ar
 - **Test lane**: smoke only. NIGHTLY rows 7.4 (-m slow) and 7.8 (-m timing) are tracked requirements, deferred to a user-authorized nightly run.
 - **Platform**: TUI is pure Python - pilot tests run on native Windows. The 7.D live protocol steps need a real daemon+IPC; 7.12 decides live-on-Windows vs WSL2 twin.
 - **Next**: dispatch D1 (7.1 HermesApp shell) as a single-task brief.
+### 7.7 DONE — tui/bridge.py + test_bridge.py
+- Commit: 0ea63d2 (pushed to origin/main).
+- Deliverable: `Bridge` thread-marshalling class; injectable source (callable or `BackpressureQueue`); single daemon reader thread; `start()`/`stop(timeout=2.0)` bounded join; `_apply` on UI thread via `app.call_from_thread`; `on(type, cb)`; counters `applied`/`control_applied`/`dropped`; `state`/`snapshot_seen`; SNAPSHOT-first arrival-order apply.
+- Tests: 12 (unit 8, negative 3, integration 1) — all pass in <1s, no hang.
+- Coverage: bridge.py 99% line / 95% branch (21/22; only 54->56 partial, the source-is-queue alias branch).
+- Validation: pytest 12 passed; ruff clean; mypy --strict clean (84 files).
+- Decisions: (1) `NoActiveAppError` imported from `textual._context` (its defining module) — `textual.message_pump` re-exports it but mypy strict flags the re-export. (2) Integration producer is backpressure-aware: the queue drops oldest on token overflow, so control events are enqueued only after the bridge consumes the SNAPSHOT/controls — guarantees 0 control drops deterministically. (3) `dropped` = queue.dropped_frames + marshal drops (NoActiveAppError).
+- Unverified: none beyond smoke lane.
