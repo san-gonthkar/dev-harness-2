@@ -405,3 +405,11 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - 8.20 introduced tests/engine/test_cli.py, colliding with the existing tests/storage/test_cli.py under the default pytest import mode (the 6.9a lesson). Added `tests/engine/__init__.py` + `tests/storage/__init__.py` package markers. Verified: `pytest tests/engine/test_cli.py tests/storage/test_cli.py -q` 14 passed.
 - **FULL SMOKE LANE GREEN: 1000 passed, 7 skipped, 16 deselected in 70.49s.**
 - **PROCESS LESSON:** my per-task smoke checks (`pytest tests/engine/<file>.py`) did NOT exercise the default-import-mode collection of colliding basenames. The end-of-phase `scripts/test_lane.ps1 smoke` caught it. Run the smoke lane more often, not only at phase close.
+
+### 8.19 DONE — scripts/verify_phase_08.sh + .ps1 (13-step 8.D protocol)
+- Commit 2095e9e (pushed). Task-Id: 8.19. Also committed scripts/p8_acceptance_driver.py (6 subcommands) + fixtures/{req_simple,req_diamond,req_conflict,req_failing,req_hitl,req_cycle}.md.
+- **Both twins run all 13 steps; steps 1-11 PASS on native Windows** (P8 needs no AF_UNIX). Step 13 correctly fails until the 8.D reviewer signs reports/phase_08_acceptance.json.
+- Step 12 DEFERS the mutation gate on native Windows: mutmut refuses to run there ("use the WSL") - plan R2 class, same as P5-P7. Detected explicitly (capture output first: under `set -o pipefail` the pipeline inherits mutmut's non-zero exit and the `if` would take the wrong branch).
+- .ps1 needed 3 Windows fixes: (1) PowerShell strips embedded quotes passing `-c` code to native commands -> stage checks in temp files; (2) a UTF-8 BOM breaks json.load -> write utf8NoBOM; (3) Test-Path throws on multi-line strings -> probe defensively.
+- Evidence: step 3 peak concurrency exactly 3, 3 worktrees, primary clean before/mid/after, 5 commits, 0 lost writes; step 6 conflict names file + both ids, primary unmodified; step 7 terminal FAILED, e2e_retry_count=2 (bounded); step 8 halted + checkpoint persisted + advanced exactly 1 node; step 9 CriticScopeViolation, diff ['tui_state']; step 10 budget 4096, trace 51 lines with first+last; step 11 worktree restored field-for-field.
+- **ALL P8 TASKS DONE (8.1-8.21b).** Remaining: 8.D reviewer + HUMAN sign-off (Lane D requires a human signed_by).
