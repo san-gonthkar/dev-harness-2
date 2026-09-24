@@ -62,9 +62,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE, 8.12 DONE (`4d4871d`), 8.13 DONE.
-- **Last completed task**: P8 8.13 Retry router (inner-loop ceiling 3 → Architect; e2e ceiling 2 → HITL; terminates FAILED).
-- **Next task**: dispatch 8.14 (see plan §8.A/§8.B).
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE, 8.12 DONE (`4d4871d`), 8.13 DONE, 8.14 DONE.
+- **Last completed task**: P8 8.14 Critic node (strict binary gate; `CriticScopeViolation` on out-of-scope writes; PAUSE/RESUME diff confined to `tui_state`).
+- **Next task**: dispatch 8.15 (see plan §8.A/§8.B).
+
+### 8.14 DONE — engine/nodes/critic.py + tests/engine/test_critic_scope.py
+- Files: `src/dev_harness/engine/nodes/critic.py`, `tests/engine/test_critic_scope.py`.
+- Deliverable: `CriticNode(client, *, model=None)` — LangGraph node returning a *partial* update confined to `tui_state`. Explicit scope guard `WRITABLE_CHANNELS = {"tui_state"}` + `guard_scope(update)` raises `CriticScopeViolation` on any other key. `CriticVerdict` (binary `APPROVED`/`REJECTED`; REJECTED requires non-empty reasons). `parse_verdict` -> `PersonaOutputError` on malformed output. `apply_command(state, CriticCommand, timestamp=...)` applies PAUSE/RESUME/START/STOP through the same guard; `state_diff(before, after)` returns changed `HarnessState` field names. Publish channel = `tui_state.critic_gatekeeper_status` (verdict → RUNNING/PAUSED). `make_critic_node` factory. Reuses 8.4 shape + `load_persona_prompt`. Injected `CompletionClient`.
+- Validation: `pytest tests/engine/test_critic_scope.py -q` -> **9 passed**, exit 0. Acceptance exact: (a) `guard_scope({"groomed_requirements": ...})` -> `CriticScopeViolation` (and technical_design/chunk_dag/raw_input/git_state); (b) `state_diff(start, paused) <= {"tui_state"}` and `state_diff(paused, resumed) <= {"tui_state"}`, artifacts byte-identical across the cycle. `mypy --strict` + `ruff check`/`format` clean; `tests/contracts/test_enums.py` 8 passed (literal-ban intact); 8.13/8.12/adjacent node tests unaffected.
+- Tests: 9 (unit 6, negative 3). No `time.sleep`, no network.
+- Deviations: none from brief. Decision: the verdict publishes to `tui_state.critic_gatekeeper_status` because the plan has no dedicated verdict channel — `tui_state` is the sole writable channel and is the canonical home for critic status (`contracts.state.TuiState`). Verdict channel is `tui_state` (the only non-artifact channel); the node never mutates `groomed_requirements`/`technical_design`/`chunk_dag`/code.
+- Unverified: full-suite coverage + the `engine/` (nodes, pipeline) 88/80 gate (smoke-only per brief; 8.C gate is a tracked requirement, not permission).
 
 ### 8.13 DONE — engine/routing.py + tests/engine/test_routing.py
 - Files: `src/dev_harness/engine/routing.py`, `tests/engine/test_routing.py`, `src/dev_harness/contracts/enums.py` (added `RunOutcome`).
