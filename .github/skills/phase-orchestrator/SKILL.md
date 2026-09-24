@@ -26,10 +26,25 @@ user-invocable: true
 Every subagent is a fresh session with zero shared memory. If the brief does not carry the context, the subagent spends its whole budget re-reading the codebase — this is the observed "reading files over and over" failure. Rules:
 
 1. **Paste exact API signatures into the brief.** For every module the task touches, include the class/function signatures, field names, and enum values the subagent needs. Target: the subagent reads **0–2 files**, not 15.
-2. **Quote the plan row, do not cite it.** Paste the task's `X.A` deliverable, `X.B` validation command + success criteria, and `X.C` coverage numbers into the brief. Never write "read the plan" — it is 961 lines.
+2. **Quote the plan row, do not cite it.** Run `python scripts/extract_phase_plan.py --phase N --task X.Y` and paste the JSON into the brief. Never write "read the plan" — it is 961 lines.
 3. **Name the pattern file, do not list a reading list.** One "mirror `scripts/verify_phase_05.sh`" beats a 15-file list.
 4. **Cap the read sweep.** A brief must state: *"read at most 3 files before writing your first line."*
 5. **Orchestrator reads only `## Current Status`** on resume — not all of `memory.md`.
+
+## Process Tooling (use these, do not do it by hand)
+
+| Tool | Purpose | When |
+| :--- | :--- | :--- |
+| `scripts/extract_phase_plan.py --phase N --task X.Y` | Paste-ready plan row JSON | Before writing any brief |
+| `scripts/check_brief.py --file brief.json` | Validate a brief has the required fields | Before every dispatch |
+| `scripts/dispatch_log.py start/end` | Record dispatch telemetry | Every dispatch |
+| `scripts/dispatch_log.py phase-report --phase N` | Per-phase budget rollup | Phase close |
+| `scripts/failure_policy.py --class <name>` | The prescribed response for a failure | On any failure |
+| `scripts/check_traceability.py --phase N` | Task -> file -> test mapping | Phase close |
+| `scripts/dispatch_plan.py --phase N --done ...` | Ready set + parallel-safe grouping | Phase open / replan |
+| `scripts/check_state_commit.py --range A..B` | Detect bookkeeping-churn commits | Phase close |
+
+**Dispatch loop (mechanical):** extract the plan row -> write the brief -> `check_brief` -> `dispatch_log start` -> dispatch -> verify the commit -> `dispatch_log end --outcome ...` -> on failure, `failure_policy --class ...` and follow it.
 
 ## Commit & Push Protocol
 

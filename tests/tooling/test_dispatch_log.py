@@ -78,3 +78,33 @@ def test_main_start_end_roundtrip(log_path: Path, capsys: pytest.CaptureFixture[
 
 def test_main_end_unknown_id_exits_1(log_path: Path) -> None:
     assert dispatch_log.main(["end", "--id", "missing", "--outcome", "success"]) == 1
+
+
+def test_phase_report_rolls_up_cost(log_path: Path) -> None:
+    a = dispatch_log.start("7.1", "python-developer")
+    dispatch_log.end(a, outcome="success", tool_calls=10)
+    b = dispatch_log.start("7.2", "python-developer")
+    dispatch_log.end(b, outcome="empty_return", tool_calls=25)
+    report = dispatch_log.phase_report("7")
+    assert report["phase"] == "7"
+    assert report["dispatches"] == 2
+    assert report["failures"] == 1
+    assert report["tool_calls"] == 35
+    assert report["avg_tool_calls"] == 17.5
+    assert report["by_outcome"] == {"success": 1, "empty_return": 1}
+
+
+def test_phase_report_empty(log_path: Path) -> None:
+    report = dispatch_log.phase_report("9")
+    assert report["dispatches"] == 0
+    assert report["avg_tool_calls"] == 0.0
+
+
+def test_main_phase_report_emits_json(
+    log_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    a = dispatch_log.start("7.1", "python-developer")
+    dispatch_log.end(a, outcome="success", tool_calls=10)
+    assert dispatch_log.main(["phase-report", "--phase", "7"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["dispatches"] == 1

@@ -145,6 +145,38 @@ def summary(phase: str | None = None) -> dict[str, Any]:
     }
 
 
+def phase_report(phase: str) -> dict[str, Any]:
+    """Per-phase budget rollup for the acceptance report (fix 5).
+
+    Reports dispatch count, total tool calls, total wall-clock, the failure
+    breakdown, and the average cost per dispatch — the numbers that were
+    previously unknown.
+    """
+    rows = [r for r in _paired() if str(r.get("phase")) == str(phase)]
+    tool_calls = sum(int(r.get("tool_calls", 0)) for r in rows)
+    duration = round(sum(float(r.get("duration_s", 0.0)) for r in rows), 1)
+    failures = sum(1 for r in rows if r.get("outcome") != "success")
+    return {
+        "phase": phase,
+        "dispatches": len(rows),
+        "failures": failures,
+        "tool_calls": tool_calls,
+        "duration_s": duration,
+        "avg_tool_calls": round(tool_calls / len(rows), 1) if rows else 0.0,
+        "avg_duration_s": round(duration / len(rows), 1) if rows else 0.0,
+        "by_outcome": _count_by(rows, "outcome"),
+    }
+
+
+def _count_by(rows: list[dict[str, Any]], key: str) -> dict[str, int]:
+    """Count rows by a key."""
+    counts: dict[str, int] = {}
+    for row in rows:
+        value = str(row.get(key, "unknown"))
+        counts[value] = counts.get(value, 0) + 1
+    return counts
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point."""
     parser = argparse.ArgumentParser(prog="dispatch_log")
@@ -166,6 +198,9 @@ def main(argv: list[str] | None = None) -> int:
     p_sum = sub.add_parser("summary", help="Aggregate dispatches")
     p_sum.add_argument("--phase", default=None)
 
+    p_report = sub.add_parser("phase-report", help="Per-phase budget rollup")
+    p_report.add_argument("--phase", required=True)
+
     args = parser.parse_args(argv)
     if args.cmd == "start":
         print(start(args.task, args.agent, args.phase))
@@ -182,6 +217,9 @@ def main(argv: list[str] | None = None) -> int:
         if not ok:
             print(f"unknown dispatch id {args.id!r}", file=sys.stderr)
             return 1
+        return 0
+    if args.cmd == "phase-report":
+        print(json.dumps(phase_report(args.phase), indent=2))
         return 0
     print(json.dumps(summary(args.phase), indent=2))
     return 0

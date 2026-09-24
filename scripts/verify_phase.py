@@ -53,11 +53,24 @@ def emit_report(
         "rejections": rejections or [],
         "verdict": verdict,
         "signed_by": signed_by,
+        "dispatch_budget": _dispatch_budget(phase),
     }
     REPORTS.mkdir(parents=True, exist_ok=True)
     path = REPORTS / f"phase_{phase}_acceptance.json"
     path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     return path
+
+
+def _dispatch_budget(phase: str) -> dict:
+    """Per-phase dispatch budget rollup (fix 5); empty when no telemetry exists."""
+    try:
+        from scripts.dispatch_log import phase_report
+    except ImportError:  # pragma: no cover - import path differs outside pytest
+        return {}
+    try:
+        return phase_report(phase)
+    except (OSError, ValueError, KeyError):  # telemetry must never block a gate
+        return {}
 
 
 def audit_all() -> int:
