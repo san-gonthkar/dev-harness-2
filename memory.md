@@ -62,9 +62,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`).
-- **Last completed task**: P8 8.7 Worker pool honoring DAG readiness and `max_parallel_workers`.
-- **Next task**: dispatch 8.8 (`engine/worker_workspace.py`, per-worker worktree binding on `chunk/{chunk_id}`, prereq 8.7 + 1.10).
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`).
+- **Last completed task**: P8 8.8 Per-worker worktree binding on `chunk/{chunk_id}`.
+- **Next task**: dispatch 8.9 (integrator) — see plan §8.A/§8.B.
+
+### 8.8 DONE — engine/worker_workspace.py + tests/engine/test_worker_workspace.py
+- Files: `src/dev_harness/engine/worker_workspace.py`, `tests/engine/test_worker_workspace.py`. Commit `14af5e1` (pushed origin/main).
+- Deliverable: `WorkerWorkspace(repo, *, worktrees=None)` — `bind(worker_id, chunk) -> Path` (idempotent; `WorktreeManager.create(worker_id, branch=f"chunk/{chunk_id}")`), `root_for(chunk) -> Path` (EngineError if unassigned/unbound), `write_path(chunk, rel) -> Path` (rejects absolute + escapes with `WorkspaceEscapeError`), `release(worker_id)`. Module-level `chunk_branch(chunk_id)`. `_ensure_harness_ignored()` writes `.dev-harness/` to `.git/info/exclude` (local, untracked) so worktrees under the repo never dirty the primary tree.
+- Validation: `pytest tests/engine/test_worker_workspace.py -q` -> **11 passed**, exit 0. Acceptance exact: (a) 3 workers write `src/app.py` -> 3 distinct contents; (b) primary `git status --porcelain` empty throughout (asserted before/after each bind+write). Real temp git repo (`tmp_workspace`). Smoke lane: 881 passed, 7 skipped. `mypy --strict` + `ruff` clean.
+- Tests: 11 (unit 3, integration 4, negative 4). No `time.sleep`, no network.
+- Deviations: none from brief. Decision: added `_ensure_harness_ignored` — without it the worktrees dir (inside the repo) shows as untracked and dirties the primary, violating acceptance (b); the entry goes in `.git/info/exclude` (not `.gitignore`) so it is itself untracked. `# pragma: no cover`: none.
+- Unverified: full-suite coverage + the `engine.worker_workspace` mutation gate run (smoke-only per brief; 8.C gate is a tracked requirement, not permission).
 
 ### 8.7 DONE — engine/worker_pool.py + tests/engine/test_worker_pool.py
 - Files: `src/dev_harness/engine/worker_pool.py`, `tests/engine/test_worker_pool.py`. Commit `4b34183` (pushed origin/main).
