@@ -11,7 +11,9 @@ from typing import ClassVar
 
 from textual.app import App, ComposeResult
 
-from dev_harness.contracts.enums import PanelId
+from dev_harness.contracts.enums import CriticCommand, PanelId
+from dev_harness.contracts.events import Envelope
+from dev_harness.tui.bindings import HERMES_BINDINGS, ConfirmQuitScreen
 from dev_harness.tui.panels.critic_bar import CriticBar
 from dev_harness.tui.panels.execution_canvas import ExecutionCanvas
 from dev_harness.tui.panels.model_registry import ModelRegistry
@@ -37,13 +39,15 @@ class HermesApp(App[None]):
 
     CSS_PATH = "app.tcss"
 
-    #: Keybindings arrive in 7.9; the shell deliberately binds nothing yet.
-    BINDINGS: ClassVar[list] = []  # type: ignore[type-arg]  # textual's BindingType is unexported
+    #: Operator keybindings (7.9): ctrl+c -> PAUSE (priority), ctrl+q -> confirm quit.
+    BINDINGS: ClassVar[list] = list(HERMES_BINDINGS)  # type: ignore[type-arg]  # textual's BindingType is unexported
 
     def __init__(self, *, workspace: str | None = None) -> None:
         super().__init__()
         #: Workspace root for the repo-manager tree; ``"."`` until 7.11 wires --workspace.
         self.workspace = workspace or "."
+        #: PAUSE envelopes emitted by the ctrl+c binding (7.9).
+        self._pause_requests: list[Envelope] = []
 
     def compose(self) -> ComposeResult:
         """Yield the four region placeholders as direct grid children."""
@@ -51,6 +55,25 @@ class HermesApp(App[None]):
         yield ExecutionCanvas(id="execution-canvas")
         yield ModelRegistry(id="model-registry")
         yield CriticBar(id="critic-bar")
+
+    def action_pause(self) -> None:
+        """Emit one ``INTERRUPT_REQUEST{PAUSE}`` via the critic bar; never exit (7.9)."""
+        envelope = self.query_one(CRITIC_BAR_ID, CriticBar).emit(CriticCommand.PAUSE)
+        self._pause_requests.append(envelope)
+
+    def action_request_quit(self) -> None:
+        """Push the confirm modal; exit only when the operator confirms (7.9)."""
+        self.push_screen(ConfirmQuitScreen(), self._on_quit_confirmed)
+
+    def _on_quit_confirmed(self, confirmed: bool | None) -> None:
+        """Exit cleanly on a confirmed Yes; a No (or dismiss) leaves the app running."""
+        if confirmed:
+            self.exit()
+
+    @property
+    def pause_requests(self) -> list[Envelope]:
+        """The PAUSE envelopes emitted by the ctrl+c binding, in order (7.9)."""
+        return self._pause_requests
 
 
 def main(argv: list[str] | None = None) -> int:
