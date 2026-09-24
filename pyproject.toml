@@ -43,6 +43,7 @@ where = ["src"]
 "dev_harness" = ["py.typed"]
 
 [project.scripts]
+dev-harness = "dev_harness.cli:main"
 dev-harness-broker = "dev_harness.broker.daemon:main"
 dev-harness-broker-cli = "dev_harness.broker.cli:main"
 dev-harness-engine = "dev_harness.engine.bootstrap:main"

@@ -118,6 +118,12 @@ class NoCommitsError(VcsError):
     remediation = "Create an initial commit before running the harness."
 
 
+class NotAGitRepository(VcsError):
+    """The workspace is not inside a git work tree."""
+
+    remediation = "Point --workspace at a git repository (run 'git init' first)."
+
+
 # --- ipc --------------------------------------------------------------------
 
 

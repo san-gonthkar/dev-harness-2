@@ -28,6 +28,16 @@ class GitAdapter:
             )
         return proc.stdout.strip()
 
+    def is_repository(self) -> bool:
+        """True if the path is inside a git work tree (7.11 CLI guard)."""
+        proc = subprocess.run(
+            ["git", "-C", str(self.repo), "rev-parse", "--is-inside-work-tree"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return proc.returncode == 0 and proc.stdout.strip() == "true"
+
     def head_sha(self) -> str:
         """The current HEAD commit sha (40 hex chars)."""
         try:
