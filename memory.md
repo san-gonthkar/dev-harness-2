@@ -915,3 +915,9 @@ No rejection criterion is *failed*; three are *unverifiable on this host* and ar
 - Validation: pytest 14 passed; ruff clean; mypy --strict clean (85 files).
 - Decisions: (1) Injectable clock (`time.monotonic`) so coalescing math is deterministic; tests use `tests/support/clock.py`, zero `time.sleep`. (2) `flush` marks the batch flushed before invoking the sink — a raising sink propagates but leaves state consistent (empty buffer, no re-delivery); recorded as the documented negative contract. (3) `push` returns `True` on either an interval flush or a `max_batch` bound flush. (4) Timing test drives the frozen clock in 50 ms steps over 2 s/10k tokens, asserts `flushes <= 44`, `written == 10000`, and no coalescing gap > one 50 ms step.
 - Unverified: timing SLO is NIGHTLY (`-m timing`), deselected in smoke — not run this session.
+
+### 7.3 DONE — tui/panels/execution_canvas.py + test_execution_canvas.py
+- Commit: b588c0b (pushed to origin/main).
+- Tests: 9 passed (tests/tui/test_execution_canvas.py + test_layout.py); ruff clean; mypy strict clean (87 files).
+- Decisions: ExecutionCanvas(Vertical) with RichLog #canvas-log + Sparkline #canvas-sparkline; tokens stored in dict[seq,str] so rendered_text reassembles in seq order (duplicate seq = last-write-wins); sparkline sample = passed/total, total==0 -> 0.0 (no division); bind(bridge) registers AGENT_TOKEN_STREAM + TEST_PROGRESS handlers (UI-thread callbacks write directly). app.py compose() now yields ExecutionCanvas(id='execution-canvas'). No engine import; no sleeps (pilot.pause + bounded deadline).
+- Unverified: full-suite/coverage/mutation gates not run (smoke lane only per policy).
