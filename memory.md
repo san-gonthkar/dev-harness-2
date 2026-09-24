@@ -956,3 +956,10 @@ No rejection criterion is *failed*; three are *unverifiable on this host* and ar
 - Tests: 19 passed (tests/tui/test_model_registry.py + test_layout.py), 1.14s. ruff clean; mypy strict clean (91 files).
 - Decisions: mirrored repo_manager panel pattern (DataTable fixed rows, update_cell in place, is_mounted guard). No engine import; contracts+textual only. No new deps.
 - Unverified: full suite / coverage / mutation gates not run (smoke lane only per policy).
+
+### 7.13 DONE — tests/support/metrics_replay.py + test_metrics_replay.py
+- Commit: 8d0d42d (pushed to origin/main). Task-Id: 7.13.
+- Deliverables: tests/support/metrics_replay.py (MetricsReplay: recorded METRICS_UPDATE feed; RecordedSample + _FeedDocument Pydantic v2 models; record/replay/replay_fast/emitted/feed/to_json/from_json; injectable sink/sleep/clock; built-in 6-sample feed with rising USD + varying p95, 0.5s spacing). tests/support/test_metrics_replay.py (7 tests: 5 unit, 2 negative).
+- Validation: pytest tests/support/test_metrics_replay.py -q --timeout=120 -> 7 passed in 0.34s; ruff clean; mypy src strict clean (91 files).
+- Decisions: mirrors StubWorkload shape (scripted emitter + injectable sink). Pacing via injectable sleep (default time.sleep) so tests inject a recorder and never sleep for real; bounded loop over finite list. Caller-supplied feed (no timestamps) spaced 0.5s apart; record() timestamps from injected clock. emitted increments only after sink returns -> a raising sink propagates without corrupting the counter (documented negative behavior). No new deps; test-infra module, not under tui/ coverage ledger.
+- Unverified: full suite / coverage / mutation gates not run (smoke lane only per policy). 7.D acceptance replay wiring into #model-registry not exercised here (7.12/7.D scope).
