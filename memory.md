@@ -59,11 +59,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P7 — Hermes TUI Core Subsystem (in progress; 7.1-7.6 + 7.7-7.10 + 7.13 done)
+- **Phase**: P7 — Hermes TUI Core Subsystem (in progress; all 13 tasks done except 7.12)
 - **Lane**: C
-- **Current task**: P7 D12 - 7.11 root CLI
-- **Last completed task**: P7 7.9 keybindings (`3f13531`, 8 passed)
-- **Next task**: dispatch 7.11 (single-task brief); order in docs/phase_07_implementation_plan.md
+- **Current task**: P7 D13 - 7.12 verify_phase_07 script
+- **Last completed task**: P7 7.11 root CLI (`c3f0c09`, 6 passed)
+- **Next task**: dispatch 7.12 (single-task brief); then 7.D reviewer sign-off
 
 ## Phase 0 — Scaffolding, Shared Contracts & Test Infrastructure
 
