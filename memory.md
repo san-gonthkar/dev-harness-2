@@ -977,3 +977,11 @@ No rejection criterion is *failed*; three are *unverifiable on this host* and ar
 - Deliverables: `src/dev_harness/tui/bindings.py` (`ConfirmQuitScreen(ModalScreen[bool])` + `HERMES_BINDINGS`), wired into `HermesApp` (`BINDINGS`, `action_pause`, `action_request_quit`, `pause_requests` accessor).
 - Tests: `tests/tui/test_bindings.py` — 8 tests (3 unit, 3 integration, 2 negative). Validation: `pytest tests/tui/test_bindings.py tests/tui/test_layout.py tests/contracts/test_enums.py` -> 19 passed; ruff clean; mypy strict clean (93 files).
 - Decisions: ctrl+c priority binding emits one `INTERRUPT_REQUEST{PAUSE}` via the mounted `CriticBar` (reuses 7.6 contract, no engine import); ctrl+q pushes modal, exits only on confirmed Yes. Modal CSS uses fixed `width: 40` — `width: auto` clipped the buttons container so the No button was unreachable by the pilot. No state string literals (uses `CriticCommand.PAUSE`).
+
+### 7.11 DONE — src/dev_harness/cli.py + test_cli.py
+- Commit: c3f0c09 (pushed to origin/main).
+- Tests: 14 passed (tests/tui/test_cli.py + tests/contracts/test_enums.py), 0.73s.
+- Validation: ruff clean; mypy --strict clean (94 files).
+- Decisions: added NotAGitRepository(VcsError) to contracts/errors.py (did not exist); added GitAdapter.is_repository() (git rev-parse --is-inside-work-tree); console script dev-harness = dev_harness.cli:main.
+- No state string literals (uses ExecutionState.READY.value); no unbounded loops; no time.sleep; no new deps.
+- Unverified: real daemon/socket self-check (AF_UNIX unavailable on Windows) — broker/engine monkeypatched.
