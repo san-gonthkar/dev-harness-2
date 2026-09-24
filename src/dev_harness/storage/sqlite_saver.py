@@ -46,16 +46,23 @@ class SqliteSaver:
         git_commit_hash: str | None = None,
         is_paused: bool = False,
         created_at: int | None = None,
+        worktree_head: str | None = None,
+        worktree_diff: str | None = None,
     ) -> str:
-        """Write one checkpoint. Returns the checkpoint_id."""
+        """Write one checkpoint. Returns the checkpoint_id.
+
+        ``worktree_head``/``worktree_diff`` carry the serialized per-worker
+        worktree state (a JSON ``worker_id -> value`` map each); they are NULL
+        for checkpoints that do not capture worktrees (V11 8.21a/8.21b).
+        """
         cid = checkpoint_id or f"cp_{len(self.list(scope))}"
         state_json = state.model_dump_json()
         sha = self._sha256(state_json)
         try:
             self._conn.execute("BEGIN")
             self._conn.execute(
-                "INSERT INTO checkpoints (project_id, thread_id, checkpoint_id, state_json, state_sha256, git_commit_hash, is_paused, created_at) "
-                "VALUES (?,?,?,?,?,?,?,?)",
+                "INSERT INTO checkpoints (project_id, thread_id, checkpoint_id, state_json, state_sha256, git_commit_hash, is_paused, created_at, worktree_head, worktree_diff) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?)",
                 (
                     scope.project_id,
                     scope.thread_id,
@@ -65,6 +72,8 @@ class SqliteSaver:
                     git_commit_hash,
                     int(is_paused),
                     created_at or 0,
+                    worktree_head,
+                    worktree_diff,
                 ),
             )
             self._conn.commit()
@@ -104,6 +113,8 @@ class SqliteSaver:
             "git_commit_hash": row["git_commit_hash"],
             "is_paused": bool(row["is_paused"]),
             "created_at": row["created_at"],
+            "worktree_head": row["worktree_head"],
+            "worktree_diff": row["worktree_diff"],
         }
 
     def close(self) -> None:

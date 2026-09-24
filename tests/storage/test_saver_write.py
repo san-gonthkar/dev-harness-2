@@ -56,7 +56,8 @@ def test_injected_mid_write_failure_leaves_no_partial(tmp_path: Path) -> None:
     real.execute(
         "CREATE TABLE IF NOT EXISTS checkpoints (project_id TEXT, thread_id TEXT, "
         "checkpoint_id TEXT, state_json TEXT, state_sha256 TEXT, git_commit_hash TEXT, "
-        "is_paused INTEGER, created_at INTEGER, PRIMARY KEY (project_id, thread_id, checkpoint_id))"
+        "is_paused INTEGER, created_at INTEGER, worktree_head TEXT, worktree_diff TEXT, "
+        "PRIMARY KEY (project_id, thread_id, checkpoint_id))"
     )
     real.commit()
 
