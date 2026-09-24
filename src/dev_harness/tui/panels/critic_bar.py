@@ -88,9 +88,9 @@ class CriticBar(Horizontal):
     def compose(self) -> ComposeResult:
         """Yield the reason input and the five command buttons."""
         yield self._input
-        yield Button("PAUSE", id="btn-pause")
-        yield Button("RESUME", id="btn-resume")
-        yield Button("STOP", id="btn-stop")
+        yield Button(CriticCommand.PAUSE.value, id="btn-pause")
+        yield Button(CriticCommand.RESUME.value, id="btn-resume")
+        yield Button(CriticCommand.STOP.value, id="btn-stop")
         yield Button("Approve", id="btn-approve")
         yield Button("Reject", id="btn-reject")
 
