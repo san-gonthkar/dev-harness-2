@@ -10,9 +10,9 @@ from __future__ import annotations
 from typing import ClassVar
 
 from textual.app import App, ComposeResult
-from textual.widgets import Static
 
 from dev_harness.contracts.enums import PanelId
+from dev_harness.tui.panels.critic_bar import CriticBar
 from dev_harness.tui.panels.execution_canvas import ExecutionCanvas
 from dev_harness.tui.panels.model_registry import ModelRegistry
 from dev_harness.tui.panels.repo_manager import RepoManager
@@ -50,7 +50,7 @@ class HermesApp(App[None]):
         yield RepoManager(path=self.workspace, id="repo-manager")
         yield ExecutionCanvas(id="execution-canvas")
         yield ModelRegistry(id="model-registry")
-        yield Static("critic-bar", id="critic-bar")
+        yield CriticBar(id="critic-bar")
 
 
 def main(argv: list[str] | None = None) -> int:
