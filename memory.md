@@ -930,3 +930,13 @@ No rejection criterion is *failed*; three are *unverifiable on this host* and ar
 - Validation: pytest 101 passed; `--cov-branch` 100/100; ruff clean; mypy --strict clean (88 files).
 - Decisions: (1) Chose `Markdown(escape(text))` over a literal `Text` because Rich's Markdown parser interprets *Markdown*, not Rich markup — raw `[bold red]` already renders literally, while escaping additionally guarantees no `MarkupError` and neutralises backslash-escape tricks. (2) `safe_text` is the single primitive; both renderers route through it (7.C no duplication). (3) Negative table includes `[/]` (the only tag `from_markup` rejects unescaped) plus unclosed/nested/`[[`/non-ASCII; fuzz confirmed `escape` is total and the escaped `\\[` never survives into Markdown output.
 - Unverified: full-suite/coverage/mutation gates not run (smoke lane only); no mutmut investigation (per brief).
+
+### 7.4 DONE — tui/scrollback.py + test_scrollback.py
+- Commit: 786078f (pushed to origin/main). Task-Id: 7.4.
+- Deliverables: src/dev_harness/tui/scrollback.py (ScrollbackBuffer: max_lines cap, spill oldest-first to RunArtifactStore, lines/spilled/all_lines/__len__/spilled_count); tests/tui/test_scrollback.py (11 smoke tests: 5 unit, 3 negative-param, 2 integration, 1 slow).
+- Also added ScrollbackError(HarnessError) to contracts/errors.py (canonical taxonomy; remediation non-empty) for the max_lines<1 rejection.
+- Validation: pytest tests/tui/test_scrollback.py -q -> 11 passed (slow deselected); +tests/contracts/test_errors.py -> 15 passed; ruff clean; mypy src strict clean (89 files).
+- Coverage: new module fully exercised by smoke tests (all branches: under/over cap, spill present/absent, path vs spill, factory default).
+- Decision/deviation: RunArtifactStore.append is O(n) per call (reloads+rewrites whole file) — benchmarked 3000 appends = 27.5s. Per-line spill into it is O(n^2), infeasible for 200k. Smoke/integration use the real RunArtifactStore (small counts). The @pytest.mark.slow 200k soak uses an internal _FileSink (buffered append handle, structural twin of RunArtifactStore) injected via sink_factory, keeping the soak O(n) and time-bounded.
+- NIGHTLY slow test (200k lines, RSS<100MB, ordered retrieval) is WRITTEN but DEFERRED — not run in smoke lane per lane policy.
+- No tui/->engine/ import; no time.sleep; bounded spill loop (one popleft per iteration).
