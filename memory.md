@@ -62,9 +62,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 planning — read §8.A-§8.D, then dispatch 8.1.
-- **Last completed task**: P7 7.D reviewer sign-off ACCEPTED (`24d1396`); 7.12b `scripts/verify_phase_07.sh` (`30a349f`).
-- **Next task**: plan P8 (19 tasks, 8.1-8.19), then dispatch 8.1 (persona templates).
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`, pushed).
+- **Last completed task**: P7 7.D reviewer sign-off ACCEPTED (`24d1396`); P8 8.1 persona templates (`dfb95b3`).
+- **Next task**: dispatch 8.2 (next P8 task per §8.B).
+
+### 8.1 DONE — five persona templates + tests/engine/test_personas.py
+- Commit `dfb95b3` (pushed origin/main). Files: `src/dev_harness/engine/personas/{groomer,architect,developer,tester,critic}.md`, `tests/engine/test_personas.py`.
+- Validation: `pytest tests/engine/test_personas.py -q` -> 21 passed, exit 0.
+- Tests: 20 parametrized `unit` + 1 critic keyword-scan `unit`. Lints: file exists, `## Output Contract`, refusal behavior, role name; critic keyword scan (refined to skip prohibition/refusal lines — the 8.B false-positive fix). Scan verified to catch a positive ("allowed to edit code") and skip a prohibition.
+- Architect defaults to hosted model (decision 2026-09-20; spike skipped `no_local_ollama`), recorded in `architect.md`.
+- Deviations: none. `# pragma: no cover`: none.
+- Unverified: full-suite lane / coverage (smoke-only per brief).
 
 ## Closed-Phase Detail
 
