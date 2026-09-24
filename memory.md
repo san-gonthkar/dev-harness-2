@@ -62,9 +62,9 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`).
-- **Last completed task**: P8 8.2 persona output validators (`ca7556a`).
-- **Next task**: dispatch 8.3 (LangGraph channels and reducers, `engine/state.py`).
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`).
+- **Last completed task**: P8 8.3 LangGraph channels and reducers (`65dca4f`).
+- **Next task**: dispatch 8.4 (first persona node, `engine/`).
 
 ### 8.1 DONE — five persona templates + tests/engine/test_personas.py
 - Commit `dfb95b3` (pushed origin/main). Files: `src/dev_harness/engine/personas/{groomer,architect,developer,tester,critic}.md`, `tests/engine/test_personas.py`.
@@ -83,6 +83,16 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - Decisions: (1) `PersonaOutputError` reused (no new error class). (2) `CompletionClient` Protocol declared locally rather than importing `providers.base` — the AST guard forbids engine code importing `providers.base`; structural typing keeps the real `LLMClient` compatible. (3) `personas/` promoted to a package with `__init__.py` (setuptools `find` requires it; 8.4+ nodes import from it). (4) Developer/critic roles have non-JSON contracts (diff/verdict) so they are not in `PERSONA_MODELS`; `validator_for` raises `PersonaOutputError` for them.
 - Deviations: none. `# pragma: no cover`: none.
 - Unverified: full-suite lane / coverage / mutation (smoke-only per brief).
+
+### 8.3 DONE — engine/state.py + tests/engine/test_state_reducers.py
+- Commit `65dca4f` (pushed origin/main). Files: `src/dev_harness/engine/state.py`, `tests/engine/test_state_reducers.py`.
+- Deliverable: `HarnessStateChannels(TypedDict, total=False)` mirroring `HarnessState`; `project_id`/`workspace_path`/`thread_id` are `Required`. `Annotated` reducers: `chunk_dag: Annotated[list[Chunk], append_chunks]` (operator.add append), `inner_loop_retry_count`/`e2e_retry_count: Annotated[int, add_counters]` (operator.add). All other channels last-write-wins (no reducer).
+- Validation: `pytest tests/engine/test_state_reducers.py -q` -> 21 passed, exit 0. Guard: `tests/contracts/test_enums.py` + reducers -> 29 passed (literal-ban clean).
+- Tests: 21 (unit; parametrized scalar-channel + retry-channel tables). Reducers exercised directly via a local `_merge` applying partial updates — no compiled graph. No `time.sleep`; no network.
+- Lints: ruff check + format clean; `mypy --strict` clean on state.py.
+- Decisions: (1) Used `cast` on the two `operator.add` wrappers — mypy strict flags `operator.add`'s `Any` return (`no-any-return`); wrappers give named, IntelliSense-visible reducers that LangGraph accepts. (2) `TypedDict(total=False)` so nodes may write partial updates; `Required[...]` on the three identity channels mirrors `HarnessState`. (3) `_reducer` helper checks `get_origin(...) is Annotated` before reading metadata — `X | None` unions otherwise yield a spurious second arg (`NoneType`).
+- Deviations: none. `# pragma: no cover`: none.
+- Unverified: full-suite lane / coverage / mutation (smoke-only per brief); compiled-graph channel wiring is 8.18 (out of scope).
 
 ## Closed-Phase Detail
 
