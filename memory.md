@@ -429,3 +429,15 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - **Findings**: F1 (integrator coverage below 8.C per-module contract); F2 (AST guard `test_provider_gateway.py` globs only `engine/*.py`, not subpackages — invariant holds by manual grep, guard incomplete).
 - **Deviations adjudicated**: 8.13 `RunOutcome` enum — ACCEPTED (canonical home, no literals, `ExecutionState` locked to 4). 8.16 51-line trace — ACCEPTED (plan's "50-line cap (head 30/tail 20)" is internally inconsistent with a standalone marker; 51 = 30+1+20). 8.18 AST guard narrowing — ACCEPTED (`registry.py` imports only config/contracts, no network; `context.py` legitimately needs it). 8.15/8.18 injectable `InMemorySaver` — ACCEPTED (`langgraph-checkpoint-sqlite` not installed; injectable seam documented).
 - **Artifact**: `reports/phase_08_acceptance.json` verdict **ACCEPTED**, commit `e5a893f`, signed_by `reviewer-agent`, `human_signoff_required: true`. **Lane D requires a HUMAN signature.**
+
+### P8 8.D REVIEW — ACCEPTED (2026-09-24, reviewer-agent, independent)
+- Reviewed: P8 SDLC Pipeline Engine & Parallel Worker Pool (8.1-8.21b). Reviewer did not implement any P8 task.
+- Validation matrix (8.B): all 21 rows green (234 tests). Coverage (8.C) measured per-module: engine/ 96.6/91.8 (need 88/80); dag 100/100; worker_pool 98.8/94.4; worker_workspace 98.2/96.2; routing 100/100; classifier 100/100.
+- Rejection criteria: lost write -> PASS (0 lost, 5 commits); primary dirty -> PASS (clean before/mid/after); infinite retry -> PASS (terminal FAILED, e2e_retry_count=2); surviving mutant -> DEFERRED (mutmut needs WSL2/POSIX, plan R2); live network -> PASS (--mock, sockets disabled).
+- Deviations adjudicated: 8.13 RunOutcome enum ACCEPTED; 8.16 51-line trace ACCEPTED; 8.18 AST-guard narrowing ACCEPTED; 8.15/8.18 injectable InMemorySaver ACCEPTED.
+- **Findings (both CLOSED in commit 343a220):**
+  - **F1:** integrator.py was 90/78, below the 8.C per-module 95/90. Added 4 negative tests for the defensive git-failure paths (injected _run). Now **100/100**.
+  - **F2:** the provider-adapter AST guard globbed only engine/*.py, missing engine/nodes/, engine/personas/, engine/testing/. Widened to rglob.
+- Smoke lane after fixes: **1014 passed, 7 skipped**.
+- Artifact: reports/phase_08_acceptance.json verdict ACCEPTED, signed_by reviewer-agent, human_signoff_required=true, pinned to commit e5a893f.
+- **P8 GATE STATUS:** conditions 1 (validation rows) and 2 (coverage contract) MET; condition 3 (signed acceptance) has the reviewer signature but **Lane D requires a HUMAN signed_by** - awaiting the user.
