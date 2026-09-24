@@ -142,7 +142,23 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Phase 7 — Hermes TUI Core Subsystem
 
-**Status**: not started (prereq: P5 green)
+**Status**: in progress (prereq: P5 green; plan doc committed 2026-09-23)
+
+### 7.1 DONE — tui/app.py + app.tcss + test_layout.py
+
+- **Commit**: `1cdd700` (pushed to origin/main)
+- **Files**: `src/dev_harness/tui/__init__.py`, `src/dev_harness/tui/app.py`, `src/dev_harness/tui/app.tcss`, `tests/tui/__init__.py`, `tests/tui/test_layout.py`
+- **Validation** (all green):
+  - `python -m pytest tests/tui/test_layout.py -q --timeout=120` → `3 passed in 0.56s`
+  - `python -m ruff check src/dev_harness/tui tests/tui` → `All checks passed!`
+  - `python -m mypy src/dev_harness/tui` → `Success: no issues found in 2 source files`
+- **Decisions**:
+  - `compose()` yields the four `Static` placeholders as **direct Screen children** — a wrapping `Container` collapsed the grid into one cell (all four stacked at 18x1). Grid is on `Screen` (`grid-size: 3 2; grid-columns: 1fr 3fr 1fr; grid-rows: 1fr 3`).
+  - `BINDINGS: ClassVar[list] = []` with `# type: ignore[type-arg]` — Textual's `BindingType` is unexported; mypy strict otherwise fails.
+  - `PANEL_REGIONS: dict[PanelId, str]` maps the canonical `PanelId` enum to the four CSS selectors for later panel tasks.
+  - Tests assert on `widget.region` (border-inclusive) for the critic-bar full-width span — `widget.size` excludes the 2px border.
+  - No snapshot baseline committed (per brief — handled at 7.12/review).
+- **Next**: dispatch 7.7 (IPC→UI bridge, D2).
 
 ## Phase 8 — SDLC Pipeline Engine & Parallel Worker Pool
 
