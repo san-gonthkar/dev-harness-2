@@ -84,13 +84,61 @@ def _is_path(token: str) -> bool:
     return "/" in token or token.endswith((".py", ".sh", ".ps1", ".tcss"))
 
 
+def build_brief(
+    task_id: str, *, phase: str | None = None, tool_calls: int = 25, minutes: int = 25
+) -> dict[str, object]:
+    """Build a `check_brief`-shaped brief skeleton for ``task_id``.
+
+    Pre-fills task_id, deliverable, files (from the plan), validation_cmd, and
+    budget. ``api_signatures`` starts as a placeholder that MUST be replaced
+    with the real signatures before dispatch — the brief-guard hook treats the
+    placeholder as a valid non-empty list, so this is a reminder, not a bypass.
+    """
+    rows = extract_phase(phase or task_id.split(".")[0])
+    row = rows.get(task_id)
+    if row is None:
+        raise KeyError(task_id)
+    return {
+        "task_id": task_id,
+        "deliverable": row.deliverable.strip("`"),
+        "files": row.files,
+        "api_signatures": ["REPLACE: paste the exact signatures this task needs"],
+        "validation_cmd": row.validation_cmd or "pytest tests -q --timeout=120",
+        "budget": {"tool_calls": tool_calls, "minutes": minutes},
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point."""
     parser = argparse.ArgumentParser(prog="extract_phase_plan")
     parser.add_argument("--phase", required=True)
     parser.add_argument("--task", default=None, help="emit only this task")
     parser.add_argument("--out", default=None, help="write JSON to this path")
+    parser.add_argument(
+        "--brief",
+        action="store_true",
+        help="emit a check_brief-shaped brief skeleton (requires --task)",
+    )
     args = parser.parse_args(argv)
+
+    if args.brief:
+        if not args.task:
+            print("--brief requires --task", file=sys.stderr)
+            return 1
+        try:
+            skeleton = build_brief(args.task, phase=args.phase)
+        except KeyError:
+            print(f"task {args.task} not in phase {args.phase}", file=sys.stderr)
+            return 1
+        text = json.dumps(skeleton, indent=2)
+        if args.out:
+            out = Path(args.out)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(text, encoding="utf-8")
+            print(f"wrote {out}")
+        else:
+            print(text)
+        return 0
 
     rows = extract_phase(args.phase)
     if not rows:

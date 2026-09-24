@@ -36,7 +36,7 @@ Every subagent is a fresh session with zero shared memory. If the brief does not
 | Tool | Purpose | When |
 | :--- | :--- | :--- |
 | `scripts/extract_phase_plan.py --phase N --task X.Y` | Paste-ready plan row JSON | Before writing any brief |
-| `scripts/check_brief.py --file brief.json` | Validate a brief has the required fields | Before every dispatch |
+| `scripts/check_brief.py --file briefs/X.Y.json` | Validate a brief has the required fields | Before every dispatch |
 | `scripts/dispatch_log.py start/end` | Record dispatch telemetry | Every dispatch |
 | `scripts/dispatch_log.py phase-report --phase N` | Per-phase budget rollup | Phase close |
 | `scripts/failure_policy.py --class <name>` | The prescribed response for a failure | On any failure |
@@ -44,7 +44,17 @@ Every subagent is a fresh session with zero shared memory. If the brief does not
 | `scripts/dispatch_plan.py --phase N --done ...` | Ready set + parallel-safe grouping | Phase open / replan |
 | `scripts/check_state_commit.py --range A..B` | Detect bookkeeping-churn commits | Phase close |
 
-**Dispatch loop (mechanical):** extract the plan row -> write the brief -> `check_brief` -> `dispatch_log start` -> dispatch -> verify the commit -> `dispatch_log end --outcome ...` -> on failure, `failure_policy --class ...` and follow it.
+**Dispatch loop (mechanical):** extract the plan row -> write `briefs/X.Y.json` -> `check_brief` -> `dispatch_log start` -> dispatch -> verify the commit -> `dispatch_log end --outcome ...` -> on failure, `failure_policy --class ...` and follow it.
+
+### Brief enforcement (hook, hard)
+
+A `PreToolUse` hook (`.github/hooks/brief-guard.json` -> `scripts/check_dispatch_brief.py`) inspects every `runSubagent` dispatch:
+
+- **no `briefs/<task_id>.json`** -> `ask` (the user is prompted; a one-off dispatch may proceed).
+- **brief exists but fails `check_brief`** -> `deny` (a malformed brief burns a subagent budget).
+- **valid brief** -> allowed silently.
+- `reviewer-agent` / `release-agent` / `Explore` dispatches are exempt.
+- The brief must carry a `TASK: <id>` line so the hook can match it. `briefs/` is gitignored (transient).
 
 ## Commit & Push Protocol
 

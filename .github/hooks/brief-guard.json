@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "python scripts/check_dispatch_brief.py",
+        "windows": "python scripts/check_dispatch_brief.py",
+        "linux": "python3 scripts/check_dispatch_brief.py",
+        "osx": "python3 scripts/check_dispatch_brief.py",
+        "timeout": 10
+      }
+    ]
+  }
+}

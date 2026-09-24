@@ -27,3 +27,4 @@ venv/
 !.github/hooks/
 !.github/workflows/
 !.github/copilot-instructions.md
+briefs/

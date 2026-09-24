@@ -60,3 +60,43 @@ def test_main_unknown_phase_exits_1() -> None:
 
 def test_main_unknown_task_exits_1() -> None:
     assert extract_phase_plan.main(["--phase", "7", "--task", "7.99"]) == 1
+
+
+def test_build_brief_has_required_fields() -> None:
+    from scripts.check_brief import validate
+
+    brief = extract_phase_plan.build_brief("7.12", phase="7")
+    assert validate(brief) == []
+    assert brief["task_id"] == "7.12"
+    assert brief["files"] == ["scripts/verify_phase_07.sh"]
+    assert brief["budget"] == {"tool_calls": 25, "minutes": 25}
+
+
+def test_build_brief_marks_api_signatures_for_replacement() -> None:
+    brief = extract_phase_plan.build_brief("7.12", phase="7")
+    signatures = brief["api_signatures"]
+    assert isinstance(signatures, list)
+    assert "REPLACE" in signatures[0]
+
+
+def test_build_brief_unknown_task_raises() -> None:
+    with pytest.raises(KeyError):
+        extract_phase_plan.build_brief("7.99", phase="7")
+
+
+def test_main_brief_requires_task() -> None:
+    assert extract_phase_plan.main(["--phase", "7", "--brief"]) == 1
+
+
+def test_main_brief_writes_skeleton(tmp_path: Path) -> None:
+    from scripts.check_brief import validate
+
+    out = tmp_path / "7.12.json"
+    assert (
+        extract_phase_plan.main(
+            ["--phase", "7", "--task", "7.12", "--brief", "--out", str(out)]
+        )
+        == 0
+    )
+    brief = json.loads(out.read_text(encoding="utf-8"))
+    assert validate(brief) == []
