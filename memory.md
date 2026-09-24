@@ -59,11 +59,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P7 — Hermes TUI Core Subsystem (in progress; 7.1 + 7.7 done)
+- **Phase**: P7 — Hermes TUI Core Subsystem (in progress; 7.1 + 7.7 + 7.8 done)
 - **Lane**: C
-- **Current task**: P7 D3 - 7.8 20 Hz throttling
-- **Last completed task**: P7 7.7 IPC->UI bridge (`0ea63d2`, 12 passed, bridge 99/95)
-- **Next task**: dispatch 7.8 (single-task brief); order in docs/phase_07_implementation_plan.md
+- **Current task**: P7 D4 - 7.3 execution canvas
+- **Last completed task**: P7 7.8 20 Hz coalescing throttle (`859c04a`, 14 passed, throttle 100/100)
+- **Next task**: dispatch 7.3 (single-task brief); order in docs/phase_07_implementation_plan.md
 
 ## Phase 0 — Scaffolding, Shared Contracts & Test Infrastructure
 
@@ -907,3 +907,11 @@ No rejection criterion is *failed*; three are *unverifiable on this host* and ar
 - Validation: pytest 12 passed; ruff clean; mypy --strict clean (84 files).
 - Decisions: (1) `NoActiveAppError` imported from `textual._context` (its defining module) — `textual.message_pump` re-exports it but mypy strict flags the re-export. (2) Integration producer is backpressure-aware: the queue drops oldest on token overflow, so control events are enqueued only after the bridge consumes the SNAPSHOT/controls — guarantees 0 control drops deterministically. (3) `dropped` = queue.dropped_frames + marshal drops (NoActiveAppError).
 - Unverified: none beyond smoke lane.
+### 7.8 DONE — tui/throttle.py + test_throttle.py
+- Commit: 859c04a (pushed to origin/main).
+- Deliverable: `CoalescingThrottle(sink, *, interval=1/20, clock=time.monotonic, max_batch=4096)` — half-open 20 Hz coalescing; `push(env)->bool` (flush when interval elapsed or buffer at `max_batch`); `flush()->int`; `drain(now=None)->int` (bounded, flushes at most once); properties `pending`/`flushes`/`written`. No deps, no `engine/` import.
+- Tests: 14 (unit 11 incl. parametrized interval boundary, negative 2, timing 1) — 13 pass in smoke (timing deselected); full file 14 passed in 0.44s.
+- Coverage: throttle.py 100% line / 100% branch (56 stmts, 14 branches) — exceeds 95/90.
+- Validation: pytest 14 passed; ruff clean; mypy --strict clean (85 files).
+- Decisions: (1) Injectable clock (`time.monotonic`) so coalescing math is deterministic; tests use `tests/support/clock.py`, zero `time.sleep`. (2) `flush` marks the batch flushed before invoking the sink — a raising sink propagates but leaves state consistent (empty buffer, no re-delivery); recorded as the documented negative contract. (3) `push` returns `True` on either an interval flush or a `max_batch` bound flush. (4) Timing test drives the frozen clock in 50 ms steps over 2 s/10k tokens, asserts `flushes <= 44`, `written == 10000`, and no coalescing gap > one 50 ms step.
+- Unverified: timing SLO is NIGHTLY (`-m timing`), deselected in smoke — not run this session.
