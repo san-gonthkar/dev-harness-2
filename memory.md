@@ -198,3 +198,11 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Gate condition 2 (7.C coverage contract): **pending - requires user-authorized full-suite run**. `coverage.json` is stale (73 files, no tui/). Need `tui/` 75/65 + `tui/bridge.py`/`throttle.py`/`render.py` 95/90.
 - Gate condition 3 (signed acceptance protocol): **pending** - reviewer-agent must sign `reports/phase_07_acceptance.json`; the live 7.D protocol (verify_phase_07.sh) needs WSL2/POSIX (AF_UNIX).
 - Next: user authorization for the full-suite coverage run, then dispatch reviewer-agent for 7.D.
+
+### P7 7.C COVERAGE CONTRACT — VERIFIED (2026-09-24, user-authorized full-suite run)
+- Command: `python -m pytest tests -q --cov=dev_harness --cov-branch --cov-report=term-missing --cov-report=json:coverage.json` -> 988 passed, 8 skipped, 82.67s.
+- `tui/` overall: **98.1% line / 88.5% branch** (need 75/65) — MET.
+- `tui/bridge.py`: 98.9/98.9; `tui/throttle.py`: 100/100; `tui/render.py`: 100/100 (need 95/90) — MET.
+- `python scripts/coverage_gate.py` -> exit 0 (gate OK). `python scripts/coverage_weights.py` -> exit 0 (overall 89/83).
+- Fixed one stale tooling test: `tests/tooling/test_check_traceability.py::test_unbuilt_task_reports_gap` asserted 7.12 was unbuilt; repointed to 8.19 (`scripts/verify_phase_08.sh`). Commit f7f2f26 (pushed).
+- Gate condition 2 (7.C coverage contract): **MET**.
