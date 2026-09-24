@@ -33,7 +33,7 @@ The orchestrator (`phase-orchestrator`) is the keeper of phase state and updates
 | P4 Rate-Limit Broker & Cost Governor | closed | `scripts/verify_phase_04.sh` | reviewer-agent |
 | P5 Execution Engine Daemon | closed | `scripts/verify_phase_05.sh` | human signed 2026-09-22 |
 | P6 Critic Gatekeeper & Interrupt Engine | closed | `scripts/verify_phase_06.sh` | reviewer-agent |
-| P7 Hermes TUI Core Subsystem | in progress | `scripts/verify_phase_07.sh` | — |
+| P7 Hermes TUI Core Subsystem | closed | `scripts/verify_phase_07.sh` | reviewer-agent |
 | P8 SDLC Pipeline & Worker Pool | not started | `scripts/verify_phase_08.sh` | human required |
 | P9 Error Handling & Recovery | not started | `scripts/verify_phase_09.sh` | — |
 | P10 Verification & Release | not started | `scripts/verify_phase_10.sh` | human required |
@@ -60,11 +60,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P7 — Hermes TUI Core Subsystem (in progress; all 13 tasks done except 7.12)
-- **Lane**: C
-- **Current task**: P7 D13 - 7.12 verify_phase_07 script
-- **Last completed task**: P7 7.11 root CLI (`c3f0c09`, 6 passed)
-- **Next task**: dispatch 7.12 (single-task brief); then 7.D reviewer sign-off
+- **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
+- **Lane**: D (P8)
+- **Current task**: P8 planning — read §8.A-§8.D, then dispatch 8.1.
+- **Last completed task**: P7 7.D reviewer sign-off ACCEPTED (`24d1396`); 7.12b `scripts/verify_phase_07.sh` (`30a349f`).
+- **Next task**: plan P8 (19 tasks, 8.1-8.19), then dispatch 8.1 (persona templates).
 
 ## Closed-Phase Detail
 
