@@ -985,3 +985,10 @@ No rejection criterion is *failed*; three are *unverifiable on this host* and ar
 - Decisions: added NotAGitRepository(VcsError) to contracts/errors.py (did not exist); added GitAdapter.is_repository() (git rev-parse --is-inside-work-tree); console script dev-harness = dev_harness.cli:main.
 - No state string literals (uses ExecutionState.READY.value); no unbounded loops; no time.sleep; no new deps.
 - Unverified: real daemon/socket self-check (AF_UNIX unavailable on Windows) — broker/engine monkeypatched.
+
+### 7.12a DONE — scripts/verify_phase_07.ps1
+- Commit: c71fc64 (pushed to origin/main). Task-Id: 7.12a.
+- Deliverable: `scripts/verify_phase_07.ps1` — PowerShell twin of the 7.D acceptance protocol. Mirrors `verify_phase_06.ps1` (header comment block, `$ErrorActionPreference = "Stop"`, `Set-Location (Join-Path $PSScriptRoot "..")`, 3 Yellow `Write-Host` lines, `exit 1`).
+- Rationale: 7.D attaches a live TUI to a live engine daemon over AF_UNIX IPC; native Windows Python (<=3.12) has no AF_UNIX, so the daemon cannot bind its socket and the protocol cannot run here (plan R2). Directs the operator to `bash scripts/verify_phase_07.sh` on WSL2/POSIX.
+- Validation: `powershell -ExecutionPolicy Bypass -File scripts/verify_phase_07.ps1; "exit=$LASTEXITCODE"` -> 3 Yellow lines then `exit=1` (expected).
+- Unverified: the real 7.D protocol (7.12b `verify_phase_07.sh`) not run — requires WSL2/POSIX. No test suite run (stub script, no code under test).
