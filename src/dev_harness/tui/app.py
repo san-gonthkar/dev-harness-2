@@ -14,6 +14,7 @@ from textual.widgets import Static
 
 from dev_harness.contracts.enums import PanelId
 from dev_harness.tui.panels.execution_canvas import ExecutionCanvas
+from dev_harness.tui.panels.model_registry import ModelRegistry
 from dev_harness.tui.panels.repo_manager import RepoManager
 
 #: CSS grid region IDs — the four panels mount here (7.2/7.3/7.5/7.6).
@@ -48,7 +49,7 @@ class HermesApp(App[None]):
         """Yield the four region placeholders as direct grid children."""
         yield RepoManager(path=self.workspace, id="repo-manager")
         yield ExecutionCanvas(id="execution-canvas")
-        yield Static("model-registry", id="model-registry")
+        yield ModelRegistry(id="model-registry")
         yield Static("critic-bar", id="critic-bar")
 
 
