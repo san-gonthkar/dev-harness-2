@@ -921,3 +921,12 @@ No rejection criterion is *failed*; three are *unverifiable on this host* and ar
 - Tests: 9 passed (tests/tui/test_execution_canvas.py + test_layout.py); ruff clean; mypy strict clean (87 files).
 - Decisions: ExecutionCanvas(Vertical) with RichLog #canvas-log + Sparkline #canvas-sparkline; tokens stored in dict[seq,str] so rendered_text reassembles in seq order (duplicate seq = last-write-wins); sparkline sample = passed/total, total==0 -> 0.0 (no division); bind(bridge) registers AGENT_TOKEN_STREAM + TEST_PROGRESS handlers (UI-thread callbacks write directly). app.py compose() now yields ExecutionCanvas(id='execution-canvas'). No engine import; no sleeps (pilot.pause + bounded deadline).
 - Unverified: full-suite/coverage/mutation gates not run (smoke lane only per policy).
+
+### 7.10 DONE — tui/render.py + test_render.py
+- Commit: f0950f7 (pushed to origin/main).
+- Deliverable: `safe_text(text)->Text` (escaping primitive: `Text.from_markup(escape(text))`), `render_markdown(text)->RenderableType` (rich `Markdown(escape(text))` — structure preserved, markup literal), `render_diff(diff_text)->Text` (per-line `+` green / `-` red / `@@` cyan / headers+context dim, each line escaped so markup stays literal; `.plain` == input). Helpers `_line_style` covered. No `engine/` import; `rich` + stdlib only.
+- Tests: 101 passed (unit 9, negative 4×parametrized NASTY table = 92) in 0.66s; zero `time.sleep`.
+- Coverage: render.py **100% line / 100% branch** (33 stmts, 12 branches) — exceeds 95/90. Four `# pragma: no cover` guards on the untriggered `except MarkupError: pytest.fail(...)` defect path (each same-line justified).
+- Validation: pytest 101 passed; `--cov-branch` 100/100; ruff clean; mypy --strict clean (88 files).
+- Decisions: (1) Chose `Markdown(escape(text))` over a literal `Text` because Rich's Markdown parser interprets *Markdown*, not Rich markup — raw `[bold red]` already renders literally, while escaping additionally guarantees no `MarkupError` and neutralises backslash-escape tricks. (2) `safe_text` is the single primitive; both renderers route through it (7.C no duplication). (3) Negative table includes `[/]` (the only tag `from_markup` rejects unescaped) plus unclosed/nested/`[[`/non-ASCII; fuzz confirmed `escape` is total and the escaped `\\[` never survives into Markdown output.
+- Unverified: full-suite/coverage/mutation gates not run (smoke lane only); no mutmut investigation (per brief).
