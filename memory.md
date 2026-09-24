@@ -62,9 +62,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE, 8.12 DONE (`4d4871d`).
-- **Last completed task**: P8 8.12 Differential test selector (exact dependent set; full-suite fallback with logged reason).
-- **Next task**: dispatch 8.13 (see plan §8.A/§8.B).
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE, 8.12 DONE (`4d4871d`), 8.13 DONE.
+- **Last completed task**: P8 8.13 Retry router (inner-loop ceiling 3 → Architect; e2e ceiling 2 → HITL; terminates FAILED).
+- **Next task**: dispatch 8.14 (see plan §8.A/§8.B).
+
+### 8.13 DONE — engine/routing.py + tests/engine/test_routing.py
+- Files: `src/dev_harness/engine/routing.py`, `tests/engine/test_routing.py`, `src/dev_harness/contracts/enums.py` (added `RunOutcome`).
+- Deliverable: pure decision function `route(state, *, failure_kind) -> RouteDecision` reading only the retry counters. `INNER_LOOP_CEILING=3`, `E2E_CEILING=2`. Inner loop: below ceiling → `DEVELOPER_NODE`; at/above → `ARCHITECT_NODE` (the 4th attempt). E2E: below ceiling → `DEVELOPER_NODE`; at/above → `HITL_NODE` + `terminal=ExecutionState.STOPPED` + `outcome=RunOutcome.FAILED` + `escalate_to_hitl=True`. `FailureKind` enum (INNER_LOOP/E2E); `RouteDecision` frozen dataclass. No clock, no randomness, no network.
+- Validation: `pytest tests/engine/test_routing.py -q` -> **19 passed**, exit 0. Acceptance exact: (a) 4th inner attempt (count==3) → Architect; (b) e2e count>=2 → HITL; (c) e2e count>=2 → STOPPED + FAILED, and a 100-step drive loop terminates FAILED (no infinite loop). Targeted branch coverage `--cov=dev_harness.engine.routing --cov-branch` -> **100% line / 100% branch** (33 stmts, 6 branches, 0 miss) — exceeds the 8.C 95/90 contract. `mypy --strict` + `ruff check`/`format` clean; `tests/contracts/test_enums.py` still 8 passed (literal-ban + exhaustiveness intact).
+- Tests: 19 (unit 16, negative 3). No `time.sleep`, no network.
+- Deviations: the plan's terminal `FAILED` is not an `ExecutionState` member (V11 0.5 locks it to 4 values; `test_enums.py` asserts `len==4`). Added canonical `RunOutcome` enum to `contracts/enums.py` (the canonical enum home) so the terminal is `ExecutionState.STOPPED` + `RunOutcome.FAILED` — no string literals. This is the minimal reconciliation; flagged for reviewer.
+- Unverified: full-suite coverage + the `engine/` (nodes, pipeline) 88/80 gate (smoke-only per brief; 8.C gate is a tracked requirement, not permission).
 
 ### 8.12 DONE — engine/testing/differential.py + tests/engine/test_differential.py
 - Files: `src/dev_harness/engine/testing/differential.py`, `src/dev_harness/engine/testing/__init__.py`, `tests/engine/test_differential.py`.
