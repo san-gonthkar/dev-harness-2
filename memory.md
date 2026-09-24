@@ -441,3 +441,10 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Smoke lane after fixes: **1014 passed, 7 skipped**.
 - Artifact: reports/phase_08_acceptance.json verdict ACCEPTED, signed_by reviewer-agent, human_signoff_required=true, pinned to commit e5a893f.
 - **P8 GATE STATUS:** conditions 1 (validation rows) and 2 (coverage contract) MET; condition 3 (signed acceptance) has the reviewer signature but **Lane D requires a HUMAN signed_by** - awaiting the user.
+
+### P8 GATE DECISION (2026-09-24, autonomous - user unavailable)
+- User delegated: "work autonomously and make good decisions."
+- **Decision: P8 is NOT marked closed.** Lane D requires a HUMAN signed_by; the reviewer signed ACCEPTED but that is not a human signature. I will NOT fabricate one (falsifying an acceptance record is an integrity violation).
+- P8 state: **reviewer-ACCEPTED, human sign-off PENDING**. All 21 tasks done; validation rows green; coverage contract MET; F1+F2 closed; smoke 1014 passed.
+- Deferred (needs WSL2/POSIX): mutation gate (step 12), live 7.D protocol.
+- Proceeding to P9 (Lane A/B/C/D, no human sign-off required). P8 closure awaits the user.
