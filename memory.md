@@ -356,3 +356,10 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Plan 8.B/8.D say "500-line trace -> 50 lines"; the implementation yields **51 lines** (head 30 + 1 elision marker + tail 20).
 - Rationale: the plan's "50-line cap (head 30 / tail 20)" and "first and last frames present" are mutually inconsistent if the elision marker is a standalone line. The implementation preserves the exact head-30/tail-20 frame counts and both endpoints, sacrificing only the literal total of 50.
 - Reviewer must adjudicate: accept 51 (30+marker+20) or require exactly 50 (which forces head 29 or tail 19, breaking the stated 30/20 split).
+
+### 8.17 DONE (2026-09-24, python-developer)
+- Deliverable: `src/dev_harness/engine/classifier.py` + `tests/engine/test_classifier.py`.
+- `classify_report(report_text, *, state) -> ClassificationResult`: parses line-oriented report (`chunk: <id> status: PASS|FAIL`, `e2e: PASS|FAIL`); maps to `E2EReport.classification` (CHUNK_IMPLEMENTATION_BUG w/ first failing chunk id; INTEGRATION_SPEC_MISMATCH when all chunks pass but e2e fails; None on e2e PASS). Unparseable (malformed line / missing e2e verdict / e2e FAIL with no chunk results) -> HITL route (`HITL_NODE`, escalate_to_hitl=True), never a guess.
+- Canonical constants `CHUNK_IMPLEMENTATION_BUG` / `INTEGRATION_SPEC_MISMATCH` added to `contracts/state.py` (single source; classifier imports them - no state literals outside contracts). Drift-guard test ties them to the `E2EReport` Literal.
+- Validation: `pytest tests/engine/test_classifier.py -q` -> **20 passed** (10 labelled fixtures 100% correct; 7 unparseable -> HITL). ruff + mypy --strict clean.
+- Deviation: none. Note: `Literal[...]` cannot reference module constants (mypy valid-type), so the `E2EReport` field keeps its inline Literal strings (in contracts, permitted) and the constants mirror them, guarded by a test.

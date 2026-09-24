@@ -12,6 +12,16 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from dev_harness.contracts.enums import ChunkStatus, ExecutionState, PanelId
 
+#: Canonical E2E failure classifications (V11 8.17). These are the single source
+#: of the two ``E2EReport.classification`` values; the classifier imports them
+#: rather than repeating the strings (no state literals outside ``contracts``).
+CHUNK_IMPLEMENTATION_BUG: Literal["CHUNK_IMPLEMENTATION_BUG"] = (
+    "CHUNK_IMPLEMENTATION_BUG"
+)
+INTEGRATION_SPEC_MISMATCH: Literal["INTEGRATION_SPEC_MISMATCH"] = (
+    "INTEGRATION_SPEC_MISMATCH"
+)
+
 
 class GroomedRequirements(BaseModel):
     """Locked groomed requirements (V7 schema)."""
