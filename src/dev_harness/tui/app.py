@@ -14,6 +14,7 @@ from textual.widgets import Static
 
 from dev_harness.contracts.enums import PanelId
 from dev_harness.tui.panels.execution_canvas import ExecutionCanvas
+from dev_harness.tui.panels.repo_manager import RepoManager
 
 #: CSS grid region IDs — the four panels mount here (7.2/7.3/7.5/7.6).
 REPO_MANAGER_ID = "#repo-manager"
@@ -38,9 +39,14 @@ class HermesApp(App[None]):
     #: Keybindings arrive in 7.9; the shell deliberately binds nothing yet.
     BINDINGS: ClassVar[list] = []  # type: ignore[type-arg]  # textual's BindingType is unexported
 
+    def __init__(self, *, workspace: str | None = None) -> None:
+        super().__init__()
+        #: Workspace root for the repo-manager tree; ``"."`` until 7.11 wires --workspace.
+        self.workspace = workspace or "."
+
     def compose(self) -> ComposeResult:
         """Yield the four region placeholders as direct grid children."""
-        yield Static("repo-manager", id="repo-manager")
+        yield RepoManager(path=self.workspace, id="repo-manager")
         yield ExecutionCanvas(id="execution-canvas")
         yield Static("model-registry", id="model-registry")
         yield Static("critic-bar", id="critic-bar")
