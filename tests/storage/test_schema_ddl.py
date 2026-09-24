@@ -20,10 +20,16 @@ def _setup(tmp_path: Path) -> sqlite3.Connection:
 
 def test_duplicate_composite_pk_rejected(tmp_path: Path) -> None:
     conn = _setup(tmp_path)
-    conn.execute("INSERT INTO checkpoints VALUES ('p','t','c1','{}','sha','hash',0,1)")
+    conn.execute(
+        "INSERT INTO checkpoints (project_id, thread_id, checkpoint_id, state_json, "
+        "state_sha256, git_commit_hash, is_paused, created_at) "
+        "VALUES ('p','t','c1','{}','sha','hash',0,1)"
+    )
     with pytest.raises(sqlite3.IntegrityError):
         conn.execute(
-            "INSERT INTO checkpoints VALUES ('p','t','c1','{}','sha2','hash2',0,2)"
+            "INSERT INTO checkpoints (project_id, thread_id, checkpoint_id, state_json, "
+            "state_sha256, git_commit_hash, is_paused, created_at) "
+            "VALUES ('p','t','c1','{}','sha2','hash2',0,2)"
         )
     conn.close()
 

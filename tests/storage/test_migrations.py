@@ -19,13 +19,13 @@ def _sqlite_master_count(conn: sqlite3.Connection) -> int:
     ).fetchone()[0]
 
 
-def test_migrate_up_applies_0001(tmp_path: Path) -> None:
+def test_migrate_up_applies_all(tmp_path: Path) -> None:
     db = tmp_path / "state.db"
     versions = migrate_up(db)
-    assert versions == ["0001"]
+    assert versions == ["0001", "0002"]
     conn = connect(db)
     row = conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()
-    assert row[0] == 1
+    assert row[0] == 2
     assert _sqlite_master_count(conn) == 2  # schema_migrations + checkpoints
     conn.close()
 
@@ -36,7 +36,7 @@ def test_reapply_is_noop(tmp_path: Path) -> None:
     second = migrate_up(db)
     assert second == []  # no-op on re-apply
     conn = connect(db)
-    assert conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0] == 1
+    assert conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0] == 2
     conn.close()
 
 
@@ -46,7 +46,7 @@ def test_rollback_returns_to_baseline(tmp_path: Path) -> None:
     conn_before = connect(db)
     conn_before.close()
     rolled = migrate_down(db)
-    assert rolled == ["0001"]
+    assert rolled == ["0002", "0001"]
     conn = connect(db)
     assert _sqlite_master_count(conn) == 1  # only schema_migrations remains
     conn.close()

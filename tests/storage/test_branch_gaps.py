@@ -55,7 +55,7 @@ class TestMigrateBranches:
         db = tmp_path / "state.db"
         migrate.migrate_up(db)
         rolled = migrate.migrate_down(db, target="0000")
-        assert rolled == ["0001"]
+        assert rolled == ["0002", "0001"]
 
     def test_module_entry_returns_2(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(sys, "argv", ["migrate"])

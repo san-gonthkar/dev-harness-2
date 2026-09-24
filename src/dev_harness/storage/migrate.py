@@ -7,9 +7,22 @@ import sys
 import time
 from pathlib import Path
 
+from dev_harness.contracts.errors import StorageError
 from dev_harness.storage.connection import connect
 
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
+
+# Per-version reverse SQL. Each entry must exactly undo the forward migration of
+# the same version so that rolling back N migrations restores the schema to the
+# state after N-1. SQLite >= 3.35 supports ALTER TABLE ... DROP COLUMN, which is
+# the reverse of the ADD COLUMN forward path used by 0002.
+_DOWN_SQL: dict[str, str] = {
+    "0001": "DROP TABLE IF EXISTS checkpoints;",
+    "0002": (
+        "ALTER TABLE checkpoints DROP COLUMN worktree_head;"
+        "ALTER TABLE checkpoints DROP COLUMN worktree_diff;"
+    ),
+}
 
 
 def _ledger(conn: sqlite3.Connection) -> None:
@@ -54,15 +67,25 @@ def migrate_down(db_path: str | Path, target: str | None = None) -> list[str]:
     applied = [
         r["version"]
         for r in conn.execute(
-            "SELECT version FROM schema_migrations ORDER BY applied_at DESC"
+            "SELECT version FROM schema_migrations ORDER BY applied_at DESC, version DESC"
         )
     ]
     if target is not None:
         applied = [v for v in applied if v > target]
+    # Validate every version has a reverse before mutating anything, so a
+    # missing entry cannot leave the schema half-rolled-back.
+    for version in applied:
+        if version not in _DOWN_SQL:
+            raise StorageError(
+                f"no reverse SQL registered for migration {version}",
+                remediation=(
+                    "Add a _DOWN_SQL entry for this version in storage/migrate.py "
+                    "so the migration can be rolled back."
+                ),
+            )
     rolled_back: list[str] = []
     for version in applied:
-        # Best-effort: drop the checkpoints table created by 0001.
-        conn.executescript("DROP TABLE IF EXISTS checkpoints;")
+        conn.executescript(_DOWN_SQL[version])
         conn.execute("DELETE FROM schema_migrations WHERE version = ?", (version,))
         rolled_back.append(version)
     conn.commit()
