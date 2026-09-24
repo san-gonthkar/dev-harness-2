@@ -949,3 +949,10 @@ No rejection criterion is *failed*; three are *unverifiable on this host* and ar
 - Decisions: table columns created lazily on mount (DataTable.add_columns needs an active app); value column key captured as ColumnKey; fixed row set (branch/dirty) + one row per distinct changed path -> idempotent update_cell, no duplicate rows. No git dependency at render time (values from events only).
 - Validation: pytest tests/tui/test_repo_manager.py tests/tui/test_layout.py -q --timeout=120 -> 10 passed; ruff clean; mypy strict clean (90 files).
 - Unverified: 100ms latency criterion asserted via single pilot.pause (no wall-clock sleep); nightly/slow lanes not run.
+
+### 7.5 DONE — tui/panels/model_registry.py + test_model_registry.py
+- Commit: df2a905 (pushed to origin/main).
+- Deliverables: ModelRegistry(Vertical) with #registry-table DataTable (provider/model/p50/p95/tpm/usd rows); pure helpers format_latency (1 dp, em dash when None) + format_usd (4 dp, em dash when None); on_metrics/on_model_config; bind() subscribes METRICS_UPDATE + MODEL_CONFIG_CHANGE; accessors provider/active_model/latency_text/p95_text/usd_text/tpm_text. app.py compose() now yields ModelRegistry(id='model-registry').
+- Tests: 19 passed (tests/tui/test_model_registry.py + test_layout.py), 1.14s. ruff clean; mypy strict clean (91 files).
+- Decisions: mirrored repo_manager panel pattern (DataTable fixed rows, update_cell in place, is_mounted guard). No engine import; contracts+textual only. No new deps.
+- Unverified: full suite / coverage / mutation gates not run (smoke lane only per policy).
