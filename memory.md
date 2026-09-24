@@ -62,9 +62,9 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`, pushed).
-- **Last completed task**: P7 7.D reviewer sign-off ACCEPTED (`24d1396`); P8 8.1 persona templates (`dfb95b3`).
-- **Next task**: dispatch 8.2 (next P8 task per §8.B).
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`).
+- **Last completed task**: P8 8.2 persona output validators (`ca7556a`).
+- **Next task**: dispatch 8.3 (LangGraph channels and reducers, `engine/state.py`).
 
 ### 8.1 DONE — five persona templates + tests/engine/test_personas.py
 - Commit `dfb95b3` (pushed origin/main). Files: `src/dev_harness/engine/personas/{groomer,architect,developer,tester,critic}.md`, `tests/engine/test_personas.py`.
@@ -73,6 +73,16 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 - Architect defaults to hosted model (decision 2026-09-20; spike skipped `no_local_ollama`), recorded in `architect.md`.
 - Deviations: none. `# pragma: no cover`: none.
 - Unverified: full-suite lane / coverage (smoke-only per brief).
+
+### 8.2 DONE — engine/personas/validators.py + tests/engine/test_persona_validators.py
+- Commit `ca7556a` (pushed origin/main). Files: `src/dev_harness/engine/personas/__init__.py` (new package), `src/dev_harness/engine/personas/validators.py`, `tests/engine/test_persona_validators.py`.
+- Deliverable: `PersonaOutputValidator[ModelT]` — parses persona text as JSON, validates against the role's target Pydantic model; on parse/validation failure performs EXACTLY ONE repair retry (re-invokes the client with a repair prompt carrying raw text + error), then raises `PersonaOutputError`. Valid output -> 0 retries. `ValidationOutcome(value, retries)` return + observable `validator.retries` counter. `CompletionClient` Protocol (structural match to `providers.base.LLMClient`) injected; `PERSONA_MODELS`/`validator_for` map groomer->`GroomedRequirements`, architect->`TechnicalDesign`.
+- Validation: `pytest tests/engine/test_persona_validators.py -q` -> 10 passed, exit 0. Guards: `tests/contracts/test_enums.py` + `tests/engine/test_provider_gateway.py` + `tests/engine/test_personas.py` -> 46 passed (literal-ban + AST adapter guard clean).
+- Tests: 10 (unit 7, negative 3). No `time.sleep`; scripted fake client, no network.
+- Lints: ruff check + format clean; `mypy --strict` clean on validators.py.
+- Decisions: (1) `PersonaOutputError` reused (no new error class). (2) `CompletionClient` Protocol declared locally rather than importing `providers.base` — the AST guard forbids engine code importing `providers.base`; structural typing keeps the real `LLMClient` compatible. (3) `personas/` promoted to a package with `__init__.py` (setuptools `find` requires it; 8.4+ nodes import from it). (4) Developer/critic roles have non-JSON contracts (diff/verdict) so they are not in `PERSONA_MODELS`; `validator_for` raises `PersonaOutputError` for them.
+- Deviations: none. `# pragma: no cover`: none.
+- Unverified: full-suite lane / coverage / mutation (smoke-only per brief).
 
 ## Closed-Phase Detail
 
