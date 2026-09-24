@@ -62,9 +62,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE.
-- **Last completed task**: P8 8.11 Tester node (invocation, structured counts, timeout → TIMEOUT).
-- **Next task**: dispatch 8.12 (differential test selector) — see plan §8.A/§8.B.
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE, 8.12 DONE (`4d4871d`).
+- **Last completed task**: P8 8.12 Differential test selector (exact dependent set; full-suite fallback with logged reason).
+- **Next task**: dispatch 8.13 (see plan §8.A/§8.B).
+
+### 8.12 DONE — engine/testing/differential.py + tests/engine/test_differential.py
+- Files: `src/dev_harness/engine/testing/differential.py`, `src/dev_harness/engine/testing/__init__.py`, `tests/engine/test_differential.py`.
+- Deliverable: `select_tests(changed, *, loader, all_tests, logger=None) -> SelectionResult` — returns the EXACT dependent test set (set equality) from an injected dependency graph (test node id -> transitively imported modules); when the graph is unavailable (`loader()` returns `None` or raises) it returns the FULL suite with `full_suite=True` and a logged+recorded `reason`. `build_dependency_graph(tests_root, src_root)` builds the graph via stdlib `ast` static analysis of `import`/`from ... import` (transitive closure over the src module graph); `make_loader` returns `None` when a root is missing; `path_to_module` normalizes `src/...` paths. Pure stdlib (`ast`, `pathlib`, `logging`); no new deps.
+- Validation: `pytest tests/engine/test_differential.py -q` -> **8 passed**, exit 0. Acceptance exact: (a) changed `engine/dag.py` -> exactly `{tests/engine/test_dag.py}` (set equality, not superset); multi-module union exact; no-dependents -> empty set (not full suite); (b) unavailable graph (`None` loader) -> full suite + `reason` contains "unavailable" + a WARNING log record; raising loader -> full suite + reason names the exception. Real on-disk graph test follows transitive imports (`pkg.mid` -> `pkg.leaf`). `mypy --strict` + `ruff check`/`format` clean.
+- Tests: 8 (unit 6, negative 2). No `time.sleep`, no network.
+- Deviations: none from brief. Decision: a loader that raises is treated as "unavailable" (full-suite fallback) rather than propagating — a broken graph build must not silently skip tests.
+- Unverified: full-suite coverage + the `engine/` (nodes, pipeline) 88/80 gate (smoke-only per brief; 8.C gate is a tracked requirement, not permission).
 
 ### 8.11 DONE — engine/nodes/tester.py + tests/engine/test_tester.py
 - Files: `src/dev_harness/engine/nodes/tester.py`, `tests/engine/test_tester.py`.
