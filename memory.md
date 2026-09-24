@@ -62,9 +62,18 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`).
-- **Last completed task**: P8 8.6 Chunk DAG builder + topological validator.
-- **Next task**: dispatch 8.7 (`engine/worker_pool.py`, consumes `ChunkDAG.ready_chunks`).
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`).
+- **Last completed task**: P8 8.7 Worker pool honoring DAG readiness and `max_parallel_workers`.
+- **Next task**: dispatch 8.8 (`engine/worker_workspace.py`, per-worker worktree binding on `chunk/{chunk_id}`, prereq 8.7 + 1.10).
+
+### 8.7 DONE — engine/worker_pool.py + tests/engine/test_worker_pool.py
+- Files: `src/dev_harness/engine/worker_pool.py`, `tests/engine/test_worker_pool.py`. Commit `4b34183` (pushed origin/main).
+- Deliverable: `WorkerPool(dag, max_parallel_workers, execute)` + module-level `dependencies_completed(chunk, by_id)` / `ready_chunks(order, by_id)`. `run() -> list[Chunk]` schedules in `ChunkDAG.topological_order()` order via a bounded `ThreadPoolExecutor`; a chunk is claimed only when every dependency is `COMPLETED`, stamps `assigned_worker_id` (lowest free `worker-N` slot, reused across chunks), sets `IN_PROGRESS`, then on settle `COMPLETED` (releasing the slot) or `FAILED` + `EngineError`. Injected `ChunkExecutor` keeps the pool free of worktree work (8.8 binds those). Non-positive bound -> `EngineError`; stalled graph -> `EngineError`.
+- Validation: `pytest tests/engine/test_worker_pool.py -q` -> **11 passed**, exit 0. Acceptance asserted exactly: 7-chunk diamond (a→{b,c,d}→e→{f,g}), `max_parallel=3`, peak concurrency asserted == 3 (barrier rendezvous b/c/d), no chunk starts before deps (per-chunk `deps_completed_at_start`), all 7 `COMPLETED`. Regression: `tests/engine` smoke lane -> 214 passed. `mypy --strict` + `ruff` clean.
+- Tests: 11 (unit 5, integration 3, negative 3). No `time.sleep` (barrier + event-driven waits, timeout=10 safety). No network. Deterministic.
+- Lints: ruff check + format clean; `mypy --strict` clean on worker_pool.py.
+- Deviations: none from brief. Decision: exposed the readiness rule as module-level `dependencies_completed`/`ready_chunks` so the 8.C mutation focus set (0 survivors in the readiness check) has exact unit targets. `# pragma: no cover`: 1 — the `_acquire_worker_id` exhausted-slots raise (unreachable by the loop's bound, justified inline).
+- Unverified: full-suite coverage + the `engine.worker_pool` mutation gate run (smoke-only per brief; 8.C gate is a tracked requirement, not permission).
 
 ### 8.6 DONE — engine/dag.py + tests/engine/test_dag.py
 - Files: `src/dev_harness/engine/dag.py`, `tests/engine/test_dag.py`. Commit `6229911` (pushed to origin/main).
