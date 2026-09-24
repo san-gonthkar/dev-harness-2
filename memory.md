@@ -386,3 +386,14 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Regression fixes (schema change ripples): `tests/storage/test_migrations.py` (now expects ["0001","0002"]), `tests/storage/test_branch_gaps.py` (target="0000" -> ["0002","0001"]), `tests/storage/test_schema_ddl.py` (positional INSERT -> named columns; 10 cols now).
 - Smoke lane: 1000 passed, 7 skipped (importlib mode; default mode hits a PRE-EXISTING basename collision tests/engine/test_cli.py vs tests/storage/test_cli.py, unrelated to this task). ruff + mypy --strict clean.
 - Deviation: none. Unverified: full-suite coverage + storage/ 95/90 gate (smoke-only).
+
+### 8.20 DONE — engine/cli.py + tests/engine/test_cli.py
+- Commit 0526e25 (pushed). CLI `run`/`plan`/`critic-drill` against `--mock`; exit 0; `--print-dag` topologically valid; cycle fixture -> exit 2 naming both ids; `critic-drill` surfaces CriticScopeViolation; `--trace` writes reports/parallel_trace.json. 11 tests. Engine smoke lane 339 passed.
+
+### 8.21a DONE — storage/migrations/0002_worktree_state.sql + per-version rollback
+- Commit c21a670 (pushed). Adds `worktree_head` + `worktree_diff` columns; migrate_down made per-version (`_DOWN_SQL`) instead of the hardcoded `DROP TABLE checkpoints` placeholder. 0002 reverses via `ALTER TABLE ... DROP COLUMN` (SQLite 3.49.1 >= 3.35). Rollback restores the sqlite_master object count to the 0001 baseline and preserves 0001's table. Updated 3 existing migration tests for the schema ripple. `pytest tests/storage -q` 71 passed.
+
+### CROSS-CUTTING FIX — test_cli basename collision (commit 18e6a3a)
+- 8.20 introduced tests/engine/test_cli.py, colliding with the existing tests/storage/test_cli.py under the default pytest import mode (the 6.9a lesson). Added `tests/engine/__init__.py` + `tests/storage/__init__.py` package markers. Verified: `pytest tests/engine/test_cli.py tests/storage/test_cli.py -q` 14 passed.
+- **FULL SMOKE LANE GREEN: 1000 passed, 7 skipped, 16 deselected in 70.49s.**
+- **PROCESS LESSON:** my per-task smoke checks (`pytest tests/engine/<file>.py`) did NOT exercise the default-import-mode collection of colliding basenames. The end-of-phase `scripts/test_lane.ps1 smoke` caught it. Run the smoke lane more often, not only at phase close.
