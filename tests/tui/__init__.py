@@ -1,0 +1,1 @@
+"""Tests for the Hermes TUI core subsystem (V11 phase 7)."""

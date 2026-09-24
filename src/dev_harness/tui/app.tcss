@@ -1,0 +1,36 @@
+/* HermesApp four-region grid (V11 task 7.1). */
+
+Screen {
+    layout: grid;
+    grid-size: 3 2;
+    grid-columns: 1fr 3fr 1fr;
+    grid-rows: 1fr 3;
+}
+
+#repo-manager {
+    column-span: 1;
+    row-span: 1;
+    border: round $accent;
+    background: $surface;
+}
+
+#execution-canvas {
+    column-span: 1;
+    row-span: 1;
+    border: round $primary;
+    background: $surface;
+}
+
+#model-registry {
+    column-span: 1;
+    row-span: 1;
+    border: round $accent;
+    background: $surface;
+}
+
+#critic-bar {
+    column-span: 3;
+    row-span: 1;
+    border: round $secondary;
+    background: $surface;
+}
