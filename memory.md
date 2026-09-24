@@ -62,9 +62,15 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE.
-- **Last completed task**: P8 8.5 Architect persona graph node.
-- **Next task**: dispatch 8.6 (`engine/dag.py`).
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`).
+- **Last completed task**: P8 8.6 Chunk DAG builder + topological validator.
+- **Next task**: dispatch 8.7 (`engine/worker_pool.py`, consumes `ChunkDAG.ready_chunks`).
+
+### 8.6 DONE — engine/dag.py + tests/engine/test_dag.py
+- Files: `src/dev_harness/engine/dag.py`, `tests/engine/test_dag.py`. Commit `6229911` (pushed to origin/main).
+- Deliverable: `ChunkDAG(chunks)` — builds a dependency graph from `list[Chunk]`. Validates referential integrity (`OrphanDependencyError` naming the dependent + unknown id, checked BEFORE cycles) then acyclicity (`CyclicDependencyError` naming two ids in the cycle + the full path e.g. `a -> c -> b -> a`; self-dep `a -> a`). `topological_order() -> list[Chunk]` (Kahn, ready nodes tie-broken by `chunk_id` → stable across 10 runs). `ready_chunks() -> list[Chunk]` (PENDING only, all deps COMPLETED, chunk_id order) — consumed by 8.7.
+- Validation: `pytest tests/engine/test_dag.py -q` -> 20 passed, exit 0. Coverage of the module: **100% line / 100% branch** (contract 95/90). `mypy --strict` + `ruff` clean.
+- Deviations: none from brief. Unverified: full-suite coverage run + mutation gate (smoke-only per brief; 8.C gate is a tracked requirement, not permission). `# pragma: no cover`: none.
 
 ### 8.5 DONE — engine/nodes/architect.py + tests/engine/test_architect.py
 - Files: `src/dev_harness/engine/nodes/architect.py`, `tests/engine/test_architect.py`.
