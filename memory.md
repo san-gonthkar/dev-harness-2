@@ -206,3 +206,13 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - `python scripts/coverage_gate.py` -> exit 0 (gate OK). `python scripts/coverage_weights.py` -> exit 0 (overall 89/83).
 - Fixed one stale tooling test: `tests/tooling/test_check_traceability.py::test_unbuilt_task_reports_gap` asserted 7.12 was unbuilt; repointed to 8.19 (`scripts/verify_phase_08.sh`). Commit f7f2f26 (pushed).
 - Gate condition 2 (7.C coverage contract): **MET**.
+
+### P7 7.D REVIEW — ACCEPTED (2026-09-24, reviewer-agent, independent)
+- Reviewed: P7 Hermes TUI Core Subsystem (tasks 7.1-7.13). Reviewer did not implement any P7 task.
+- Validation matrix (7.B): all 13 rows green in the smoke lane. `pytest tests/tui tests/support/test_metrics_replay.py -q` -> **203 passed** (19.66s). NIGHTLY rows 7.4 (`-m slow`) and 7.8 (`-m timing`) deferred to a user-authorized nightly run (tracked, not failed).
+- Coverage (7.C): confirmed against `coverage.json` + `.coveragerc [coverage:report:tui]`. `tui/` overall **98.1 line / 88.5 branch** (need 75/65); `bridge.py` 100.0/95.5, `throttle.py` 100/100, `render.py` 100/100 (need 95/90). All MET.
+- Rejection criteria (7.D): Ctrl+C-quits -> PASS (test_ctrl_c_pauses_and_keeps_running); unreviewed snapshot baseline -> PASS (no TUI render baseline committed); max-iter>=50ms (step 2) and RSS>bound (step 8) -> NOT_TRIGGERED (live/nightly deferred). No rejections.
+- Invariants: `tui/` has zero `dev_harness.engine` imports (AST scan); one marker per test; no `time.sleep()` in tests; no unreviewed baselines.
+- Platform limit: live 7.D protocol (`scripts/verify_phase_07.sh`) needs AF_UNIX -> deferred to WSL2/POSIX (plan R2, same as P1-P6). `bash -n` (Git Bash) exit 0; embedded driver AST parse OK; imports resolve. `.ps1` twin is the platform-limit stub.
+- Artifact: `reports/phase_07_acceptance.json` verdict **ACCEPTED**, signed_by reviewer-agent, commit-pinned.
+- Verdict: **ACCEPTED**. P7 gate conditions 1-3 all satisfied (1 smoke-green, 2 coverage MET, 3 signed).
