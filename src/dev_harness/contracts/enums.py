@@ -76,3 +76,17 @@ class FailureClass(str, Enum):
     COMPILE_ERROR = "COMPILE_ERROR"
     RUNTIME_ERROR = "RUNTIME_ERROR"
     UNKNOWN = "UNKNOWN"
+
+
+class RunOutcome(str, Enum):
+    """Terminal outcome of a pipeline run (V11 8.13 retry router).
+
+    ``ExecutionState`` is the 4-value lifecycle vocabulary and has no ``FAILED``
+    member (V11 0.5 reconciles it to ``READY``/``RUNNING``/``PAUSED``/``STOPPED``),
+    so the run's *outcome* is a separate canonical vocabulary: a run that exhausts
+    its retry ceilings terminates in ``ExecutionState.STOPPED`` with outcome
+    ``FAILED`` (V11 8.D step 7: "terminal state ``FAILED``, never a loop").
+    """
+
+    SUCCESS = "SUCCESS"
+    FAILED = "FAILED"
