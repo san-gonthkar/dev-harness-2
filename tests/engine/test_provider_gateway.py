@@ -106,8 +106,13 @@ def gateway(fake_broker: _FakeBroker) -> ProviderGateway:
 
 @pytest.mark.unit
 def test_engine_never_imports_provider_adapters() -> None:
-    """AST: no engine module imports or references a provider adapter."""
-    for py in ENGINE_DIR.glob("*.py"):
+    """AST: no engine module imports or references a provider adapter.
+
+    Scans every engine subpackage (``engine/``, ``engine/nodes/``,
+    ``engine/personas/``, ``engine/testing/``), not just the top level, so a
+    node cannot smuggle in an adapter import.
+    """
+    for py in sorted(ENGINE_DIR.rglob("*.py")):
         tree = ast.parse(py.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):

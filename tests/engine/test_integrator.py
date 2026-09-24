@@ -176,3 +176,71 @@ def test_other_chunk_finds_touching_chunk(tmp_workspace: Path) -> None:
 @pytest.mark.unit
 def test_integrate_empty_returns_empty(tmp_workspace: Path) -> None:
     assert Integrator(tmp_workspace).integrate([]) == []
+
+
+# --- defensive git-failure paths (8.C 95/90) --------------------------------
+#
+# These branches only fire when git itself fails mid-operation. A real repo
+# cannot be made to fail on demand, so ``_run`` is stubbed to return a
+# non-zero CompletedProcess and the error mapping is asserted directly.
+
+
+def _failed(stderr: str = "boom") -> subprocess.CompletedProcess[str]:
+    return subprocess.CompletedProcess(args=["git"], returncode=1, stdout="", stderr=stderr)
+
+
+@pytest.mark.negative
+def test_conflicting_files_returns_empty_when_git_fails(tmp_workspace: Path) -> None:
+    """A failing ``diff --diff-filter=U`` yields no conflicts (not an error)."""
+    integrator = Integrator(tmp_workspace)
+    integrator._run = lambda *a: _failed()  # type: ignore[method-assign]
+    assert integrator._conflicting_files() == set()
+
+
+@pytest.mark.negative
+def test_abort_merge_raises_when_merge_abort_fails(tmp_workspace: Path) -> None:
+    """A failing ``git merge --abort`` surfaces as VcsError."""
+    integrator = Integrator(tmp_workspace)
+    integrator._run = lambda *a: _failed("abort failed")  # type: ignore[method-assign]
+    with pytest.raises(VcsError, match="merge --abort failed"):
+        integrator._abort_merge("deadbeef")
+
+
+@pytest.mark.negative
+def test_abort_merge_raises_when_reset_fails(tmp_workspace: Path) -> None:
+    """A failing ``git reset --hard`` surfaces as VcsError."""
+    integrator = Integrator(tmp_workspace)
+    calls: list[tuple[str, ...]] = []
+
+    def fake_run(*args: str) -> subprocess.CompletedProcess[str]:
+        calls.append(args)
+        # merge --abort succeeds; reset --hard fails.
+        return _failed("reset failed") if args[0] == "reset" else subprocess.CompletedProcess(
+            args=["git"], returncode=0, stdout="", stderr=""
+        )
+
+    integrator._run = fake_run  # type: ignore[method-assign]
+    with pytest.raises(VcsError, match="reset --hard"):
+        integrator._abort_merge("deadbeef")
+    assert calls[0][0] == "merge"
+
+
+@pytest.mark.negative
+def test_integrate_raises_when_merge_fails_without_conflicts(tmp_workspace: Path) -> None:
+    """A non-conflict merge failure (e.g. a missing branch) raises VcsError."""
+    integrator = Integrator(tmp_workspace)
+
+    def fake_run(*args: str) -> subprocess.CompletedProcess[str]:
+        if args[0] == "merge":
+            return _failed("merge failed")
+        if args[0] == "diff":
+            return subprocess.CompletedProcess(
+                args=["git"], returncode=0, stdout="", stderr=""
+            )
+        return subprocess.CompletedProcess(
+            args=["git"], returncode=0, stdout="main\n", stderr=""
+        )
+
+    integrator._run = fake_run  # type: ignore[method-assign]
+    with pytest.raises(VcsError, match="merge"):
+        integrator.integrate([_chunk("c1")])
