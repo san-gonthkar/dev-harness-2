@@ -38,9 +38,10 @@ def test_completed_task_has_no_missing_files() -> None:
 
 
 def test_unbuilt_task_reports_gap() -> None:
-    traces = {t.task_id: t for t in check_traceability.parse_phase("7")}
-    assert not traces["7.12"].ok
-    assert "scripts/verify_phase_07.sh" in traces["7.12"].missing
+    # 8.19 is the next unbuilt verify script (7.12 was built in P7).
+    traces = {t.task_id: t for t in check_traceability.parse_phase("8")}
+    assert not traces["8.19"].ok
+    assert "scripts/verify_phase_08.sh" in traces["8.19"].missing
 
 
 def test_cli_invocation_is_not_treated_as_a_path() -> None:
