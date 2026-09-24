@@ -62,9 +62,15 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`).
-- **Last completed task**: P8 8.3 LangGraph channels and reducers (`65dca4f`).
-- **Next task**: dispatch 8.4 (first persona node, `engine/`).
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE.
+- **Last completed task**: P8 8.4 Groomer persona graph node.
+- **Next task**: dispatch 8.5 (`engine/nodes/architect.py`).
+
+### 8.4 DONE — engine/nodes/groomer.py + tests/engine/test_groomer.py
+- Files: `src/dev_harness/engine/nodes/__init__.py` (new package), `src/dev_harness/engine/nodes/groomer.py`, `tests/engine/test_groomer.py`.
+- Deliverable: `GroomerNode(client, *, model=None)` — async LangGraph node over `HarnessStateChannels` returning a partial update. Loads `engine/personas/groomer.md` from disk, calls the injected `CompletionClient`, validates via `validator_for("groomer")` -> `GroomedRequirements{LOCKED}`, returns `{"groomed_requirements": <value>}`. Re-invocation with a set channel returns `{}` and never calls the client.
+- Validation: `pytest tests/engine/test_groomer.py -q` -> 4 passed, exit 0. Guards: `tests/contracts/test_enums.py` + `tests/engine/test_provider_gateway.py` + `tests/engine/test_state_reducers.py` -> 46 passed. `mypy` strict + `ruff` clean.
+- Deviations: none. `# pragma: no cover`: none. Unverified: coverage/full suite (smoke-only per brief).
 
 ### 8.1 DONE — five persona templates + tests/engine/test_personas.py
 - Commit `dfb95b3` (pushed origin/main). Files: `src/dev_harness/engine/personas/{groomer,architect,developer,tester,critic}.md`, `tests/engine/test_personas.py`.
