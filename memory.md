@@ -59,11 +59,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P7 — Hermes TUI Core Subsystem (planned; plan doc committed 2026-09-23)
+- **Phase**: P7 — Hermes TUI Core Subsystem (in progress; 7.1 + 7.7 done)
 - **Lane**: C
-- **Current task**: P7 D1 - 7.1 HermesApp shell
-- **Last completed task**: P6 closed (reviewer-agent signed)
-- **Next task**: dispatch 7.1 (single-task brief); order in docs/phase_07_implementation_plan.md
+- **Current task**: P7 D3 - 7.8 20 Hz throttling
+- **Last completed task**: P7 7.7 IPC->UI bridge (`0ea63d2`, 12 passed, bridge 99/95)
+- **Next task**: dispatch 7.8 (single-task brief); order in docs/phase_07_implementation_plan.md
 
 ## Phase 0 — Scaffolding, Shared Contracts & Test Infrastructure
 
@@ -143,6 +143,12 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 ## Phase 7 — Hermes TUI Core Subsystem
 
 **Status**: in progress (prereq: P5 green; plan doc committed 2026-09-23)
+
+#### S26b (orchestrator, 2026-09-23) — D2 re-dispatch after empty return
+
+- D1 (7.1) NOT dispatched again — verified done at `1cdd700` before D2.
+- D2 (7.7) first invocation returned empty (no commit/files); verified state once, re-dispatched fresh single-task brief -> `0ea63d2` (12 passed, bridge 99/95).
+- Smoke lane after D2: 590 passed, 7 skipped, 14 deselected.
 
 ### 7.1 DONE — tui/app.py + app.tcss + test_layout.py
 
