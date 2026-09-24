@@ -24,6 +24,14 @@ Plan: `requirements/Dev_Harness_Implementation_Plan_V11_Final.md` — the author
 
 - Install `pip install -e .` · Lint `make lint` · Typecheck `make typecheck`.
 
+### Context Economy (MANDATORY)
+
+- **Read `memory.md`'s `## Current Status` + `## Phase Tracking` only** (~60 lines). Closed-phase history is in `memory_archive.md`; read it only when a closed phase's detail is needed.
+- **Read at most 3 files before writing your first line.** A read sweep with no artifact is the observed failure mode — it burns the whole budget.
+- **Never read the whole V11 plan** (961 lines). Read only the phase's `X.A`/`X.B`/`X.C`/`X.D` rows.
+- **Briefs carry inline context**: paste the plan row and the exact API signatures the task needs. Never write "read these files" as a substitute for context.
+- **Commit code per task; batch state-file commits once per phase.** A commit whose only content is `memory.md`/`progress.md` is churn and is forbidden.
+
 ### Test Lane Policy (MANDATORY)
 
 - **Always run the smoke lane. Never run the full suite unless the user explicitly asks in their current message.** Full suite = `make test-full`, `make coverage`, `make ci`, `make test-nightly`, or any `pytest tests ...` without the smoke exclusions.

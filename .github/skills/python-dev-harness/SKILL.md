@@ -42,6 +42,8 @@ Mutation-scoped packages (`storage/`, `vcs/`, `broker/`, `core/`, `engine/{dag,w
 ### 5. Hand off
 Branch `task/{id}-{slug}`; commit trailer `Task-Id: {id}`; PR body pastes the validation output.
 
+**Commit discipline (anti-churn):** commit **code** per task. Append to `memory.md` freely, but do **not** create a standalone `memory`/`progress`-only commit per task — the orchestrator batches state-file commits once per phase close. A commit whose only content is `memory.md` or `progress.md` is churn and is forbidden.
+
 ## References
 
 Plan `requirements/Dev_Harness_Implementation_Plan_V11_Final.md` · test rig `tests/support/` · gates `Makefile`, `mypy.ini`, `.coveragerc`.

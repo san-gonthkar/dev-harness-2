@@ -17,8 +17,19 @@ user-invocable: true
 
 | File | Role | Rule |
 | :--- | :--- | :--- |
-| `memory.md` | Authoritative shared memory: phase table, task log, `Current Status`, session registry | Read first; append-only; never delete history; **commit once per phase close**, not per task |
+| `memory.md` | Authoritative shared memory: phase table, task log, `Current Status`, session registry | Read **only `## Current Status` + `## Phase Tracking`** (~60 lines) — never the whole file; append-only; **commit once per phase close**, not per task |
+| `memory_archive.md` | Closed-phase history (P0–P6 session records) | Read only when a closed phase's detail is needed; never edit |
 | `progress.md` | Human monitoring dashboard; the `AUTO:DASHBOARD` region is **machine-owned** | **Never hand-edit** — run `python scripts/gen_dashboard.py` (reads `memory.md` + git). `--check` fails on a stale dashboard. Commit with the phase close |
+
+## Context Economy (the #1 speed lever)
+
+Every subagent is a fresh session with zero shared memory. If the brief does not carry the context, the subagent spends its whole budget re-reading the codebase — this is the observed "reading files over and over" failure. Rules:
+
+1. **Paste exact API signatures into the brief.** For every module the task touches, include the class/function signatures, field names, and enum values the subagent needs. Target: the subagent reads **0–2 files**, not 15.
+2. **Quote the plan row, do not cite it.** Paste the task's `X.A` deliverable, `X.B` validation command + success criteria, and `X.C` coverage numbers into the brief. Never write "read the plan" — it is 961 lines.
+3. **Name the pattern file, do not list a reading list.** One "mirror `scripts/verify_phase_05.sh`" beats a 15-file list.
+4. **Cap the read sweep.** A brief must state: *"read at most 3 files before writing your first line."*
+5. **Orchestrator reads only `## Current Status`** on resume — not all of `memory.md`.
 
 ## Commit & Push Protocol
 
@@ -41,7 +52,7 @@ user-invocable: true
 
 On every invocation: **locate -> verify -> record -> continue.** Never restart.
 
-1. **Locate** — `memory.md` (phase table, task log, `Current Status`, session registry), `progress.md` (Resume Point), `git log --oneline -5`, `git status --short`.
+1. **Locate** — read **only `## Current Status` + `## Phase Tracking`** in `memory.md` (~60 lines), then `git log --oneline -5` and `git status --short`. Do NOT read the whole `memory.md` or `progress.md`.
 2. **Cross-check** — if sources disagree, trust `memory.md` and reconcile the others.
 3. **Verify** — touched package's tests pass (smoke lane), `git status` clean, prereqs green.
 4. **Record** — append a session entry to `memory.md`; update `progress.md`'s Resume Point.
@@ -153,6 +164,7 @@ Gates 1-3 need the full suite — gate them `pending - requires user-authorized 
 2. **Per task** — update the task log (`pending` -> `done`/`failed`) and `Current Status`; mirror test counts. Regenerate `progress.md` with `scripts/gen_dashboard.py`; do **not** commit it per task (batch at phase close).
 3. **Blocked** — only after 3 failed attempts; record history + decision needed.
 4. **Close** — only when all three gates hold; record the acceptance report path + `signed_by` + commit, set `closed`, advance `Current Status`, mirror, commit + push.
+5. **Archive on close** — move the closed phase's session records from `memory.md` to `memory_archive.md` so the live file stays under ~250 lines. Keep in `memory.md`: the phase table row, `Current Status`, and a one-line close summary. Never archive an open phase.
 
 ## Dispatch Procedure
 
@@ -169,9 +181,28 @@ Read the resume point first. Then the phase's `X.A` (tasks), `X.B` (validation),
 | Any phase gate | - | `reviewer-agent` (independent) |
 
 ### 3. Write the brief
-**Batch 3-5 tasks per dispatch** — subagents run serially (no parallelism), so each dispatch pays a fixed startup + context-reload cost. One task per dispatch multiplies that cost by the task count. Only split when tasks have no shared context or a dependency boundary (different package, or a task that must be reviewed before the next is designed).
 
-Task IDs + deliverables (`X.A`); exact validation command + criteria (`X.B`); coverage contract + mutation focus set (`X.C`); skills to load; current `memory.md` context; session budget; heartbeat contract; stop-and-report rule; **smoke-lane-only rule**; **"cover branches in the task's own test file — never a trailing `*gaps*` file"**.
+**Batch size is set by context, not by count.** A batch of 3–5 tasks is fine **only if the brief carries the inline context** (see Context Economy). A batch whose brief says "read these 15 files" fails — observed 3× in P6 (empty returns). When in doubt, dispatch **one task** with a fully self-contained brief; a single task with inline signatures beats a batch with a reading list.
+
+**Mandatory brief template** (every dispatch):
+
+```
+TASK: <one task ID + deliverable>            # or a small batch, each with its own row
+PLAN ROW (pasted, not cited):
+  X.A: <deliverable + targeted files>
+  X.B: <exact command> -> <success criteria>
+  X.C: <line/branch/mutation numbers>
+API SURFACE (pasted signatures the task needs):
+  <class/function signatures, field names, enum values>
+PATTERN FILE: <one file to mirror, e.g. scripts/verify_phase_05.sh>
+HARD RULES: bounded waits only; no time.sleep() in tests; smoke lane only;
+  do not investigate mutmut; read at most 3 files before writing your first line.
+BUDGET: <= 25 tool calls, <= 25 minutes.
+OUTPUT CONTRACT: write -> validate -> commit (Task-Id trailer) -> push -> append memory.md.
+STOP-AND-REPORT: on a loop or budget exhaustion, commit what you have and report.
+```
+
+Also include: skills to load; current `memory.md` context (paste `## Current Status`); heartbeat contract; **smoke-lane-only rule**; **"cover branches in the task's own test file — never a trailing `*gaps*` file"**.
 
 ### 4. Invoke
 Dispatch with the `agent` tool (`runSubagent`) — blocking; verify output (commit/file change) after it returns, not just the report. Pass the brief and `memory.md`. If unavailable, follow the no-dispatch-tool rule.
