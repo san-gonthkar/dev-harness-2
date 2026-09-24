@@ -272,3 +272,10 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Platform limit: live 7.D protocol (`scripts/verify_phase_07.sh`) needs AF_UNIX -> deferred to WSL2/POSIX (plan R2, same as P1-P6). `bash -n` (Git Bash) exit 0; embedded driver AST parse OK; imports resolve. `.ps1` twin is the platform-limit stub.
 - Artifact: `reports/phase_07_acceptance.json` verdict **ACCEPTED**, signed_by reviewer-agent, commit-pinned.
 - Verdict: **ACCEPTED**. P7 gate conditions 1-3 all satisfied (1 smoke-green, 2 coverage MET, 3 signed).
+
+### ORCHESTRATOR CHECKPOINT (2026-09-24, session rotation)
+- P7 CLOSED. P8 in progress: 8.1-8.7 DONE (commits dfb95b3, ca7556a, 65dca4f, 5aac0f6, 88b731c, 6229911, 4b34183). HEAD 1a0ef40, pushed.
+- Next: 8.8 engine/worker_workspace.py (RISK: 95/90 + mutation >=80%; per-worker worktree binding on chunk/{chunk_id}; prereq 8.7, 1.10).
+- Remaining P8: 8.8, 8.9, 8.10, 8.11, 8.12, 8.13, 8.14, 8.15, 8.16, 8.17, 8.18, 8.20, 8.21a, 8.21b, 8.19, 8.D (human sign-off required).
+- Briefs live in briefs/<task>.json (validated via scripts/check_brief.py). One task per dispatch.
+- Test lane: smoke only (user authorized ONE full-suite coverage run this session for 7.C; permission is per-run, NOT carried forward).
