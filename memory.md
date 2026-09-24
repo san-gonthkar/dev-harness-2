@@ -62,9 +62,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE, 8.12 DONE (`4d4871d`), 8.13 DONE, 8.14 DONE, 8.15 DONE, 8.16 DONE (`3e1e915`), 8.17 DONE (`93e6544`).
-- **Last completed task**: P8 8.17 E2E failure classifier (`classify_report` maps a structured report to CHUNK_IMPLEMENTATION_BUG / INTEGRATION_SPEC_MISMATCH; unparseable -> HITL, never a guess; 10 labelled fixtures 100% correct).
-- **Next task**: dispatch 8.18 (graph assembly `build_graph(config)` compiled with `SqliteSaver`; see plan §8.A/§8.B).
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE, 8.12 DONE (`4d4871d`), 8.13 DONE, 8.14 DONE, 8.15 DONE, 8.16 DONE (`3e1e915`), 8.17 DONE (`93e6544`), 8.18 DONE, 8.20 DONE (engine CLI run/plan/critic-drill).
+- **Last completed task**: P8 8.20 engine CLI (`run`/`plan`/`critic-drill` complete against `--mock`; `--print-dag` topologically valid; `critic-drill` surfaces `CriticScopeViolation`).
+- **Next task**: 8.19 (`scripts/verify_phase_08.sh`); then 8.21a/8.21b (worktree checkpoint schema + capture/restore).
+
+### 8.20 DONE — engine/cli.py + tests/engine/test_cli.py
+- Files: `src/dev_harness/engine/cli.py`, `tests/engine/test_cli.py`.
+- Deliverable: engine CLI (`python -m dev_harness.engine.cli`) with `run`, `plan`, `critic-drill`. `--mock` builds a deterministic `_MockPersonaClient` over `tests.support.mock_llm.MockLLM` (no network); a persona call is answered from a scripted role map so the graph completes, other calls delegate to the mock. `plan --print-dag` prints the topological order and rejects a cycle via `ChunkDAG`/`CyclicDependencyError` (exit 2, both ids named). `critic-drill` runs the Critic node, shows `guard_scope({"tui_state", "groomed_requirements"})` raises `CriticScopeViolation`, and reports the PAUSE/RESUME `state_diff == {"tui_state"}`. `main(argv) -> int` + `__main__` block. Unknown flags (`--print-dag` elsewhere) are rejected.
+- Validation: `pytest tests/engine/test_cli.py -q` -> **11 passed**, exit 0 (`tests/engine` 339 passed, no regressions). Acceptance exact: (a) `run`/`plan`/`critic-drill` all exit 0 against `--mock`; (b) `--print-dag` order asserted topological (every dep precedes its chunk). `mypy --strict` + `ruff check`/`format` clean.
+- Tests: 11 (unit 5, integration 5, negative 2 — one negative subprocess-free). No `time.sleep`, no network, no `tui/` import, no new deps.
+- Deviations: requirement grammar is a documented line format (`<id>: <title> ... deps: a, b`; auto-numbered `cN` for plain lines) since no planner task exists — deterministic, no LLM needed to plan. `--workspace` is a per-subcommand flag (8.D commands place it there). `--resume` reuses the thread id (node idempotency makes the replay safe).
+- Unverified: the full 8.D protocol execution and the `engine/` (nodes, pipeline) 88/80 coverage gate (smoke-only per brief).
 
 ### 8.16 DONE — engine/context.py + tests/engine/test_context.py
 - Files: `src/dev_harness/engine/context.py`, `tests/engine/test_context.py`.
