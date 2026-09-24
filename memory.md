@@ -32,7 +32,7 @@ The orchestrator (`phase-orchestrator`) is the keeper of phase state and updates
 | P4 Rate-Limit Broker & Cost Governor | closed | `scripts/verify_phase_04.sh` | reviewer-agent |
 | P5 Execution Engine Daemon | closed | `scripts/verify_phase_05.sh` | human signed 2026-09-22 |
 | P6 Critic Gatekeeper & Interrupt Engine | closed | `scripts/verify_phase_06.sh` | reviewer-agent |
-| P7 Hermes TUI Core Subsystem | not started | `scripts/verify_phase_07.sh` | — |
+| P7 Hermes TUI Core Subsystem | in progress | `scripts/verify_phase_07.sh` | — |
 | P8 SDLC Pipeline & Worker Pool | not started | `scripts/verify_phase_08.sh` | human required |
 | P9 Error Handling & Recovery | not started | `scripts/verify_phase_09.sh` | — |
 | P10 Verification & Release | not started | `scripts/verify_phase_10.sh` | human required |
@@ -59,11 +59,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P6 — Critic Gatekeeper & Interrupt Engine (closed; reviewer-agent signed 2026-09-23)
+- **Phase**: P7 — Hermes TUI Core Subsystem (planned; plan doc committed 2026-09-23)
 - **Lane**: C
-- **Current task**: P6 closed; next: P7 7.1 HermesApp shell
-- **Last completed task**: P6 6.8d verify_phase_06.sh steps 7-10
-- **Next task**: dispatch P7 (Hermes TUI Core Subsystem)
+- **Current task**: P7 D1 - 7.1 HermesApp shell
+- **Last completed task**: P6 closed (reviewer-agent signed)
+- **Next task**: dispatch 7.1 (single-task brief); order in docs/phase_07_implementation_plan.md
 
 ## Phase 0 — Scaffolding, Shared Contracts & Test Infrastructure
 
@@ -864,3 +864,16 @@ No rejection criterion is *failed*; three are *unverifiable on this host* and ar
 
 - **Unverified (pending WSL2)**: the live `bash scripts/verify_phase_06.sh` run (steps 3 and 7 kill/reap paths), the NIGHTLY SLO row, and the mutation gate. Same platform limit (plan R2) P1-P5 closed under.
 - **Report**: `reports/phase_06_acceptance.json` (verdict ACCEPTED, signed_by reviewer-agent).
+
+## P7 PLANNED - HERMES TUI CORE SUBSYSTEM (2026-09-23)
+
+- **Plan doc**: `docs/phase_07_implementation_plan.md` (commit `28f38c2`, pushed). Reviewed requirements first, then documented the chunked plan.
+- **Prereqs**: 5.4 (fanout), 5.8 (state broadcast), 2.6 (IPC), 0.3 (enums) - all green (P6 closed).
+- **Est**: 35.0h, 13 tasks (7.1-7.13). Lane C. Gate `scripts/verify_phase_07.sh` -> `reports/phase_07_acceptance.json` ACCEPTED.
+- **Chunking decision**: ONE task per dispatch (evidence: multi-task batches failed 3x in P6, single tasks succeeded 7x). Each brief = 1 task, <=25 tool calls, bounded waits, commit+push+memory per task.
+- **Dispatch order (risk-first, topological)**: 7.1 shell -> 7.7 bridge -> 7.8 throttle -> 7.3 canvas -> 7.10 render -> 7.4 scrollback -> 7.2 repo-manager -> 7.5 model-registry -> 7.13 metrics_replay -> 7.6 critic-bar -> 7.9 bindings -> 7.11 CLI -> 7.12 verify script -> 7.D reviewer sign-off.
+- **Coverage contract (7.C)**: `tui/` 75/65 (in .coveragerc + coverage_gate); `tui/bridge.py`, `tui/throttle.py`, `tui/render.py` 95/90 (verified per-module like P6 signals.py, NOT in gate table).
+- **Invariants**: tui/ never imports engine/ (IPC only); one marker per test; no time.sleep() in tests (frozen clock); tests/tui/ needs __init__.py (6.9a collision lesson); no new deps without ponytail justification.
+- **Test lane**: smoke only. NIGHTLY rows 7.4 (-m slow) and 7.8 (-m timing) are tracked requirements, deferred to a user-authorized nightly run.
+- **Platform**: TUI is pure Python - pilot tests run on native Windows. The 7.D live protocol steps need a real daemon+IPC; 7.12 decides live-on-Windows vs WSL2 twin.
+- **Next**: dispatch D1 (7.1 HermesApp shell) as a single-task brief.
