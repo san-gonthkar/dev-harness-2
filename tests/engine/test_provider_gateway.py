@@ -22,12 +22,15 @@ pytestmark = pytest.mark.unit
 ENGINE_DIR = Path(__file__).resolve().parents[2] / "src" / "dev_harness" / "engine"
 
 # Provider adapter modules that engine code must never import or call.
+# NOTE: ``providers.registry`` (a pure model-metadata table) and
+# ``providers.tokenizer`` are NOT adapters - ``engine/context.py`` (8.16) and
+# ``engine/pipeline.py`` (8.18) import the registry for model entries/budgets.
+# The ban below covers only the network adapters and their base client.
 _ADAPTER_MODULES = (
     "dev_harness.providers.anthropic",
     "dev_harness.providers.openrouter",
     "dev_harness.providers.ollama",
     "dev_harness.providers.base",
-    "dev_harness.providers.registry",
 )
 
 
