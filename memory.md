@@ -62,9 +62,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`).
-- **Last completed task**: P8 8.9 Sequential chunk-branch integration merge.
-- **Next task**: dispatch 8.10 (developer node) — see plan §8.A/§8.B.
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE.
+- **Last completed task**: P8 8.10 Developer node with worktree-root write guard.
+- **Next task**: dispatch 8.11 (tester node) — see plan §8.A/§8.B.
+
+### 8.10 DONE — engine/nodes/developer.py + tests/engine/test_developer.py
+- Files: `src/dev_harness/engine/nodes/developer.py`, `tests/engine/test_developer.py`.
+- Deliverable: `DeveloperNode(client, workspace, chunk, *, model=None)` — LangGraph node; idempotent on a `COMPLETED` chunk (empty update, no client call). Non-JSON persona contract: `parse_file_writes(text)` parses the reply as a JSON `relative_path -> content` map (tolerates one markdown fence; `PersonaOutputError` otherwise). Every write goes through `WorkerWorkspace.write_path` (8.8), so absolute/`../` escapes AND symlink escapes raise `WorkspaceEscapeError` before any write. Sets chunk `IN_PROGRESS` -> `COMPLETED`; returns `{"chunk_dag": [chunk]}`. `make_developer_node` factory.
+- Validation: `pytest tests/engine/test_developer.py -q` -> **7 passed**, exit 0. Acceptance exact: (a) `../../etc/passwd` -> `WorkspaceEscapeError`; (b) symlink inside worktree pointing outside blocked (junction fallback on Windows); (c) valid relative writes land inside the worker's worktree root and not in the primary tree. Real temp git repo (`tmp_workspace`). `mypy --strict` + `ruff` check/format clean.
+- Tests: 7 (unit 4, negative 3). No `time.sleep`, no network.
+- Deviations: none from brief. Decision: `_make_dir_link` falls back to a Windows junction (`mklink /J`) because `os.symlink` needs a privilege here (WinError 1314); `Path.resolve` follows both, so the guard is exercised identically. `# pragma: no cover`: none.
+- Unverified: full-suite coverage + the `engine/` (nodes, pipeline) 88/80 gate (smoke-only per brief; 8.C gate is a tracked requirement, not permission).
 
 ### 8.9 DONE — engine/integrator.py + tests/engine/test_integrator.py
 - Files: `src/dev_harness/engine/integrator.py`, `tests/engine/test_integrator.py`. Commit `724eab4` (pushed origin/main).
