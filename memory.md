@@ -191,3 +191,10 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Validation: `bash -n` (Git Bash) exit 0; embedded driver AST parse OK (603 lines); all driver imports resolve (exec'd import block, 0 failures); no tui->engine import. Live run DEFERRED to WSL2/POSIX (AF_UNIX unavailable on native Windows).
 - Note: subagent returned a mid-task fragment without committing; orchestrator verified the artifact, validated it, cleaned stray temp files, and committed. No re-dispatch needed.
 - Unverified: the live 10-step run (requires WSL2/POSIX). reports/phase_07_acceptance.json not created (7.D reviewer artifact).
+
+### P7 GATE STATUS (2026-09-24) — awaiting 7.D
+- Tasks: 7.1-7.13 all done (7.12b committed 30a349f). Tasks-done is NOT phase-done.
+- Gate condition 1 (all validation rows green): MET for the smoke lane. NIGHTLY rows 7.4 (-m slow) and 7.8 (-m timing) are tracked requirements, deferred to a user-authorized nightly run.
+- Gate condition 2 (7.C coverage contract): **pending - requires user-authorized full-suite run**. `coverage.json` is stale (73 files, no tui/). Need `tui/` 75/65 + `tui/bridge.py`/`throttle.py`/`render.py` 95/90.
+- Gate condition 3 (signed acceptance protocol): **pending** - reviewer-agent must sign `reports/phase_07_acceptance.json`; the live 7.D protocol (verify_phase_07.sh) needs WSL2/POSIX (AF_UNIX).
+- Next: user authorization for the full-suite coverage run, then dispatch reviewer-agent for 7.D.
