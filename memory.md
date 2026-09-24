@@ -940,3 +940,12 @@ No rejection criterion is *failed*; three are *unverifiable on this host* and ar
 - Decision/deviation: RunArtifactStore.append is O(n) per call (reloads+rewrites whole file) — benchmarked 3000 appends = 27.5s. Per-line spill into it is O(n^2), infeasible for 200k. Smoke/integration use the real RunArtifactStore (small counts). The @pytest.mark.slow 200k soak uses an internal _FileSink (buffered append handle, structural twin of RunArtifactStore) injected via sink_factory, keeping the soak O(n) and time-bounded.
 - NIGHTLY slow test (200k lines, RSS<100MB, ordered retrieval) is WRITTEN but DEFERRED — not run in smoke lane per lane policy.
 - No tui/->engine/ import; no time.sleep; bounded spill loop (one popleft per iteration).
+
+### 7.2 DONE — tui/panels/repo_manager.py + test_repo_manager.py
+- Commit: 4f1b087 (pushed to origin/main).
+- Deliverable: RepoManager(Vertical) with DirectoryTree(#repo-tree) + DataTable(#git-status); on_file_change/on_git_status/bind(Bridge); accessors branch/dirty_count/changed_paths/displayed_branch/displayed_dirty_count/row_count.
+- app.py: HermesApp(workspace: str | None = None) -> self.workspace (default '.'); compose() yields RepoManager(path=self.workspace, id='repo-manager').
+- Tests: 10 passed (tests/tui/test_repo_manager.py 7 + test_layout.py 3). Markers: unit x3, negative x2, integration x2.
+- Decisions: table columns created lazily on mount (DataTable.add_columns needs an active app); value column key captured as ColumnKey; fixed row set (branch/dirty) + one row per distinct changed path -> idempotent update_cell, no duplicate rows. No git dependency at render time (values from events only).
+- Validation: pytest tests/tui/test_repo_manager.py tests/tui/test_layout.py -q --timeout=120 -> 10 passed; ruff clean; mypy strict clean (90 files).
+- Unverified: 100ms latency criterion asserted via single pilot.pause (no wall-clock sleep); nightly/slow lanes not run.
