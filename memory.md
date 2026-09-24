@@ -62,9 +62,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE.
-- **Last completed task**: P8 8.10 Developer node with worktree-root write guard.
-- **Next task**: dispatch 8.11 (tester node) — see plan §8.A/§8.B.
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE.
+- **Last completed task**: P8 8.11 Tester node (invocation, structured counts, timeout → TIMEOUT).
+- **Next task**: dispatch 8.12 (differential test selector) — see plan §8.A/§8.B.
+
+### 8.11 DONE — engine/nodes/tester.py + tests/engine/test_tester.py
+- Files: `src/dev_harness/engine/nodes/tester.py`, `tests/engine/test_tester.py`.
+- Deliverable: `TesterNode(workspace, chunk, *, command=None, timeout=300.0, emit=None)` — sync LangGraph node; runs the chunk's test command in `workspace.root_for(chunk)` as a subprocess in its own killable process group (POSIX `start_new_session`, Windows `CREATE_NEW_PROCESS_GROUP` + `taskkill /T`). `parse_pytest_counts` reads the terminal summary line; `classify_failure` maps raw result → `FailureClass` (`TIMEOUT` on kill; `RUNTIME_ERROR` on exit 127; `COMPILE_ERROR` on errors-only; `TEST_FAILURE` on assertions; else `UNKNOWN`). Emits one `TEST_PROGRESS` envelope with counts + class via the injected sink. Idempotent (second call no-op); chunk → `COMPLETED`/`FAILED`. `make_tester_node` factory.
+- Validation: `pytest tests/engine/test_tester.py -q` -> **8 passed**, exit 0. Acceptance exact: (a) passing suite → (1,0,1); (b) real hanging child (`time.sleep(30)` in child) killed at `timeout=2.0`, `timed_out=True`, `exit_code=None`, `failure_class=TIMEOUT` (asserted not `TEST_FAILURE`), node returns < 15s wall-clock; (c) failing suite emits a `TEST_PROGRESS` envelope carrying `FailureClass.TEST_FAILURE`. Real temp git repo (`tmp_workspace`); child pytest scoped to the one written file with `-o addopts= -p no:cacheprovider`. `mypy --strict` + `ruff` check/format clean; event-ownership guard 9/9.
+- Tests: 8 (unit 4, integration 3, negative 1). No `time.sleep` in the test body, no network.
+- Deviations: none from brief. Decision: `classify_failure` maps exit 127 to `RUNTIME_ERROR` (a missing command is a runtime failure, not `UNKNOWN`) — needed to satisfy the negative test's semantics. `# pragma: no cover`: the POSIX `killpg`/`start_new_session` branches (justified inline: exercised on POSIX CI only).
+- Unverified: full-suite coverage + the `engine/` (nodes, pipeline) 88/80 gate (smoke-only per brief; 8.C gate is a tracked requirement, not permission).
 
 ### 8.10 DONE — engine/nodes/developer.py + tests/engine/test_developer.py
 - Files: `src/dev_harness/engine/nodes/developer.py`, `tests/engine/test_developer.py`.
