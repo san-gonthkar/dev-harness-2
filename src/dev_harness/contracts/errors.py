@@ -329,3 +329,12 @@ class RecoveryError(HarnessError):
     """Base for recovery failures."""
 
     remediation = "Inspect the recovery log and resume manually if needed."
+
+
+# --- tui --------------------------------------------------------------------
+
+
+class ScrollbackError(HarnessError):
+    """Invalid scrollback configuration (e.g. a non-positive ``max_lines``)."""
+
+    remediation = "Configure the scrollback buffer with max_lines >= 1."
