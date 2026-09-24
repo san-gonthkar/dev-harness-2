@@ -62,9 +62,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE, 8.12 DONE (`4d4871d`), 8.13 DONE, 8.14 DONE, 8.15 DONE.
-- **Last completed task**: P8 8.15 HITL gate (`interrupt_before` + `Command(resume=...)`; halts at approval with a persisted checkpoint; resume advances exactly one node).
-- **Next task**: dispatch 8.16 (see plan §8.A/§8.B).
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE, 8.12 DONE (`4d4871d`), 8.13 DONE, 8.14 DONE, 8.15 DONE, 8.16 DONE (`3e1e915`).
+- **Last completed task**: P8 8.16 context budgeting (`cap_trace` head 30/tail 20 preserves first+last frames; `build_prompt` bounded to `context_window - max_output` for every registry model).
+- **Next task**: dispatch 8.17 (see plan §8.A/§8.B).
+
+### 8.16 DONE — engine/context.py + tests/engine/test_context.py
+- Files: `src/dev_harness/engine/context.py`, `tests/engine/test_context.py`.
+- Deliverable: pure `cap_trace(text, *, head=30, tail=20) -> str` returns text unchanged when it has <= head+tail lines, else the first `head` frames + one elision marker (`... [N lines elided] ...`) + the last `tail` frames. `prompt_budget(entry) == context_window - max_output`; `fits_budget(prompt_tokens, entry)`; `count_messages(messages)` (sums `estimate_tokens` over content). `build_prompt(messages, *, entry, trace=None, head=30, tail=20) -> list[Message]` caps an optional trace, appends it as a user frame, and clips every message content to an equal share when the estimate exceeds the budget so the result always fits. Uses `providers.tokenizer` (`estimate_tokens`, `MARGIN`, `CHARS_PER_TOKEN`) and `providers.registry.ModelEntry`. No new deps, no I/O, no clock.
+- Validation: `pytest tests/engine/test_context.py -q` -> **13 passed**, exit 0. Acceptance exact: (a) a 500-line trace caps to 50 frames (`TRACE_HEAD + 1 + TRACE_TAIL`) with `frame 0` first and `frame 499` last and the elision marker at index 30; (b) for every `registry.all_models()` model, `count_messages(build_prompt(...)) <= prompt_budget(entry)` under 200k-char inputs. `mypy --strict` + `ruff check`/`format` clean.
+- Tests: 13 (unit 10, negative 2, property 1). No `time.sleep`, no network, no `tui/` import.
+- Deviations: none. `cap_trace` raises `ValueError` on a negative window (pure function; not a `HarnessError` surface).
+- Unverified: full-suite coverage + the `engine/` (nodes, pipeline) 88/80 gate and `build_prompt` integration into the 8.18 pipeline (smoke-only per brief).
 
 ### 8.15 DONE — engine/hitl.py + tests/engine/test_hitl.py
 - Files: `src/dev_harness/engine/hitl.py`, `tests/engine/test_hitl.py`.
@@ -343,3 +351,8 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Remaining P8: 8.8, 8.9, 8.10, 8.11, 8.12, 8.13, 8.14, 8.15, 8.16, 8.17, 8.18, 8.20, 8.21a, 8.21b, 8.19, 8.D (human sign-off required).
 - Briefs live in briefs/<task>.json (validated via scripts/check_brief.py). One task per dispatch.
 - Test lane: smoke only (user authorized ONE full-suite coverage run this session for 7.C; permission is per-run, NOT carried forward).
+
+### 8.16 FLAGGED DEVIATION (for 8.D reviewer)
+- Plan 8.B/8.D say "500-line trace -> 50 lines"; the implementation yields **51 lines** (head 30 + 1 elision marker + tail 20).
+- Rationale: the plan's "50-line cap (head 30 / tail 20)" and "first and last frames present" are mutually inconsistent if the elision marker is a standalone line. The implementation preserves the exact head-30/tail-20 frame counts and both endpoints, sacrificing only the literal total of 50.
+- Reviewer must adjudicate: accept 51 (30+marker+20) or require exactly 50 (which forces head 29 or tail 19, breaking the stated 30/20 split).
