@@ -62,9 +62,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
 - **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`).
-- **Last completed task**: P8 8.8 Per-worker worktree binding on `chunk/{chunk_id}`.
-- **Next task**: dispatch 8.9 (integrator) — see plan §8.A/§8.B.
+- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`).
+- **Last completed task**: P8 8.9 Sequential chunk-branch integration merge.
+- **Next task**: dispatch 8.10 (developer node) — see plan §8.A/§8.B.
+
+### 8.9 DONE — engine/integrator.py + tests/engine/test_integrator.py
+- Files: `src/dev_harness/engine/integrator.py`, `tests/engine/test_integrator.py`. Commit `724eab4` (pushed origin/main).
+- Deliverable: `Integrator(repo)` — `integrate(chunks) -> list[str]` merges each `chunk/{chunk_id}` branch into the primary branch one at a time in the given (topological) order via `git merge --no-edit` (fast-forward when possible). On a conflict it collects unmerged paths (`git diff --name-only --diff-filter=U`), names the conflicting file + the already-merged chunk that touched it (fallback: primary branch) + the current chunk, aborts the merge, and **rolls the primary back to its pre-integration HEAD** (`git reset --hard start_head`) so integration is atomic. `primary_branch` property; `_changed_files`/`_conflicting_files`/`_abort_merge`/`_other_chunk` helpers.
+- Validation: `pytest tests/engine/test_integrator.py -q` -> **10 passed**, exit 0. Acceptance exact: (a) non-overlapping branches merge clean, all changes present; (b) overlapping edit -> `IntegrationConflict` message contains `shared.txt` + `c1` + `c2`; (c) primary HEAD + `git status --porcelain` unchanged and no `MERGE_HEAD` after conflict. Real temp git repo (`tmp_workspace`). `mypy --strict` + `ruff` check/format clean.
+- Tests: 10 (unit 5, integration 2, negative 3). No `time.sleep`, no network.
+- Deviations: none from brief. Decision: `_abort_merge` also `git reset --hard` to the start HEAD — a plain `git merge --abort` restores only to the last successful merge, so a conflict on chunk N would leave chunks 1..N-1 merged, violating acceptance (c) "primary unmodified". `# pragma: no cover`: none.
+- Unverified: full-suite coverage + the `engine.integrator` mutation gate run (smoke-only per brief; 8.C gate is a tracked requirement, not permission).
 
 ### 8.8 DONE — engine/worker_workspace.py + tests/engine/test_worker_workspace.py
 - Files: `src/dev_harness/engine/worker_workspace.py`, `tests/engine/test_worker_workspace.py`. Commit `14af5e1` (pushed origin/main).
