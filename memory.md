@@ -178,3 +178,16 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Rationale: 7.D attaches a live TUI to a live engine daemon over AF_UNIX IPC; native Windows Python (<=3.12) has no AF_UNIX, so the daemon cannot bind its socket and the protocol cannot run here (plan R2). Directs the operator to `bash scripts/verify_phase_07.sh` on WSL2/POSIX.
 - Validation: `powershell -ExecutionPolicy Bypass -File scripts/verify_phase_07.ps1; "exit=$LASTEXITCODE"` -> 3 Yellow lines then `exit=1` (expected).
 - Unverified: the real 7.D protocol (7.12b `verify_phase_07.sh`) not run — requires WSL2/POSIX. No test suite run (stub script, no code under test).
+
+### ORCHESTRATOR RESUME (2026-09-24)
+- Resume point verified: HEAD `2592cde` (clean tree, in sync with origin/main). P7 in progress; 7.1-7.11 + 7.12a done.
+- Remaining P7 work: **7.12b** `scripts/verify_phase_07.sh` (real POSIX 7.D protocol; missing) then **7.D** reviewer sign-off -> `reports/phase_07_acceptance.json`.
+- Next action: dispatch 7.12b (single-task brief `briefs/7.12b.json`, validated OK) to python-developer.
+
+### 7.12b DONE — scripts/verify_phase_07.sh (real POSIX 7.D protocol)
+- Commit: 30a349f (pushed to origin/main). Task-Id: 7.12b.
+- Deliverable: 10-step live acceptance protocol mirroring verify_phase_06.sh (embedded Python driver via heredoc, trap cleanup, bounded waits, numbered [P7] step lines, final ACCEPTED grep). Driver composes the real engine + TUI parts over AF_UNIX (Fanout, SessionManager, StateBroadcast, WorkspaceWatcher, SqliteSaver, CriticGatekeeper, HermesApp, Bridge, CoalescingThrottle, StubWorkload, MetricsReplay).
+- Steps: 1 cold launch + --self-check (broker ok / engine thread_id / state=RUNNING); 2 10k-token stream + reports/throttle_trace.json SLO (<=20 writes/s, max iter <50ms); 3 repo panel truth (touch -> dirty increment <=1s, branch match); 4 metrics replay (p95/USD match feed); 5 UI pause -> PAUSED + sealed checkpoint; 6 ctrl+c stays running + 1 PAUSE, ctrl+q modal; 7 reattach SNAPSHOT{PAUSED}; 8 200k-line soak (peak <100MB, spill retrievable); 9 60x20 degradation (no Traceback); 10 acceptance report ACCEPTED.
+- Validation: `bash -n` (Git Bash) exit 0; embedded driver AST parse OK (603 lines); all driver imports resolve (exec'd import block, 0 failures); no tui->engine import. Live run DEFERRED to WSL2/POSIX (AF_UNIX unavailable on native Windows).
+- Note: subagent returned a mid-task fragment without committing; orchestrator verified the artifact, validated it, cleaned stray temp files, and committed. No re-dispatch needed.
+- Unverified: the live 10-step run (requires WSL2/POSIX). reports/phase_07_acceptance.json not created (7.D reviewer artifact).
