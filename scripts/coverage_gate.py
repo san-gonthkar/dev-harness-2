@@ -46,20 +46,36 @@ def check_bare_pragmas() -> list[str]:
 
 
 def check_error_reachability() -> list[str]:
-    """Return HarnessError subclasses with no negative test referencing them."""
+    """Return HarnessError subclasses with no negative test referencing them.
+
+    Abstract bases (a class that has its own subclasses, e.g. ``IpcError`` or
+    ``BrokerError``) are exempt: they are never raised directly, and their
+    concrete subclasses carry the reachability requirement.
+    """
     from dev_harness.contracts import errors as errors_mod
 
-    subclasses = [
-        name
+    classes = [
+        (name, obj)
         for name, obj in vars(errors_mod).items()
         if isinstance(obj, type)
         and issubclass(obj, errors_mod.HarnessError)
         and obj is not errors_mod.HarnessError
     ]
+    abstract = {
+        name
+        for name, obj in classes
+        if any(
+            other is not obj and issubclass(other, obj) for _, other in classes
+        )
+    }
     test_text = ""
     for py in (REPO / "tests").rglob("*.py"):
         test_text += py.read_text(encoding="utf-8") + "\n"
-    return [name for name in subclasses if name not in test_text]
+    return [
+        name
+        for name, _ in classes
+        if name not in abstract and name not in test_text
+    ]
 
 
 def ratchet_failures(metrics: dict[str, dict[str, float]]) -> list[str]:

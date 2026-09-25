@@ -11,6 +11,7 @@ import pytest
 
 from dev_harness.ipc import server as server_mod
 from dev_harness.ipc import transport as transport_mod
+from dev_harness.contracts.errors import InsecureSocketError
 from dev_harness.ipc.server import IpcServer
 from dev_harness.ipc.transport import UnsupportedPlatformError, is_posix, require_posix
 
@@ -136,3 +137,16 @@ def test_server_requires_posix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(transport_mod.os, "name", "nt")
     with pytest.raises(UnsupportedPlatformError):
         IpcServer(tmp_path / "x.sock")
+
+
+def test_insecure_socket_permissions_raise(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A group/other-accessible socket raises InsecureSocketError (9.C reachability)."""
+    monkeypatch.setattr(server_mod, "require_posix", lambda: None)
+    monkeypatch.setattr(server_mod.os, "name", "posix")
+    monkeypatch.setattr(
+        server_mod.os, "stat", lambda _p, **_kw: type("S", (), {"st_mode": 0o666})()
+    )
+    server = IpcServer(Path("/tmp/does-not-matter.sock"))
+    with pytest.raises(InsecureSocketError) as exc:
+        server._verify_socket_permissions()
+    assert exc.value.remediation

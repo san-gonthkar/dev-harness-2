@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from dev_harness.contracts.errors import PathError
 from dev_harness.paths import derive_paths, socket_path_bytes_ok
 
 pytestmark = pytest.mark.unit
@@ -71,3 +72,10 @@ def test_derived_layout(tmp_path: Path) -> None:
     assert d.state_db.name == "state.db"
     assert d.lock_path.name == "workspace.lock"
     assert d.run_artifacts.name == "runs"
+
+
+def test_blank_workspace_raises_path_error() -> None:
+    """A blank workspace path is rejected with PathError (9.C reachability)."""
+    with pytest.raises(PathError) as exc:
+        derive_paths("   ")
+    assert exc.value.remediation

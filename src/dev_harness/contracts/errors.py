@@ -50,8 +50,13 @@ class PathError(HarnessError):
     remediation = "Provide a canonical, absolute workspace path."
 
 
-class SecretsError(HarnessError):
-    """A secret could not be resolved or handled safely."""
+class SecretsError(HarnessError, KeyError):
+    """A secret could not be resolved or handled safely.
+
+    Also a :class:`KeyError` so ``SecretsProvider.get`` keeps its dict-like
+    contract while every failure still flows through the ``HarnessError``
+    taxonomy (V11 9.C error-reachability gate).
+    """
 
     remediation = "Ensure the secret is available via env, keyring, or a 0600 file."
 

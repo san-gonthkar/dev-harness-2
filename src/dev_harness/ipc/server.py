@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import os
 import socket
+import stat
 import threading
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from dev_harness.contracts.errors import InsecureSocketError
 from dev_harness.contracts.events import Envelope
 from dev_harness.ipc.framing import read_frame
 from dev_harness.ipc.transport import require_posix
@@ -58,12 +60,29 @@ class IpcServer:
                 os.unlink(self.socket_path)
         self._server = self._socket_factory(_AF_UNIX, _SOCK_STREAM)
         self._server.bind(str(self.socket_path))
-        # 0600 permissions.
+        # 0600 permissions, then verify they took (POSIX only: Windows has no
+        # meaningful POSIX mode bits on a socket path).
         os.chmod(self.socket_path, 0o600)
+        self._verify_socket_permissions()
         self._server.listen(5)
         self._running = True
         self._accept_thread = threading.Thread(target=self._accept_loop, daemon=True)
         self._accept_thread.start()
+
+    def _verify_socket_permissions(self) -> None:
+        """Raise :class:`InsecureSocketError` if the socket is group/other-accessible.
+
+        POSIX-only: on Windows the POSIX mode bits are not meaningful, so the
+        check is skipped there.
+        """
+        if os.name != "posix":
+            return
+        mode = stat.S_IMODE(os.stat(self.socket_path).st_mode)
+        if mode & 0o077:
+            raise InsecureSocketError(
+                f"socket {self.socket_path} has permissions {oct(mode)}",
+                remediation="chmod 600 the socket and ensure it is owned by the current user.",
+            )
 
     def _accept_loop(self) -> None:
         while self._running:

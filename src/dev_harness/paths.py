@@ -22,8 +22,18 @@ class DerivedPaths:
 
 
 def _canonicalize(workspace: str | Path) -> Path:
-    """Resolve a workspace path to a canonical absolute form."""
-    path = Path(workspace).expanduser()
+    """Resolve a workspace path to a canonical absolute form.
+
+    Raises :class:`PathError` for an empty/blank workspace or one that cannot be
+    resolved to an absolute path.
+    """
+    raw = str(workspace).strip()
+    if not raw:
+        raise PathError(
+            "workspace path is empty",
+            remediation="Provide a canonical, absolute workspace path.",
+        )
+    path = Path(raw).expanduser()
     # Resolve symlinks (must exist). Trailing slashes are normalized by resolve.
     resolved = path.resolve()
     if not resolved.is_absolute():

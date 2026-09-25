@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from dev_harness.contracts.errors import InsecureKeyFileError
+from dev_harness.contracts.errors import InsecureKeyFileError, SecretsError
 from dev_harness.contracts.state import HarnessState
 from dev_harness.secrets import Secret, SecretsProvider, is_insecure_mode
 
@@ -39,6 +39,14 @@ def test_missing_raises_keyerror() -> None:
     prov = SecretsProvider(env={})
     with pytest.raises(KeyError):
         prov.get("ANTHROPIC_API_KEY")
+
+
+def test_missing_raises_secrets_error() -> None:
+    """A missing secret raises SecretsError (a HarnessError, 9.C reachability)."""
+    prov = SecretsProvider(env={})
+    with pytest.raises(SecretsError) as exc:
+        prov.get("ANTHROPIC_API_KEY")
+    assert exc.value.remediation
 
 
 def test_insecure_mode_detection() -> None:

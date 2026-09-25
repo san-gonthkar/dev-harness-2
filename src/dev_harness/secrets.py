@@ -13,7 +13,7 @@ from pathlib import Path
 
 import keyring
 
-from dev_harness.contracts.errors import InsecureKeyFileError
+from dev_harness.contracts.errors import InsecureKeyFileError, SecretsError
 
 _SECRET_PREFIX = "DEV_HARNESS_"
 
@@ -96,7 +96,7 @@ class SecretsProvider:
     def get(self, name: str) -> Secret:
         """Return a secret resolved by precedence env > keyring > file.
 
-        Raises KeyError if not found anywhere.
+        Raises :class:`SecretsError` (a ``KeyError``) if not found anywhere.
         """
         value = self._from_env(name)
         if value is not None:
@@ -107,4 +107,4 @@ class SecretsProvider:
         value = self._from_file(name)
         if value is not None:
             return Secret(value)
-        raise KeyError(f"no secret found for {name!r}")
+        raise SecretsError(f"no secret found for {name!r}")
