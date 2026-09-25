@@ -493,3 +493,10 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Validation: `pytest tests/vcs/test_edge_cases.py -q` -> **7 passed** (9.26s). Regression `pytest tests/vcs -q` -> **29 passed**. ruff check + format clean; mypy strict clean.
 - Acceptance: (a) unborn -> NoCommitsError PASS; (b) detached restore succeeds + reports detached PASS; (c) duplicate worktree -> WorktreeExistsError PASS; submodules + pre-existing worktrees covered (submodule test skips with reason if offline).
 - Deviation: none. Commit `TBD` (Task-Id: 9.6), pushed to origin/main.
+
+### P9 9.9 DONE — Context-overflow recovery (2026-09-24, python-developer)
+- Deliverable: `src/dev_harness/engine/overflow.py` + `tests/engine/test_overflow.py`.
+- API: `OverflowRecovery(inner, *, summarize=default_summarizer)` wrapping `CompletionClient`; `complete_with_recovery(messages, *, model=None) -> OverflowOutcome` (text/usage/retries/decision/escalated); `complete(...)` re-raises `ContextOverflowError` on escalation. `MAX_OVERFLOW_RETRIES = 1`; `default_summarizer` caps each message via `context.cap_trace`. Escalation reuses `routing.route(state, failure_kind=E2E)` -> canonical `HITL_NODE` decision. No new error, no new deps.
+- Validation: `pytest tests/engine/test_overflow.py -q` -> **6 passed** (0.38s). Regression `pytest tests/engine -q` -> **359 passed**. ruff check + format clean; mypy strict clean.
+- Acceptance: (a) first overflow -> summarize + retry exactly once (retries==1) PASS; (b) second overflow -> HITL escalation, no further retry PASS; (c) bounded at 2 client calls, 0 infinite loops PASS.
+- Deviation: none. Commit `3b3649d` (Task-Id: 9.9), pushed to origin/main.
