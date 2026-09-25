@@ -507,3 +507,10 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Validation: `pytest tests/engine/test_overflow.py -q` -> **6 passed** (0.38s). Regression `pytest tests/engine -q` -> **359 passed**. ruff check + format clean; mypy strict clean.
 - Acceptance: (a) first overflow -> summarize + retry exactly once (retries==1) PASS; (b) second overflow -> HITL escalation, no further retry PASS; (c) bounded at 2 client calls, 0 infinite loops PASS.
 - Deviation: none. Commit `3b3649d` (Task-Id: 9.9), pushed to origin/main.
+
+### P9 9.7 DONE — Canvas-level secret redaction (2026-09-24, python-developer)
+- Deliverable: `src/dev_harness/tui/render.py` + `src/dev_harness/tui/panels/execution_canvas.py` + `tests/tui/test_canvas_redaction.py`.
+- Change: render boundary (`safe_text`/`render_markdown`/`render_diff`) and `ExecutionCanvas.on_token` now route text through `observability.redact.redact` (reused, not duplicated); `render_diff` redacts the whole diff before splitting so a key spanning a line boundary is masked. Added `ExecutionCanvas.buffer_text` (reads `RichLog.lines` -> `Strip.text`) for sink (a). Log (`RedactFilter`/`JsonFormatter`) and artifact (`RunArtifactStore`) paths already redacted (0.14/0.15) — verified, not assumed.
+- Validation: `pytest tests/tui/test_canvas_redaction.py -q` -> **4 passed** (0.89s). Regression `pytest tests/tui/test_render.py tests/tui/test_execution_canvas.py tests/observability/test_redaction.py -q` -> **112 passed**. ruff check clean; mypy strict clean.
+- Acceptance (9.B): key absent from all three sinks simultaneously — (a) widget buffer, (b) logs, (c) run artifacts — all three greps empty PASS.
+- Deviation: none. Commit `633f97c` (Task-Id: 9.7), pushed to origin/main.
