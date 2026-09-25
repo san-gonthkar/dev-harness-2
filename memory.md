@@ -514,3 +514,15 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Validation: `pytest tests/tui/test_canvas_redaction.py -q` -> **4 passed** (0.89s). Regression `pytest tests/tui/test_render.py tests/tui/test_execution_canvas.py tests/observability/test_redaction.py -q` -> **112 passed**. ruff check clean; mypy strict clean.
 - Acceptance (9.B): key absent from all three sinks simultaneously — (a) widget buffer, (b) logs, (c) run artifacts — all three greps empty PASS.
 - Deviation: none. Commit `633f97c` (Task-Id: 9.7), pushed to origin/main.
+
+### P9 TASKS COMPLETE (2026-09-24) — 9.1-9.11 all done
+- 9.4 storage/integrity.py (100/100) e1cf3fd; 9.2 recovery/reclaim.py 2c10097; 9.1 recovery/session_recovery.py (100/100) 472a14d; 9.3 broker/fallback.py + ProviderHealth enum dc5c8cf; 9.6 vcs/edge_cases.py ca958bb; 9.8 storage/errors.py + DiskFullError/DatabaseBusyError 3f36517; 9.9 engine/overflow.py 3b3649d; 9.5 tui/responsive.py c960780; 9.7 canvas redaction 633f97c; 9.10 docs/rollback.md 25ce7e5; 9.11 chaos_drill.py + verify_phase_09.sh/.ps1 88283be.
+- **9.C ERROR-REACHABILITY GATE: PASSES** (commit 39d2107). The gate found REAL defects, not just missing tests:
+  - PathError: the raise branch was DEAD (Path.resolve() always returns absolute) -> now rejects a blank workspace.
+  - SecretsError: never raised (bare KeyError) -> now subclasses KeyError and is raised.
+  - InsecureSocketError: never raised (0600 chmod unverified) -> added _verify_socket_permissions (POSIX-only).
+  - IpcError/BrokerError: abstract bases -> the gate now exempts a class with its own subclasses.
+- Chaos drill: 6/8 faults pass on native Windows; 2 SIGKILL faults deferred (POSIX-only, plan R2).
+- Both 9.D protocol twins run all 11 steps; step 11 awaits the reviewer artifact.
+- Smoke lane: 1095 passed, 7 skipped.
+- Next: 9.D reviewer sign-off -> reports/phase_09_acceptance.json.
