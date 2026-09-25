@@ -78,6 +78,18 @@ class FailureClass(str, Enum):
     UNKNOWN = "UNKNOWN"
 
 
+class ProviderHealth(str, Enum):
+    """Health of a provider in the fallback chain (V11 9.3).
+
+    A provider that fails with a retryable overload/transient error and is
+    bypassed by the fallback chain is reported ``DEGRADED``; a provider that
+    serves a request is ``HEALTHY``.
+    """
+
+    HEALTHY = "HEALTHY"
+    DEGRADED = "DEGRADED"
+
+
 class RunOutcome(str, Enum):
     """Terminal outcome of a pipeline run (V11 8.13 retry router).
 
