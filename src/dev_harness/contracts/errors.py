@@ -89,6 +89,24 @@ class CorruptCheckpointError(StorageError):
     )
 
 
+class DiskFullError(StorageError):
+    """The storage volume ran out of space (ENOSPC)."""
+
+    remediation = (
+        "Free disk space or move the workspace to a larger volume, then retry; "
+        "the write did not complete."
+    )
+
+
+class DatabaseBusyError(StorageError):
+    """SQLite could not acquire its lock (SQLITE_BUSY / SQLITE_LOCKED)."""
+
+    remediation = (
+        "Another writer holds the database lock; retry after the busy_timeout "
+        "or stop the competing process."
+    )
+
+
 # --- vcs --------------------------------------------------------------------
 
 
