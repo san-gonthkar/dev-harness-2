@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import ClassVar
 
 from textual.app import App, ComposeResult
+from textual.events import Resize
 
 from dev_harness.contracts.enums import CriticCommand, PanelId
 from dev_harness.contracts.events import Envelope
@@ -18,6 +19,7 @@ from dev_harness.tui.panels.critic_bar import CriticBar
 from dev_harness.tui.panels.execution_canvas import ExecutionCanvas
 from dev_harness.tui.panels.model_registry import ModelRegistry
 from dev_harness.tui.panels.repo_manager import RepoManager
+from dev_harness.tui.responsive import visible_panels
 
 #: CSS grid region IDs — the four panels mount here (7.2/7.3/7.5/7.6).
 REPO_MANAGER_ID = "#repo-manager"
@@ -55,6 +57,29 @@ class HermesApp(App[None]):
         yield ExecutionCanvas(id="execution-canvas")
         yield ModelRegistry(id="model-registry")
         yield CriticBar(id="critic-bar")
+
+    def on_mount(self) -> None:
+        """Apply the responsive layout for the initial terminal size (9.5)."""
+        self._apply_responsive_layout(self.size.width, self.size.height)
+
+    def on_resize(self, event: Resize) -> None:
+        """Re-apply the responsive layout whenever the terminal is resized (9.5)."""
+        self._apply_responsive_layout(event.size.width, event.size.height)
+
+    def _apply_responsive_layout(self, width: int, height: int) -> None:
+        """Show only the panels visible at ``width`` x ``height`` (9.5).
+
+        Below 80x24 the grid degrades to the single execution canvas; at or
+        above it all four panels are shown.
+        """
+        visible = visible_panels(width, height)
+        for panel, selector in PANEL_REGIONS.items():
+            widget = self.query_one(selector)
+            shown = panel in visible
+            # ``display`` removes the panel from the grid; ``visible`` makes
+            # ``widget.visible`` report the degradation to callers.
+            widget.display = shown
+            widget.visible = shown
 
     def action_pause(self) -> None:
         """Emit one ``INTERRUPT_REQUEST{PAUSE}`` via the critic bar; never exit (7.9)."""
