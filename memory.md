@@ -479,3 +479,10 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - P8 state: **reviewer-ACCEPTED, human sign-off PENDING**. All 21 tasks done; validation rows green; coverage contract MET; F1+F2 closed; smoke 1014 passed.
 - Deferred (needs WSL2/POSIX): mutation gate (step 12), live 7.D protocol.
 - Proceeding to P9 (Lane A/B/C/D, no human sign-off required). P8 closure awaits the user.
+
+### P9 9.6 DONE — Git edge cases (2026-09-24, python-developer)
+- Deliverable: `src/dev_harness/vcs/edge_cases.py` + `tests/vcs/test_edge_cases.py`.
+- API: `describe_repo_state(repo) -> RepoState` (typed, frozen Pydantic: is_repository/has_commits/detached/branch/head_sha/dirty/uncommitted_count/submodules/worktrees); `require_commits(repo) -> str` (NoCommitsError on unborn); `restore_detached(repo, sha, *, autostash=False) -> RepoState` (reports detached=True, branch=None); `guard_worktree(repo, worker_id) -> Path` (WorktreeExistsError on duplicate/pre-existing). Reuses GitAdapter/WorktreeManager/Restorer; no new errors, no new deps.
+- Validation: `pytest tests/vcs/test_edge_cases.py -q` -> **7 passed** (9.26s). Regression `pytest tests/vcs -q` -> **29 passed**. ruff check + format clean; mypy strict clean.
+- Acceptance: (a) unborn -> NoCommitsError PASS; (b) detached restore succeeds + reports detached PASS; (c) duplicate worktree -> WorktreeExistsError PASS; submodules + pre-existing worktrees covered (submodule test skips with reason if offline).
+- Deviation: none. Commit `TBD` (Task-Id: 9.6), pushed to origin/main.
