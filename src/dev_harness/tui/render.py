@@ -13,6 +13,12 @@ and never touches ``engine/``.
 
 The escaping primitive is :func:`safe_text`; :func:`render_markdown` and
 :func:`render_diff` build on it.
+
+Every entry point also routes its input through
+:func:`dev_harness.observability.redact.redact` (V11 task 9.7), so a secret in
+untrusted text is masked *before* it reaches a RichLog buffer. Redaction is
+idempotent and a no-op for secret-free text, so the 7.B escaping contract is
+unchanged.
 """
 
 from __future__ import annotations
@@ -21,6 +27,8 @@ from rich.console import RenderableType
 from rich.markdown import Markdown
 from rich.markup import escape
 from rich.text import Text
+
+from dev_harness.observability.redact import redact
 
 __all__ = ["render_diff", "render_markdown", "safe_text"]
 
@@ -41,8 +49,11 @@ def safe_text(text: str) -> Text:
     markup characters survive verbatim in :attr:`Text.plain` and no style spans
     are created from them. Never raises ``MarkupError``: ``escape`` is total and
     ``Text.from_markup`` then only ever sees bracket-escaped input.
+
+    Secrets are redacted first (V11 9.7), so :attr:`Text.plain` equals
+    ``redact(text)`` rather than ``text`` when a key is present.
     """
-    return Text.from_markup(escape(text))
+    return Text.from_markup(escape(redact(text)))
 
 
 def render_markdown(text: str) -> RenderableType:
@@ -50,9 +61,10 @@ def render_markdown(text: str) -> RenderableType:
 
     Markdown structure (headings, code fences, emphasis) is parsed, but the
     source is bracket-escaped first, so a Rich tag like ``[bold red]`` stays
-    literal instead of becoming a style. Never raises ``MarkupError``.
+    literal instead of becoming a style. Never raises ``MarkupError``. Secrets
+    are redacted before parsing (V11 9.7).
     """
-    return Markdown(escape(text))
+    return Markdown(escape(redact(text)))
 
 
 def _line_style(line: str) -> str:
@@ -74,10 +86,12 @@ def render_diff(diff_text: str) -> Text:
     Added lines (``+``) are green, removed lines (``-``) red, ``@@`` hunk
     headers cyan, and file headers/context lines dim. Each line is escaped via
     :func:`safe_text`, so markup inside a diff line renders literally and the
-    concatenated :attr:`Text.plain` equals ``diff_text`` exactly.
+    concatenated :attr:`Text.plain` equals ``redact(diff_text)`` exactly (V11
+    9.7 redacts the whole diff before splitting, so a key is masked even when it
+    spans a line boundary).
     """
     out = Text()
-    for index, line in enumerate(diff_text.split("\n")):
+    for index, line in enumerate(redact(diff_text).split("\n")):
         if index:
             out.append("\n")
         segment = safe_text(line)

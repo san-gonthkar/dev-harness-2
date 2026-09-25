@@ -24,6 +24,7 @@ from dev_harness.contracts.events import (
     Envelope,
     TestProgressPayload,
 )
+from dev_harness.observability.redact import redact
 
 if TYPE_CHECKING:
     from dev_harness.tui.bridge import Bridge
@@ -73,10 +74,15 @@ class ExecutionCanvas(Vertical):
         yield self._sparkline
 
     def on_token(self, payload: AgentTokenStreamPayload) -> None:
-        """Append a streamed token; ``seq`` drives the reassembly order."""
-        self._tokens[payload.seq] = payload.token
+        """Append a streamed token; ``seq`` drives the reassembly order.
+
+        The token is redacted (V11 9.7) before it is stored or written, so a
+        secret never reaches the RichLog buffer.
+        """
+        token = redact(payload.token)
+        self._tokens[payload.seq] = token
         if self.is_mounted:
-            self._log.write(payload.token)
+            self._log.write(token)
 
     def on_test_progress(self, payload: TestProgressPayload) -> None:
         """Push a progress sample; ``total == 0`` yields ``0.0`` (no division)."""
@@ -104,6 +110,15 @@ class ExecutionCanvas(Vertical):
     def rendered_text(self) -> str:
         """The concatenated token text in ``seq`` order (reassembled stream)."""
         return "".join(self._tokens[seq] for seq in sorted(self._tokens))
+
+    @property
+    def buffer_text(self) -> str:
+        """The RichLog widget buffer's visible text (V11 9.7 sink (a)).
+
+        Reads :attr:`RichLog.lines` (``Strip`` rows) and joins their ``text``,
+        so a secret that reached the widget would be observable here.
+        """
+        return "\n".join(strip.text for strip in self._log.lines)
 
     @property
     def sparkline_len(self) -> int:
