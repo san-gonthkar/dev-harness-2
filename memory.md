@@ -526,3 +526,20 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Both 9.D protocol twins run all 11 steps; step 11 awaits the reviewer artifact.
 - Smoke lane: 1095 passed, 7 skipped.
 - Next: 9.D reviewer sign-off -> reports/phase_09_acceptance.json.
+
+## P9 9.D REVIEW — INDEPENDENT (reviewer-agent, 2026-09-25)
+
+- **Session**: reviewer-agent, P9 9.D acceptance review. Did not implement any P9 task.
+- **Contract**: V11 §9.A–§9.D (lines 916–1000) + `docs/phase_09_implementation_plan.md`.
+- **9.B validation matrix**: all 11 task rows green. `pytest` over the 9 per-task test files -> **78 passed, 1 skipped** (smoke lane, `--timeout=120`). 9.10 (rollback) is a manual/REL row, rehearsed in `docs/rollback.md`; 9.11 chaos drill run separately. No full-suite run.
+- **9.C coverage (measured per-module, targeted `--cov-branch`)**:
+  - `recovery/` package (tests/recovery) -> **100.0 line / 100.0 branch** (>=90/85 MET). reclaim.py 100/100; session_recovery.py 100/100.
+  - `storage/integrity.py` -> **100.0 line / 100.0 branch** (>=100/95 MET).
+  - **Error-reachability gate: PASS** (`python scripts/coverage_gate.py --errors` -> "all HarnessError subclasses reachable", exit 0). 45 subclasses; 6 abstract bases exempt (BrokerError, EngineError, IpcError, ProviderError, StorageError, VcsError).
+  - Mutation (`storage/integrity.py` >=85%) **DEFERRED** (mutmut requires WSL2/POSIX, plan R2).
+- **9.D protocol (native Windows, PowerShell twin)**: steps 1, 4–11 verified; steps 2–3 (kill9-engine, kill9-parallel) **DEFERRED** (SIGKILL POSIX-only, plan R2). Chaos drill `--all`: 6/8 pass, 2 deferred, exit 0. Step 11 now green after this artifact (`P9 acceptance OK`, exit 0).
+- **Rejection criteria**: manual filesystem cleanup -> PASS (reclaim + resume automated); unhandled traceback to TUI -> PASS (translate_storage_errors total; 0 raw sqlite3/OSError escapes); unreachable HarnessError subclass -> PASS (gate exit 0); raw key in any of the three sinks -> PASS (test_canvas_redaction three-sink integration test).
+- **Error-reachability fixes adjudicated (commit 39d2107)**: PathError blank-check — CORRECT + minimal (the old `is_absolute()` branch was dead; blank is the only reachable rejection). SecretsError-as-KeyError — CORRECT (preserves the dict-like contract; `pytest.raises(KeyError)` still passes; now also a HarnessError). InsecureSocketError verification — CORRECT (POSIX-only guard, Windows no-op; the 0600 chmod was previously unverified). Abstract-base exemption — CORRECT (a class with its own subclasses is never raised directly; concrete subclasses carry the requirement; exemption set is exactly the 6 bases).
+- **Invariants**: `tui/` never imports `engine/` PASS (grep empty); engine never imports provider adapters PASS (`test_provider_gateway.py` 25 passed with `test_enums.py`); one marker per test PASS; no `time.sleep()` in P9 test files PASS (only a subprocess `-c` string and docstrings); no state string literals outside `contracts/enums.py` PASS; every HarnessError subclass has non-empty remediation PASS (0 missing).
+- **Findings**: F1 (SIGKILL faults + integrity mutation gate deferred to WSL2/POSIX — platform, not defect); F2 (chaos_drill echo-api-key exercises only the redact boundary; the three-sink claim is carried by the stronger canvas-redaction test — no defect).
+- **Artifact**: `reports/phase_09_acceptance.json` verdict **ACCEPTED**, commit `96771ed`, signed_by `reviewer-agent`, `human_signoff_required: false` (Lane A/B/C/D).
