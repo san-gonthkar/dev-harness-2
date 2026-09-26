@@ -35,7 +35,7 @@ The orchestrator (`phase-orchestrator`) is the keeper of phase state and updates
 | P6 Critic Gatekeeper & Interrupt Engine | closed | `scripts/verify_phase_06.sh` | reviewer-agent |
 | P7 Hermes TUI Core Subsystem | closed | `scripts/verify_phase_07.sh` | reviewer-agent |
 | P8 SDLC Pipeline & Worker Pool | not started | `scripts/verify_phase_08.sh` | human required |
-| P9 Error Handling & Recovery | not started | `scripts/verify_phase_09.sh` | — |
+| P9 Error Handling & Recovery | closed | `scripts/verify_phase_09.sh` | reviewer-agent |
 | P10 Verification & Release | not started | `scripts/verify_phase_10.sh` | human required |
 
 ---
@@ -60,11 +60,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P7 CLOSED (2026-09-24). Next: P8 — SDLC Pipeline & Worker Pool (not started; human sign-off required).
-- **Lane**: D (P8)
-- **Current task**: P8 in progress — 8.1 DONE (`dfb95b3`), 8.2 DONE (`ca7556a`), 8.3 DONE (`65dca4f`), 8.4 DONE, 8.5 DONE, 8.6 DONE (`6229911`), 8.7 DONE (`4b34183`), 8.8 DONE (`14af5e1`), 8.9 DONE (`724eab4`), 8.10 DONE, 8.11 DONE, 8.12 DONE (`4d4871d`), 8.13 DONE, 8.14 DONE, 8.15 DONE, 8.16 DONE (`3e1e915`), 8.17 DONE (`93e6544`), 8.18 DONE, 8.20 DONE (engine CLI run/plan/critic-drill), 8.21a DONE, 8.21b DONE (worktree capture/restore).
-- **Last completed task**: P8 8.21b worktree state capture + restore (checkpoint records each worktree HEAD + diff; restore replays field-for-field including uncommitted work).
-- **Next task**: 8.19 (`scripts/verify_phase_08.sh`); then phase-8 acceptance.
+- **Phase**: P9 CLOSED (2026-09-24). P8 reviewer-ACCEPTED, human sign-off PENDING. Next: P10 — Verification & Release (human sign-off required).
+- **Lane**: All (P10)
+- **Current task**: P10 planning — read §10.A-§10.D, then dispatch 10.1.
+- **Last completed task**: P9 9.D reviewer sign-off ACCEPTED (`5bbbfc5`); 9.11 chaos drill + verify scripts (`88283be`).
+- **Next task**: plan P10 (9 tasks, 10.1-10.9), then dispatch 10.1 (full E2E).
 
 ### 9.5 DONE — tui/responsive.py + tests/tui/test_responsive.py
 - Files: `src/dev_harness/tui/responsive.py`, `src/dev_harness/tui/app.py` (wired), `tests/tui/test_responsive.py`. Commit `c960780` (pushed to origin/main).
