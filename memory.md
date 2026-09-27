@@ -604,3 +604,10 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Steps 2/4/5/7 (nightly, live Ollama, cold VM, rollback rehearsal) DEFERRED on this host (infrastructure, not platform).
 - Both twins behave correctly: fail at step 1 until reports/phase_10_acceptance.json exists (the 10.D artifact).
 - Remaining P10: 10.3 (30-min soak, NIGHTLY), 10.4 (live Ollama, NIGHTLY), then 10.D (reviewer + HUMAN sign-off + tag v1.0.0).
+
+### P10 TASKS COMPLETE (2026-09-24) — 10.1-10.9 all done
+- 10.1 full E2E 8452e5e; 10.2 parallel E2E 91fbd43; 10.6 schema conformance 7e9bacf; 10.7 traceability + graph coverage 3941471; 10.5 CI workflows 631c154; 10.8 README + runbook fd42b24; 10.9 release gate dbd273b; 10.3 concurrent soak 52ffa1e; 10.4 local profile f7decd6.
+- **10.3 found 3 REAL concurrency defects** (fixed in 52ffa1e): connection.py busy-timeout ordering, sqlite_saver deferred BEGIN, migrate.py ledger race.
+- **10.7 found the hitl node never executed in any E2E test** (fixed: added a failing-chunk E2E); graph-node coverage now 6/6.
+- Smoke lane: 1101 passed, 7 skipped.
+- Remaining: 10.D reviewer + HUMAN sign-off + tag v1.0.0.
