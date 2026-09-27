@@ -34,9 +34,9 @@ The orchestrator (`phase-orchestrator`) is the keeper of phase state and updates
 | P5 Execution Engine Daemon | closed | `scripts/verify_phase_05.sh` | human signed 2026-09-22 |
 | P6 Critic Gatekeeper & Interrupt Engine | closed | `scripts/verify_phase_06.sh` | reviewer-agent |
 | P7 Hermes TUI Core Subsystem | closed | `scripts/verify_phase_07.sh` | reviewer-agent |
-| P8 SDLC Pipeline & Worker Pool | not started | `scripts/verify_phase_08.sh` | human required |
+| P8 SDLC Pipeline & Worker Pool | closed | `scripts/verify_phase_08.sh` | human signed 2026-09-27 |
 | P9 Error Handling & Recovery | closed | `scripts/verify_phase_09.sh` | reviewer-agent |
-| P10 Verification & Release | blocked (tasks done; 10.D unsigned) | `scripts/verify_phase_10.sh` | human required |
+| P10 Verification & Release | closed | `scripts/verify_phase_10.sh` | human signed 2026-09-27 |
 
 ---
 
@@ -60,11 +60,11 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 ## Current Status
 
-- **Phase**: P9 CLOSED (2026-09-24). P8 reviewer-ACCEPTED, human sign-off PENDING. Next: P10 — Verification & Release (human sign-off required).
-- **Lane**: All (P10)
-- **Current task**: P10 — 10.1, 10.2, 10.5 DONE; next 10.3.
-- **Last completed task**: 10.5 CI tiering (`631c154`); 10.2 parallel SDLC E2E (`91fbd43`); 10.1 full SDLC E2E.
-- **Next task**: dispatch 10.3 (per the P10 plan).
+- **Phase**: **ALL 11 PHASES CLOSED** (2026-09-27). P8 + P10 human-signed by `san-gonthkar`.
+- **Lane**: —
+- **Current task**: release — tag `v1.0.0` after the deferred release-time items.
+- **Last completed task**: P8 + P10 human sign-off (2026-09-27); `verify_phase.py --audit-all` exits 0.
+- **Next task**: run the deferred release items (nightly, mutation on WSL2/POSIX, live Ollama, cold-machine install, rollback rehearsal), then tag `v1.0.0`.
 
 ### 10.5 DONE — .github/workflows/ci.yml + nightly.yml
 - Files: `.github/workflows/ci.yml`, `.github/workflows/nightly.yml`. Commit `631c154` (pushed to origin/main).
