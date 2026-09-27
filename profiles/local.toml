@@ -1,6 +1,10 @@
 # Local-only profile (V11 10.4): Ollama + Qwen 2.5 Coder, no hosted providers.
 # Copy to dev-harness.toml for a fully local run. Every provider except Ollama
 # is absent, so the fallback chain can never reach a hosted endpoint.
+#
+# DISABLED (2026-09-27): the Ollama integration is turned off. The provider
+# block below is commented out, so this profile declares no providers and no
+# run can select Ollama. Uncomment the block to re-enable local inference.
 
 workspace_path = "."
 
@@ -11,12 +15,12 @@ budget_usd_per_day = 0.0
 [broker]
 allow_unbrokered = false
 
-[providers.ollama]
-rpm = 1000
-tpm = 1000000
-max_concurrency = 1
-context_window = 32768
-num_ctx = 32768
-keep_alive = "5m"
-usd_per_mtok_in = 0.0
-usd_per_mtok_out = 0.0
+# [providers.ollama]
+# rpm = 1000
+# tpm = 1000000
+# max_concurrency = 1
+# context_window = 32768
+# num_ctx = 32768
+# keep_alive = "5m"
+# usd_per_mtok_in = 0.0
+# usd_per_mtok_out = 0.0

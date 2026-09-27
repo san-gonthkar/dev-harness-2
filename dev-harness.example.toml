@@ -26,8 +26,10 @@ context_window = 128000
 usd_per_mtok_in = 0.50
 usd_per_mtok_out = 1.50
 
-[providers.ollama]
-max_concurrency = 1
-num_ctx = 8192
-keep_alive = "30m"
-context_window = 8192
+# Ollama integration disabled (2026-09-27). Uncomment to re-enable local
+# inference:
+# [providers.ollama]
+# max_concurrency = 1
+# num_ctx = 8192
+# keep_alive = "30m"
+# context_window = 8192

@@ -49,5 +49,6 @@ def test_example_config_loads() -> None:
     example = Path(__file__).resolve().parents[1] / "dev-harness.example.toml"
     config = load_config(example)
     assert config.providers["anthropic"].rpm == 50
-    assert config.providers["ollama"].num_ctx == 8192
+    # Ollama integration disabled (2026-09-27).
+    assert "ollama" not in config.providers
     assert config.broker.allow_unbrokered is False

@@ -46,25 +46,23 @@ def _ollama_reachable() -> bool:
 
 @pytest.mark.integration
 def test_local_profile_config_is_local_only() -> None:
-    """The profile declares Ollama and no hosted provider (PR-tier, no Ollama)."""
+    """The profile declares no hosted provider (PR-tier, no Ollama).
+
+    Ollama is disabled (2026-09-27), so the profile is inert: it declares no
+    providers at all and no run can select a hosted or local endpoint.
+    """
     config = load_config(PROFILE)
-    assert "ollama" in config.providers
+    assert "ollama" not in config.providers
     for hosted in ("anthropic", "openrouter"):
         assert hosted not in config.providers, f"{hosted} must not be in the local profile"
-    ollama = config.providers["ollama"]
-    assert ollama.num_ctx == 32768
-    assert ollama.usd_per_mtok_in == 0.0
-    assert ollama.usd_per_mtok_out == 0.0
 
 
 @pytest.mark.integration
-def test_local_profile_registry_has_no_hosted_models() -> None:
-    """Every model the profile resolves belongs to the local provider."""
+def test_local_profile_registry_has_no_models() -> None:
+    """The disabled profile resolves no models (Ollama is off)."""
     config = load_config(PROFILE)
     registry = ModelRegistry(config)
-    for model_id in registry.all_models():
-        entry = registry.resolve(model_id)
-        assert entry.provider.value == "ollama", model_id
+    assert registry.all_models() == []
 
 
 @pytest.mark.slow
@@ -72,7 +70,8 @@ def test_local_profile_run_against_live_ollama(tmp_path: Path) -> None:
     """The real local run (NIGHTLY): completes, 0 hosted calls, <= 1 model load.
 
     Records ``skipped: no_local_ollama`` when no Ollama is reachable, matching
-    the 3.13 spike convention.
+    the 3.13 spike convention. Ollama is disabled (2026-09-27), so this test
+    always skips until the integration is re-enabled.
     """
     if not _ollama_reachable():
         report = tmp_path / "local_profile_run.json"
@@ -82,6 +81,9 @@ def test_local_profile_run_against_live_ollama(tmp_path: Path) -> None:
         pytest.skip("no_local_ollama")
 
     config = load_config(PROFILE)
+    if "ollama" not in config.providers:
+        pytest.skip("ollama_disabled")
+
     loads: list[str] = []
     loader = OllamaLoader(load_fn=loads.append)
     loader.ensure_loaded(LOCAL_MODEL)
