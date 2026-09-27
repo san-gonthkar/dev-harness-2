@@ -1,0 +1,44 @@
+name: CI (PR tier)
+
+# PR tier (V11 10.5): blocks merge. Runs the fast lane only —
+# unit / property / contract / integration / negative. Timing-sensitive
+# tests (timing / slow / e2e) are never PR-blocking; they run in nightly.yml.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr:
+    name: PR tier (unit/property/contract/integration/negative)
+    runs-on: ubuntu-latest
+    # Budget: the PR suite must finish in < 10 min on the standard runner.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: make install
+
+      - name: Lint
+        run: make lint
+
+      - name: Typecheck
+        run: make typecheck
+
+      # PR tier == the smoke lane: excludes timing/slow/e2e, coverage-padding
+      # `*gaps*` files, spikes, and meta-tests.
+      - name: PR tier tests
+        run: sh scripts/test_lane.sh smoke

@@ -1,0 +1,73 @@
+name: Nightly (NIGHTLY tier)
+
+# NIGHTLY tier (V11 10.5): blocks the phase gate. Runs the timing-sensitive
+# tests (timing / slow / e2e), the mutation gate, and coverage — each as a
+# separate job so a failure is attributable.
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nightly-tests:
+    name: NIGHTLY tier (timing/slow/e2e)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: make install
+
+      - name: NIGHTLY tier tests
+        run: sh scripts/test_lane.sh nightly
+
+  mutation:
+    name: Mutation gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: make install
+
+      # Real gate over the mutation focus set (storage, vcs, broker, core,
+      # engine.dag/worker_pool/worker_workspace/integrator). The Makefile
+      # `mutation` target is a local `--dry-run`; nightly enforces the gate.
+      - name: Mutation gate
+        run: python scripts/mutation_gate.py
+
+  coverage:
+    name: Coverage + ratchet
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: make install
+
+      - name: Coverage (full suite, branch)
+        run: make coverage
+
+      - name: Coverage ratchet gate
+        run: python scripts/coverage_gate.py
