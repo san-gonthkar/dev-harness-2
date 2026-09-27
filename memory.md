@@ -598,3 +598,9 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
   - **plan §14 index drift corrected:** 2.10 test renamed `test_cli.py` -> `test_ipc_cli.py`; 1.15 `vcs/cli.py` was never built (storage/cli.py absorbed restore); 8.21 was split into 8.21a/8.21b.
 - `--check` exits 0; `--graph-coverage` exits 0 (6/6 nodes). Smoke lane 1100 passed.
 - Added `tests/support/graph_trace.py` (NodeTrace callback) wired into 10.1/10.2.
+
+### 10.9 DONE — scripts/verify_phase_10.sh/.ps1 + docs/release_checklist.md (commit dbd273b)
+- 9-step 10.D release gate: phase report audit, graph-node coverage, traceability, release docs, human-signed acceptance JSON.
+- Steps 2/4/5/7 (nightly, live Ollama, cold VM, rollback rehearsal) DEFERRED on this host (infrastructure, not platform).
+- Both twins behave correctly: fail at step 1 until reports/phase_10_acceptance.json exists (the 10.D artifact).
+- Remaining P10: 10.3 (30-min soak, NIGHTLY), 10.4 (live Ollama, NIGHTLY), then 10.D (reviewer + HUMAN sign-off + tag v1.0.0).
