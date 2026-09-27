@@ -575,3 +575,11 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - P10: 10.1 DONE (8452e5e), 10.2 DONE (91fbd43). Remaining: 10.3, 10.4, 10.5, 10.6, 10.7, 10.8, 10.9, then 10.D (human sign-off + tag v1.0.0).
 - HEAD f26770f, pushed. Briefs in briefs/<task>.json.
 - Test lane: smoke only (permission is per-run, not carried forward).
+
+### 10.7 DONE — scripts/generate_traceability.py + docs/traceability.md (commit 3941471)
+- **The generator found REAL defects, not just missing docs:**
+  - **graph-node coverage (10.C):** the `hitl` node NEVER executed in any E2E test (the success path never escalates). Added a failing-chunk E2E that drives the e2e ceiling -> HITL. All 6 nodes now execute.
+  - **check_traceability glob bug:** glob tokens (`tests/fixtures/events/*.json`) were treated as literal paths and always reported missing. Now globbed.
+  - **plan §14 index drift corrected:** 2.10 test renamed `test_cli.py` -> `test_ipc_cli.py`; 1.15 `vcs/cli.py` was never built (storage/cli.py absorbed restore); 8.21 was split into 8.21a/8.21b.
+- `--check` exits 0; `--graph-coverage` exits 0 (6/6 nodes). Smoke lane 1100 passed.
+- Added `tests/support/graph_trace.py` (NodeTrace callback) wired into 10.1/10.2.
