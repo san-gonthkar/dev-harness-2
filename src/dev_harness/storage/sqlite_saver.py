@@ -59,7 +59,12 @@ class SqliteSaver:
         state_json = state.model_dump_json()
         sha = self._sha256(state_json)
         try:
-            self._conn.execute("BEGIN")
+            # BEGIN IMMEDIATE takes the write lock up front so busy_timeout
+            # applies. A deferred BEGIN would upgrade on the INSERT and SQLite
+            # returns SQLITE_BUSY immediately (not retried) when another
+            # connection holds a read lock - the "database is locked" the
+            # concurrent soak (10.3) exercises.
+            self._conn.execute("BEGIN IMMEDIATE")
             self._conn.execute(
                 "INSERT INTO checkpoints (project_id, thread_id, checkpoint_id, state_json, state_sha256, git_commit_hash, is_paused, created_at, worktree_head, worktree_diff) "
                 "VALUES (?,?,?,?,?,?,?,?,?,?)",

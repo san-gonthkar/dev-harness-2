@@ -50,8 +50,11 @@ def migrate_up(db_path: str | Path) -> list[str]:
             continue
         sql = mfile.read_text(encoding="utf-8")
         conn.executescript(sql)
+        # INSERT OR IGNORE: two connections may migrate concurrently (the 10.3
+        # soak opens one saver per writer thread); the loser of the race must
+        # not raise UNIQUE on the ledger row it just applied.
         conn.execute(
-            "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+            "INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (?, ?)",
             (version, int(time.time())),
         )
         versions.append(version)
