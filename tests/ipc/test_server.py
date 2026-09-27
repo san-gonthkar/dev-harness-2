@@ -9,9 +9,9 @@ from typing import Self
 
 import pytest
 
+from dev_harness.contracts.errors import InsecureSocketError
 from dev_harness.ipc import server as server_mod
 from dev_harness.ipc import transport as transport_mod
-from dev_harness.contracts.errors import InsecureSocketError
 from dev_harness.ipc.server import IpcServer
 from dev_harness.ipc.transport import UnsupportedPlatformError, is_posix, require_posix
 

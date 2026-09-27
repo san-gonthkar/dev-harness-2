@@ -19,6 +19,8 @@ class DerivedPaths:
     socket_path: Path
     lock_path: Path
     run_artifacts: Path
+    #: Where the engine daemon publishes its bound endpoint (TCP port).
+    endpoint_file: Path
 
 
 def _canonicalize(workspace: str | Path) -> Path:
@@ -61,6 +63,7 @@ def derive_paths(workspace: str | Path) -> DerivedPaths:
         socket_path=harness / f"harness-{ns}.sock",
         lock_path=harness / "workspace.lock",
         run_artifacts=harness / "runs",
+        endpoint_file=harness / "engine.endpoint",
     )
 
 

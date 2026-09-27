@@ -139,7 +139,9 @@ class BrokerDaemon:
         try:
             from dev_harness.ipc.client import IpcClient
 
-            client = IpcClient(endpoint)
+            # Bounded retry: this is a best-effort callback and must never
+            # block the broker's request thread indefinitely.
+            client = IpcClient(endpoint, connect_attempts=1)
             client.send(envelope)
             client.close()
         except Exception:  # noqa: BLE001, S110 - best-effort callback; must never raise

@@ -15,7 +15,6 @@ UnsupportedPlatformError (the .ps1 verify stub documents the limit).
 from __future__ import annotations
 
 import os
-import socket
 import subprocess
 import sys
 import time
@@ -33,6 +32,12 @@ from dev_harness.engine.commands import (
     encode_command,
     read_response_frame,
 )
+from dev_harness.ipc.transport import (
+    Endpoint,
+    TransportError,
+    parse_endpoint,
+)
+from dev_harness.ipc.transport import connect as transport_connect
 from dev_harness.paths import derive_paths
 
 HANDSHAKE_TIMEOUT = 3.0  # 5.B: handshake completes in under 3s
@@ -46,7 +51,7 @@ class EngineUnreachableError(HarnessError):
 
 
 class CommandClient:
-    """A blocking command/response client for the engine socket.
+    """A blocking command/response client for the engine endpoint.
 
     Unlike IpcClient (envelope vocabulary), this client speaks the command
     frame protocol from ``engine/commands.py`` — the same framing the
@@ -59,25 +64,28 @@ class CommandClient:
         *,
         socket_factory: Callable[[int, int], Any] | None = None,
         connect_timeout: float = HANDSHAKE_TIMEOUT,
+        endpoint: Endpoint | None = None,
     ) -> None:
         self.socket_path = Path(socket_path)
-        self._socket_factory = socket_factory or socket.socket
+        self._socket_factory = socket_factory
         self.connect_timeout = connect_timeout
+        # AF_UNIX is the default; TCP is opt-in via an explicit endpoint.
+        self.endpoint = endpoint or Endpoint(kind="unix", address=str(self.socket_path))
         self._conn: Any = None
 
     def _connect(self) -> Any:
-        """Connect to the engine socket, raising EngineUnreachableError."""
+        """Connect to the engine endpoint, raising EngineUnreachableError."""
         try:
-            conn = self._socket_factory(
-                getattr(socket, "AF_UNIX", 1), getattr(socket, "SOCK_STREAM", 1)
+            conn = transport_connect(
+                self.endpoint,
+                self.connect_timeout,
+                socket_factory=self._socket_factory,
             )
-            conn.settimeout(self.connect_timeout)
-            conn.connect(str(self.socket_path))
             self._conn = conn
             return conn
-        except OSError as exc:
+        except (OSError, TransportError) as exc:
             raise EngineUnreachableError(
-                f"cannot reach engine at {self.socket_path}",
+                f"cannot reach engine at {self.endpoint}",
                 remediation="Start the engine daemon (dev-harness-engine) and retry.",
             ) from exc
 
@@ -123,6 +131,28 @@ class EngineBootstrap:
         self._spawn = spawn or self._spawn_daemon
         self._clock = clock
 
+    def resolve_endpoint(self) -> Endpoint:
+        """The endpoint to connect to.
+
+        Prefers the daemon-published endpoint file (written when the daemon
+        binds TCP); falls back to the AF_UNIX path.
+        """
+        path = self.paths.endpoint_file
+        if path.exists():
+            try:
+                return parse_endpoint(path.read_text(encoding="utf-8"))
+            except (OSError, TransportError):
+                pass
+        return Endpoint(kind="unix", address=str(self.socket_path))
+
+    def _is_running(self) -> bool:
+        """True when a daemon appears to be listening.
+
+        On POSIX the AF_UNIX socket path is the signal; on Windows the
+        published endpoint file is.
+        """
+        return self.socket_path.exists() or self.paths.endpoint_file.exists()
+
     # -- handshake -----------------------------------------------------------
 
     def handshake(self, *, timeout: float = HANDSHAKE_TIMEOUT) -> StatusResponse:
@@ -135,7 +165,9 @@ class EngineBootstrap:
         last_error: EngineUnreachableError | None = None
         while True:
             try:
+                endpoint = self.resolve_endpoint()
                 client = self._client_factory(self.socket_path)
+                client.endpoint = endpoint
                 try:
                     response = client.request(
                         StatusCommand(workspace=str(self.workspace))
@@ -166,8 +198,8 @@ class EngineBootstrap:
     # -- autostart -----------------------------------------------------------
 
     def ensure_daemon(self, *, timeout: float = HANDSHAKE_TIMEOUT) -> StatusResponse:
-        """Return a handshaken daemon, spawning one if the socket is absent."""
-        if not self.socket_path.exists():
+        """Return a handshaken daemon, spawning one if none is listening."""
+        if not self._is_running():
             self._spawn(self.workspace)
         return self.handshake(timeout=timeout)
 

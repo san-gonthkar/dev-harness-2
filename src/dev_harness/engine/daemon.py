@@ -22,6 +22,13 @@ from typing import Any
 from dev_harness.contracts.errors import HarnessError
 from dev_harness.contracts.events import Envelope
 from dev_harness.ipc.server import IpcServer
+from dev_harness.ipc.transport import (
+    EPHEMERAL_PORT,
+    LOOPBACK,
+    Endpoint,
+    af_unix_available,
+    parse_endpoint,
+)
 from dev_harness.paths import derive_paths
 
 # The engine speaks the envelope vocabulary over the same framing as the
@@ -50,6 +57,7 @@ class EngineDaemon:
         handler: Handler | None = None,
         socket_factory: Callable[[int, int], Any] | None = None,
         clock: Callable[[], float] = time.monotonic,
+        endpoint: Endpoint | None = None,
     ) -> None:
         self.workspace = Path(workspace)
         self.paths = derive_paths(self.workspace)
@@ -57,7 +65,10 @@ class EngineDaemon:
         self.handler = handler
         self._socket_factory = socket_factory
         self._clock = clock
+        self._endpoint = endpoint
         self._server: IpcServer | None = None
+        #: The endpoint actually bound (resolved after :meth:`start`).
+        self.endpoint: Endpoint | None = None
         self._running = False
         self._draining = False
         self._exit_code = 0
@@ -68,14 +79,49 @@ class EngineDaemon:
     # -- lifecycle -----------------------------------------------------------
 
     def start(self) -> None:
-        """Bind the workspace socket and begin accepting connections."""
+        """Bind the workspace endpoint and begin accepting connections.
+
+        AF_UNIX is used where available. On platforms without it (native
+        Windows) the daemon binds TCP loopback on an OS-assigned port and
+        publishes the resolved endpoint to
+        ``<workspace>/.dev-harness/engine.endpoint`` so clients can find it.
+        """
+        endpoint = self._requested_endpoint()
         self._server = IpcServer(
             self.socket_path,
             handler=self.handler,
             socket_factory=self._socket_factory,
+            endpoint=endpoint,
         )
         self._server.start()
+        self.endpoint = self._server.endpoint
+        self._publish_endpoint()
         self._running = True
+
+    def _requested_endpoint(self) -> Endpoint:
+        """The endpoint to bind: AF_UNIX where available, else TCP loopback.
+
+        An injected ``socket_factory`` is a test seam and implies AF_UNIX, so
+        the daemon's socket lifecycle is testable on any platform.
+        """
+        if self._endpoint is not None:
+            return self._endpoint
+        if self._socket_factory is not None or af_unix_available():
+            return Endpoint(kind="unix", address=str(self.socket_path))
+        return Endpoint(kind="tcp", address=f"{LOOPBACK}:{EPHEMERAL_PORT}")
+
+    def _publish_endpoint(self) -> None:
+        """Write the bound endpoint to the workspace endpoint file.
+
+        Only written for a non-default transport (TCP); on POSIX the AF_UNIX
+        path is already deterministic, so no file is needed.
+        """
+        endpoint = self.endpoint
+        if endpoint is None or endpoint.kind == "unix":
+            return
+        path = self.paths.endpoint_file
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(str(endpoint), encoding="utf-8")
 
     def run(self) -> int:
         """Own the loop: install signal handlers and block until drained.
@@ -103,6 +149,7 @@ class EngineDaemon:
         if self._server is not None:
             self._server.stop()
         self._server = None
+        self._remove_endpoint_file()
         self._draining = False
 
     def stop(self) -> None:
@@ -111,6 +158,14 @@ class EngineDaemon:
         if self._server is not None:
             self._server.stop()
         self._server = None
+        self._remove_endpoint_file()
+
+    def _remove_endpoint_file(self) -> None:
+        """Remove the published endpoint file, if any."""
+        try:
+            self.paths.endpoint_file.unlink(missing_ok=True)
+        except OSError:
+            pass
 
     # -- signal handling -----------------------------------------------------
 
@@ -158,3 +213,33 @@ class EngineDaemon:
     def signal_received(self) -> int | None:
         """The signal that triggered shutdown, if any."""
         return self._signal_received
+
+
+def main(argv: list[str] | None = None) -> int:
+    """``dev-harness-engine`` daemon entry point.
+
+    Binds the workspace endpoint and blocks until a signal requests shutdown.
+    ``--endpoint`` overrides the transport (e.g. ``tcp:127.0.0.1:0``).
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="dev-harness-engine-daemon")
+    parser.add_argument("--workspace", default=".", help="Workspace directory")
+    parser.add_argument(
+        "--endpoint",
+        default=None,
+        help="Transport endpoint: unix:/path/to.sock or tcp:127.0.0.1:0",
+    )
+    args = parser.parse_args(argv)
+
+    endpoint = parse_endpoint(args.endpoint) if args.endpoint else None
+    daemon = EngineDaemon(args.workspace, endpoint=endpoint)
+    daemon.start()
+    try:
+        return daemon.run()
+    finally:
+        daemon.drain()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

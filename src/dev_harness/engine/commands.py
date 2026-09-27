@@ -217,7 +217,9 @@ def decode_response_frame(data: bytes) -> CommandResponse:
 
 def read_command_frame(stream: BinaryIO) -> Command:
     """Read one command frame from a binary stream, blocking until complete."""
-    prefix = stream.read(PREFIX_LEN)
+    from dev_harness.ipc.framing import read_exactly
+
+    prefix = read_exactly(stream, PREFIX_LEN)
     if not prefix:
         raise ValueError("EOF before any frame")
     if len(prefix) < PREFIX_LEN:
@@ -225,7 +227,7 @@ def read_command_frame(stream: BinaryIO) -> Command:
     (length,) = _PREFIX.unpack(prefix)
     if length > MAX_COMMAND_FRAME:
         raise ValueError(f"declared body of {length} bytes exceeds ceiling")
-    body = stream.read(length)
+    body = read_exactly(stream, length)
     if len(body) < length:
         raise ValueError(f"EOF inside frame body: {len(body)} of {length} bytes")
     return _command_from_json(body)
@@ -233,7 +235,9 @@ def read_command_frame(stream: BinaryIO) -> Command:
 
 def read_response_frame(stream: BinaryIO) -> CommandResponse:
     """Read one response frame from a binary stream, blocking until complete."""
-    prefix = stream.read(PREFIX_LEN)
+    from dev_harness.ipc.framing import read_exactly
+
+    prefix = read_exactly(stream, PREFIX_LEN)
     if not prefix:
         raise ValueError("EOF before any frame")
     if len(prefix) < PREFIX_LEN:
@@ -241,7 +245,7 @@ def read_response_frame(stream: BinaryIO) -> CommandResponse:
     (length,) = _PREFIX.unpack(prefix)
     if length > MAX_COMMAND_FRAME:
         raise ValueError(f"declared body of {length} bytes exceeds ceiling")
-    body = stream.read(length)
+    body = read_exactly(stream, length)
     if len(body) < length:
         raise ValueError(f"EOF inside frame body: {len(body)} of {length} bytes")
     return _response_from_json(body)

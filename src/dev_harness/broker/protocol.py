@@ -57,22 +57,12 @@ def decode_frame(data: bytes) -> BrokerMessage:
 def _read_exactly(stream: BinaryIO, n: int) -> bytes:
     """Read exactly ``n`` bytes from a file-like object or a socket.
 
-    Sockets expose ``recv`` (which may return short reads); file-like objects
-    expose ``read``. Both are supported so the same framing works over a
-    ``socket.socket`` and over an in-memory buffer.
+    Delegates to :func:`dev_harness.ipc.framing.read_exactly` so the broker and
+    the IPC layer share one implementation.
     """
-    recv = getattr(stream, "recv", None)
-    if recv is not None:
-        chunks: list[bytes] = []
-        remaining = n
-        while remaining > 0:
-            chunk = recv(remaining)
-            if not chunk:
-                break
-            chunks.append(chunk)
-            remaining -= len(chunk)
-        return b"".join(chunks)
-    return stream.read(n)
+    from dev_harness.ipc.framing import read_exactly
+
+    return read_exactly(stream, n)
 
 
 def read_frame(stream: BinaryIO) -> BrokerMessage:

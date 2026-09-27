@@ -85,13 +85,34 @@ def decode_frame(data: bytes) -> Envelope:
     return Envelope.model_validate_json(body)
 
 
+def read_exactly(stream: BinaryIO, n: int) -> bytes:
+    """Read exactly ``n`` bytes from a file-like object or a socket.
+
+    Sockets expose ``recv`` (which may return short reads); file-like objects
+    expose ``read``. Both are supported so the same framing works over a
+    ``socket.socket`` and over an in-memory buffer.
+    """
+    recv = getattr(stream, "recv", None)
+    if recv is not None:
+        chunks: list[bytes] = []
+        remaining = n
+        while remaining > 0:
+            chunk = recv(remaining)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        return b"".join(chunks)
+    return stream.read(n)
+
+
 def read_frame(stream: BinaryIO) -> Envelope:
     """Read one frame from a binary stream, blocking until complete.
 
     Raises IncompleteFrameError on EOF mid-frame and FrameTooLargeError when
     the declared length exceeds the global ceiling.
     """
-    prefix = stream.read(PREFIX_LEN)
+    prefix = read_exactly(stream, PREFIX_LEN)
     if not prefix:
         raise IncompleteFrameError(
             "EOF before any frame",
@@ -108,7 +129,7 @@ def read_frame(stream: BinaryIO) -> Envelope:
             f"declared body of {length} bytes exceeds global ceiling {GLOBAL_MAX_FRAME}",
             remediation="Reject the frame; the peer sent an oversized body.",
         )
-    body = stream.read(length)
+    body = read_exactly(stream, length)
     if len(body) < length:
         raise IncompleteFrameError(
             f"EOF inside frame body: {len(body)} of {length} bytes",

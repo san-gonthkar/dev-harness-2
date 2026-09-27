@@ -231,7 +231,7 @@ def test_emit_interrupt_routes_to_callback_endpoint(
     sent: list[object] = []
 
     class FakeIpcClient:
-        def __init__(self, endpoint: str) -> None:
+        def __init__(self, endpoint: str, **kwargs: Any) -> None:
             self.endpoint = endpoint
 
         def send(self, env: object) -> None:
