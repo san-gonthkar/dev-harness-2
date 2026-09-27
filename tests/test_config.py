@@ -52,3 +52,32 @@ def test_example_config_loads() -> None:
     # Ollama integration disabled (2026-09-27).
     assert "ollama" not in config.providers
     assert config.broker.allow_unbrokered is False
+
+
+def test_secret_env_vars_are_not_config_keys(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """DEV_HARNESS_*_API_KEY belongs to SecretsProvider, not the config schema."""
+    cfg = tmp_path / "c.toml"
+    cfg.write_text("[providers.openrouter]\nrpm = 50\n", encoding="utf-8")
+    monkeypatch.setenv("DEV_HARNESS_OPENROUTER_API_KEY", "sk-secret")
+    monkeypatch.setenv("DEV_HARNESS_ANTHROPIC_TOKEN", "tok")
+    config = load_config(cfg)
+    assert config.providers["openrouter"].rpm == 50
+
+
+def test_provider_auth_defaults_to_api_key(tmp_path: Path) -> None:
+    cfg = tmp_path / "c.toml"
+    cfg.write_text("[providers.openrouter]\nrpm = 50\n", encoding="utf-8")
+    config = load_config(cfg)
+    assert config.providers["openrouter"].auth == "api_key"
+
+
+def test_provider_auth_login_is_accepted_by_schema(tmp_path: Path) -> None:
+    """The schema accepts auth = 'login'; the factory fails closed at build time."""
+    cfg = tmp_path / "c.toml"
+    cfg.write_text(
+        '[providers.openrouter]\nrpm = 50\nauth = "login"\n', encoding="utf-8"
+    )
+    config = load_config(cfg)
+    assert config.providers["openrouter"].auth == "login"

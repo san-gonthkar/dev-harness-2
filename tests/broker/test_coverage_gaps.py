@@ -397,7 +397,7 @@ def test_daemon_main_health_flag(
     """daemon main() --health returns 0 and prints ok."""
     monkeypatch.setattr(
         "dev_harness.broker.daemon._health",
-        lambda socket_path: 0,
+        lambda socket_path, endpoint=None: 0,
     )
     rc = daemon_main(["--health"])
     assert rc == 0
@@ -463,7 +463,7 @@ def test_health_ok(
     """_health returns 0 and prints ok when the broker is reachable."""
 
     class FakeClient:
-        def __init__(self, path: Any) -> None:
+        def __init__(self, path: Any, **kwargs: Any) -> None:
             pass
 
         def health(self) -> BrokerMessage:
@@ -486,7 +486,7 @@ def test_health_unavailable(
     """_health returns 1 when the broker is unreachable."""
 
     class BoomClient:
-        def __init__(self, path: Any) -> None:
+        def __init__(self, path: Any, **kwargs: Any) -> None:
             pass
 
         def health(self) -> BrokerMessage:

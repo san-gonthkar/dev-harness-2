@@ -28,6 +28,11 @@ class ProviderConfig(BaseModel):
     keep_alive: str | None = None
     usd_per_mtok_in: float | None = None
     usd_per_mtok_out: float | None = None
+    #: Auth mode: "api_key" (implemented) or "login" (fails closed until the
+    #: OAuth device flow lands).
+    auth: str = "api_key"
+    #: Optional endpoint override (e.g. a proxy or a fake server in tests).
+    base_url: str | None = None
 
 
 class BrokerConfig(BaseModel):
@@ -67,18 +72,35 @@ def _coerce(raw: str) -> object:
     return raw
 
 
+#: Env-var suffixes that carry secrets, not config. ``SecretsProvider`` reads
+#: ``DEV_HARNESS_<NAME>``; those must never be parsed as config keys.
+_SECRET_SUFFIXES = ("_API_KEY", "_TOKEN", "_SECRET", "_PASSWORD")
+
+
+def _is_secret_key(name: str) -> bool:
+    """True when an env var name denotes a secret rather than a config key."""
+    upper = name.upper()
+    return any(upper.endswith(suffix) for suffix in _SECRET_SUFFIXES)
+
+
 def _apply_env_overrides(data: dict[str, object]) -> dict[str, object]:
     """Apply DEV_HARNESS_<SECTION>__<KEY> overrides on top of TOML values.
 
     ``DEV_HARNESS_ANTHROPIC__RPM=10`` overrides ``providers.anthropic.rpm``.
     ``DEV_HARNESS_BROKER__ALLOW_UNBROKERED=true`` overrides ``broker.allow_unbrokered``.
     ``DEV_HARNESS_WORKSPACE_PATH`` overrides a top-level scalar.
+
+    Secret variables (``*_API_KEY``, ``*_TOKEN``, ``*_SECRET``, ``*_PASSWORD``)
+    are skipped: they belong to :class:`~dev_harness.secrets.SecretsProvider`,
+    not to the config schema.
     """
     providers = _nested(data, "providers")
     for key, raw in os.environ.items():
         if not key.startswith("DEV_HARNESS_"):
             continue
         rest = key[len("DEV_HARNESS_") :]
+        if _is_secret_key(rest):
+            continue
         value: object = _coerce(raw)
         if "__" in rest:
             section, field = rest.split("__", 1)

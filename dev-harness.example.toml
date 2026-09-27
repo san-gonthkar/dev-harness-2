@@ -1,7 +1,11 @@
 # Dev Harness example configuration (V11 0.8)
 # Copy to dev-harness.toml and adjust. Provider blocks:
 #   rpm, tpm, max_concurrency, context_window, num_ctx, keep_alive,
-#   usd_per_mtok_in, usd_per_mtok_out
+#   usd_per_mtok_in, usd_per_mtok_out, auth, base_url
+#
+# auth = "api_key" (default) resolves the credential from
+#   DEV_HARNESS_<PROVIDER>_API_KEY -> OS keyring -> 0600 file.
+# auth = "login" is reserved for a future OAuth device flow and fails closed.
 workspace_path = "."
 
 budget_usd_per_run = 0.50
@@ -25,6 +29,7 @@ max_concurrency = 2
 context_window = 128000
 usd_per_mtok_in = 0.50
 usd_per_mtok_out = 1.50
+auth = "api_key"
 
 # Ollama integration disabled (2026-09-27). Uncomment to re-enable local
 # inference:

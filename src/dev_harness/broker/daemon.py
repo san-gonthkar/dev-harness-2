@@ -29,6 +29,11 @@ from dev_harness.broker.local_limiter import LocalLimiter
 from dev_harness.broker.policies import PolicyRegistry
 from dev_harness.broker.protocol import BrokerMessage, encode, read_frame
 from dev_harness.broker.reservation import ReservationStore
+from dev_harness.broker.transport import (
+    Endpoint,
+    default_endpoint,
+    parse_endpoint,
+)
 from dev_harness.config import HarnessConfig
 from dev_harness.contracts.enums import ProviderId
 from dev_harness.contracts.errors import HarnessError
@@ -66,12 +71,21 @@ class BrokerDaemon:
         lock_path: str | Path | None = None,
         clock: Callable[[], float] = time.monotonic,
         socket_factory: Callable[[int, int], Any] | None = None,
+        endpoint: str | Endpoint | None = None,
     ) -> None:
         self.config = config or HarnessConfig()
         self.socket_path = Path(socket_path) if socket_path else DEFAULT_SOCKET_PATH
         self.lock_path = Path(lock_path) if lock_path else DEFAULT_LOCK_PATH
         self._clock = clock
         self._socket_factory = socket_factory or socket.socket
+        if isinstance(endpoint, Endpoint):
+            self.endpoint = endpoint
+        elif isinstance(endpoint, str):
+            self.endpoint = parse_endpoint(endpoint)
+        elif socket_path is not None:
+            self.endpoint = Endpoint(kind="unix", address=str(self.socket_path))
+        else:
+            self.endpoint = default_endpoint(str(self.socket_path))
         self._policies = PolicyRegistry(self.config)
         self._registry = ModelRegistry(self.config)
         self._buckets: dict[ProviderId, TokenBucket] = {}
@@ -170,7 +184,11 @@ class BrokerDaemon:
 
     def _make_server(self) -> Any:
         """Build the broker socket server."""
-        return _BrokerSocketServer(self, socket_factory=self._socket_factory)
+        return _BrokerSocketServer(
+            self,
+            socket_factory=self._socket_factory,
+            endpoint=self.endpoint,
+        )
 
     def _handle_message(self, msg: BrokerMessage) -> BrokerMessage:
         """Dispatch a broker message to an operation."""
@@ -305,35 +323,48 @@ class BrokerDaemon:
 
 
 class _BrokerSocketServer:
-    """A minimal threaded AF_UNIX server speaking the broker protocol."""
+    """A minimal threaded server speaking the broker protocol.
+
+    The transport is AF_UNIX where available, else TCP loopback (native
+    Windows); see :mod:`dev_harness.broker.transport`.
+    """
 
     def __init__(
         self,
         daemon: BrokerDaemon,
         *,
         socket_factory: Callable[[int, int], Any] | None = None,
+        endpoint: Endpoint | None = None,
     ) -> None:
         self._daemon = daemon
         self._socket_factory = socket_factory or socket.socket
+        self._endpoint = endpoint or daemon.endpoint
         self._sock: Any = None
         self._running = False
         self._threads: list[threading.Thread] = []
 
     def start(self) -> None:
-        path = self._daemon.socket_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if path.exists():
+        if self._endpoint.kind == "unix":
+            path = Path(self._endpoint.address)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if path.exists():
+                try:
+                    path.unlink()
+                except (OSError, NotImplementedError):
+                    os.unlink(path)
+            self._sock = self._socket_factory(_AF_UNIX, _SOCK_STREAM)
+            self._sock.bind(str(path))
             try:
-                path.unlink()
-            except (OSError, NotImplementedError):
-                os.unlink(path)
-        self._sock = self._socket_factory(_AF_UNIX, _SOCK_STREAM)
-        self._sock.bind(str(path))
-        try:
-            os.chmod(path, 0o600)
-        except OSError:
-            pass
-        self._sock.listen(16)
+                os.chmod(path, 0o600)
+            except OSError:
+                pass
+            self._sock.listen(16)
+        else:
+            host, _, port = self._endpoint.address.rpartition(":")
+            self._sock = self._socket_factory(socket.AF_INET, _SOCK_STREAM)
+            self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self._sock.bind((host, int(port)))
+            self._sock.listen(16)
         self._running = True
         t = threading.Thread(target=self._accept_loop, daemon=True)
         t.start()
@@ -382,24 +413,34 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--lock", default=None, help="Override the host-scoped lock path"
     )
+    parser.add_argument(
+        "--endpoint",
+        default=None,
+        help="Transport endpoint: unix:/path/to.sock or tcp:127.0.0.1:8765",
+    )
     parser.add_argument("--health", action="store_true", help="Check health and exit")
     args = parser.parse_args(argv)
 
     if args.health:
-        return _health(args.socket)
+        return _health(args.socket, args.endpoint)
 
     config = HarnessConfig()
     if args.config:
         from dev_harness.config import load_config
 
         config = load_config(args.config)
-    daemon = BrokerDaemon(config, socket_path=args.socket, lock_path=args.lock)
+    daemon = BrokerDaemon(
+        config,
+        socket_path=args.socket,
+        lock_path=args.lock,
+        endpoint=args.endpoint,
+    )
     try:
         daemon.start()
     except AlreadyRunningError:
         print("AlreadyRunning", file=sys.stderr)
         return 3
-    print(f"broker listening on {daemon.socket_path}", file=sys.stderr)
+    print(f"broker listening on {daemon.endpoint}", file=sys.stderr)
     try:
         while daemon._running:
             time.sleep(0.5)
@@ -410,17 +451,16 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _health(socket_path: str | None) -> int:
+def _health(socket_path: str | None, endpoint: str | None = None) -> int:
     """Check broker health via the IPC endpoint."""
-    path = Path(socket_path) if socket_path else DEFAULT_SOCKET_PATH
     try:
         from dev_harness.broker.client import BrokerClient
 
-        client = BrokerClient(path)
+        client = BrokerClient(socket_path, endpoint=endpoint)
         client.health()
         client.close()
         print(json.dumps({"status": "ok"}))
         return 0
-    except (OSError, ValueError):
+    except (OSError, ValueError, HarnessError):
         print(json.dumps({"status": "unavailable"}))
         return 1

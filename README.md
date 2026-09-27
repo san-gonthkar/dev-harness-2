@@ -17,15 +17,21 @@ sockets, which are POSIX-only**. On native Windows the transport refuses to star
 (`UnsupportedPlatformError`), and the broker/engine fail with
 `OSError: connect(): bad family`.
 
+**The broker now supports a TCP loopback transport** (`tcp:127.0.0.1:8765`), so
+the broker — and the live provider path — run natively on Windows. The engine
+daemon and TUI still require AF_UNIX (WSL2).
+
 | What you want to run | Native Windows | WSL2 / Linux / macOS |
 | :--- | :---: | :---: |
 | Offline SDLC pipeline (`engine.cli run` / `plan` / `critic-drill`) | ✅ works | ✅ works |
-| Broker daemon (`dev-harness-broker`) | ❌ | ✅ |
+| Broker daemon (`dev-harness-broker`) | ✅ via `--endpoint tcp:...` | ✅ |
+| **Live provider run** (`dev-harness-live`) | ✅ via `--endpoint tcp:...` | ✅ |
 | Engine daemon (`dev-harness-engine`) | ❌ | ✅ |
 | Four-panel TUI (`dev-harness`) | ❌ | ✅ |
 | Test suite | ✅ (most) | ✅ |
 
-**On Windows, run the full stack inside WSL2.** The offline pipeline runs natively.
+**On Windows, run the live pipeline with the TCP broker endpoint.** The engine
+daemon and TUI need WSL2.
 
 ---
 
@@ -48,6 +54,7 @@ This installs four console scripts:
 | `dev-harness-broker` | Run the host-scoped rate-limit broker daemon |
 | `dev-harness-broker-cli` | Broker load generator / manual reserve / metrics |
 | `dev-harness-engine` | Ensure the workspace engine daemon is running |
+| `dev-harness-live` | Run the SDLC pipeline against a **real** provider (broker-metered) |
 
 ### Windows (PowerShell) — use the venv interpreter
 
@@ -94,6 +101,107 @@ trace: <workspace>/reports/parallel_trace.json
 `--workspace` must be a **git repository**. Other fixtures:
 `fixtures/req_diamond.md`, `fixtures/req_conflict.md`, `fixtures/req_cycle.md`,
 `fixtures/req_failing.md`, `fixtures/req_hitl.md`.
+
+---
+
+## 2b. Run it for real (live provider — OpenRouter)
+
+`dev-harness-live` runs the **same SDLC graph** against a **real provider**,
+metered through the broker. Every call reserves capacity before it runs and
+commits actual usage after, so rate limits and the cost governor apply.
+
+### 2b.1 Set the API key
+
+The credential resolves in this order: **environment → OS keyring → `0600` file**.
+
+```powershell
+$env:DEV_HARNESS_OPENROUTER_API_KEY = "sk-or-v1-..."   # PowerShell
+```
+
+```bash
+export DEV_HARNESS_OPENROUTER_API_KEY="sk-or-v1-..."   # bash
+```
+
+> `DEV_HARNESS_*_API_KEY` variables are treated as **secrets**, not config keys —
+> they are never parsed into the config schema.
+
+### 2b.2 Start the broker
+
+```powershell
+# Windows (TCP loopback)
+dev-harness-broker --config dev-harness.toml --endpoint tcp:127.0.0.1:8765
+```
+
+```bash
+# WSL2 / Linux / macOS (AF_UNIX default)
+dev-harness-broker --config dev-harness.toml
+```
+
+Verify: `dev-harness-broker --endpoint tcp:127.0.0.1:8765 --health` → `{"status": "ok"}`.
+
+### 2b.3 Run the pipeline
+
+```powershell
+dev-harness-live `
+    --workspace . `
+    --requirement fixtures/req_simple.md `
+    --provider openrouter `
+    --endpoint tcp:127.0.0.1:8765
+```
+
+On WSL2/Linux/macOS, omit `--endpoint` (AF_UNIX is the default).
+
+Expected output:
+
+```
+c1: COMPLETED
+gate: RUNNING
+```
+
+Check what it cost:
+
+```powershell
+dev-harness-broker-cli --config dev-harness.toml --endpoint tcp:127.0.0.1:8765 metrics
+# p50=...ms p95=...ms tpm=... usd=0.0013
+```
+
+### 2b.4 Configuration
+
+```toml
+[providers.openrouter]
+rpm = 50
+tpm = 200000
+max_concurrency = 2
+context_window = 128000
+usd_per_mtok_in = 0.50
+usd_per_mtok_out = 1.50
+auth = "api_key"          # "login" is reserved for a future OAuth flow
+# base_url = "..."        # optional endpoint override
+```
+
+- `budget_usd_per_run` / `budget_usd_per_day` cap spend; exceeding them trips the
+  kill-switch and the broker refuses further reservations.
+- `auth = "login"` is **accepted by the schema but fails closed at build time** —
+  the OAuth device flow is not implemented yet.
+
+### 2b.5 Adding another provider
+
+The factory is a registry — one entry adds a provider:
+
+```python
+from dev_harness.providers.factory import ProviderSpec, register
+from dev_harness.contracts.enums import ProviderId
+
+register(ProviderSpec(
+    provider=ProviderId.ANTHROPIC,
+    secret_name="ANTHROPIC_API_KEY",
+    default_model="claude-3-5-sonnet-latest",
+    build=lambda key, url: MyAdapter(key),
+))
+```
+
+The pipeline is **provider-agnostic**: it receives an `LLMClient` and never knows
+which vendor is behind it.
 
 ---
 
@@ -195,8 +303,12 @@ git repository.
 
 | Symptom | Cause | Fix |
 | :--- | :--- | :--- |
-| `OSError: connect(): bad family` | Running the broker/engine on native Windows | Run inside WSL2 (see §3.1) |
+| `OSError: connect(): bad family` | Running the broker/engine on native Windows | Use `--endpoint tcp:127.0.0.1:8765` for the broker; WSL2 for the engine/TUI |
 | `UnsupportedPlatformError: ... run inside WSL2` | AF_UNIX unavailable | Run inside WSL2 or on a POSIX host |
+| `AuthError: no credential for OPENROUTER_API_KEY` | API key not set | Set `DEV_HARNESS_OPENROUTER_API_KEY` |
+| `AuthNotImplementedError` | `auth = "login"` in config | Use `auth = "api_key"` until the OAuth flow lands |
+| `BrokerUnavailableError: broker refused reservation` | Rate limit, saturation, or budget exceeded | Check `dev-harness-broker-cli metrics`; raise the budget or wait |
+| `ProviderNotConfiguredError` | No `[providers.<name>]` block | Add the block to `dev-harness.toml` |
 | `dev-harness` exits `2` | `--workspace` is not a git repo | `git init` the workspace or point elsewhere |
 | `broker: unavailable` | Broker daemon not running | Start `dev-harness-broker` |
 | `engine unavailable` | Engine daemon could not handshake | Run `dev-harness-engine --workspace <ws>` and retry |

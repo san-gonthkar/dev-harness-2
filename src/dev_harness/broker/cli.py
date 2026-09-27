@@ -26,7 +26,11 @@ def _make_client(args: argparse.Namespace) -> BrokerClient:
         from dev_harness.config import load_config
 
         config = load_config(args.config)
-    return BrokerClient(getattr(args, "socket", None), config=config)
+    return BrokerClient(
+        getattr(args, "socket", None),
+        config=config,
+        endpoint=getattr(args, "endpoint", None),
+    )
 
 
 def _loadgen(args: argparse.Namespace) -> int:
@@ -145,6 +149,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="dev-harness-broker-cli")
     parser.add_argument("--config", default=None, help="Path to a TOML config")
     parser.add_argument("--socket", default=None, help="Broker socket path")
+    parser.add_argument(
+        "--endpoint",
+        default=None,
+        help="Transport endpoint: unix:/path/to.sock or tcp:127.0.0.1:8765",
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_load = sub.add_parser("loadgen", help="Synthetic load generator")

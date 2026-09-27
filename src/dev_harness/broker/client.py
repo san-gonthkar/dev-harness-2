@@ -15,6 +15,13 @@ from typing import Any
 
 from dev_harness.broker.daemon import DEFAULT_SOCKET_PATH, BrokerUnavailableError
 from dev_harness.broker.protocol import BrokerMessage, encode, read_frame
+from dev_harness.broker.transport import (
+    Endpoint,
+    TransportError,
+    default_endpoint,
+    parse_endpoint,
+)
+from dev_harness.broker.transport import connect as transport_connect
 from dev_harness.config import HarnessConfig
 from dev_harness.contracts.enums import ProviderId
 
@@ -23,7 +30,12 @@ _SOCK_STREAM = getattr(socket, "SOCK_STREAM", 1)
 
 
 class BrokerClient:
-    """A fail-closed client for the host-scoped broker."""
+    """A fail-closed client for the host-scoped broker.
+
+    ``socket_path`` is the historical AF_UNIX path. ``endpoint`` accepts an
+    explicit ``unix:``/``tcp:`` spec; when neither is given the endpoint
+    defaults to AF_UNIX where available, else TCP loopback (native Windows).
+    """
 
     def __init__(
         self,
@@ -31,11 +43,22 @@ class BrokerClient:
         *,
         config: HarnessConfig | None = None,
         connect_timeout: float = 2.0,
+        endpoint: str | Endpoint | None = None,
+        socket_factory: Any = None,
     ) -> None:
         self.socket_path = Path(socket_path) if socket_path else DEFAULT_SOCKET_PATH
         self._config = config or HarnessConfig()
         self.connect_timeout = connect_timeout
+        self._socket_factory = socket_factory
         self._conn: Any = None
+        if isinstance(endpoint, Endpoint):
+            self.endpoint = endpoint
+        elif isinstance(endpoint, str):
+            self.endpoint = parse_endpoint(endpoint)
+        elif socket_path is not None:
+            self.endpoint = Endpoint(kind="unix", address=str(self.socket_path))
+        else:
+            self.endpoint = default_endpoint(str(self.socket_path))
 
     @property
     def allow_unbrokered(self) -> bool:
@@ -43,16 +66,18 @@ class BrokerClient:
         return bool(self._config.broker.allow_unbrokered)
 
     def _connect(self) -> Any:
-        """Connect to the broker socket, raising BrokerUnavailableError."""
+        """Connect to the broker endpoint, raising BrokerUnavailableError."""
         try:
-            conn = socket.socket(_AF_UNIX, _SOCK_STREAM)
-            conn.settimeout(self.connect_timeout)
-            conn.connect(str(self.socket_path))
+            conn = transport_connect(
+                self.endpoint,
+                self.connect_timeout,
+                socket_factory=self._socket_factory,
+            )
             self._conn = conn
             return conn
-        except OSError as exc:
+        except (OSError, TransportError) as exc:
             raise BrokerUnavailableError(
-                f"cannot reach broker at {self.socket_path}",
+                f"cannot reach broker at {self.endpoint}",
                 remediation="Start the broker daemon or set broker.allow_unbrokered=true.",
             ) from exc
 
