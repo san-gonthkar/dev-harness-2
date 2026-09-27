@@ -62,9 +62,16 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P9 CLOSED (2026-09-24). P8 reviewer-ACCEPTED, human sign-off PENDING. Next: P10 — Verification & Release (human sign-off required).
 - **Lane**: All (P10)
-- **Current task**: P10 — 10.1 (full E2E) and 10.2 (parallel E2E) DONE; next 10.3.
-- **Last completed task**: 10.2 parallel SDLC E2E (`91fbd43`); 10.1 full SDLC E2E.
+- **Current task**: P10 — 10.1, 10.2, 10.5 DONE; next 10.3.
+- **Last completed task**: 10.5 CI tiering (`631c154`); 10.2 parallel SDLC E2E (`91fbd43`); 10.1 full SDLC E2E.
 - **Next task**: dispatch 10.3 (per the P10 plan).
+
+### 10.5 DONE — .github/workflows/ci.yml + nightly.yml
+- Files: `.github/workflows/ci.yml`, `.github/workflows/nightly.yml`. Commit `631c154` (pushed to origin/main).
+- Deliverable: CI tiering. **PR** (`ci.yml`, `pull_request` + push to main): `make install` -> `make lint` -> `make typecheck` -> `sh scripts/test_lane.sh smoke` (unit/property/contract/integration/negative), `timeout-minutes: 10`. **NIGHTLY** (`nightly.yml`, cron 03:00 + `workflow_dispatch`): three separate jobs — `sh scripts/test_lane.sh nightly` (timing/slow/e2e), `python scripts/mutation_gate.py` (real gate over the focus set), `make coverage` + `python scripts/coverage_gate.py` (ratchet). Python pinned `3.11` via `actions/setup-python@v5`.
+- Validation: `python -c "import yaml,sys; [yaml.safe_load(open(f)) for f in ('.github/workflows/ci.yml','.github/workflows/nightly.yml')]; print('workflows valid')"` -> `workflows valid`, exit 0. Smoke lane `scripts/test_lane.ps1 smoke` -> **1100 passed, 7 skipped, 19 deselected**, exit 0.
+- Deviation: nightly mutation job runs `python scripts/mutation_gate.py` (real gate) rather than `make mutation`, because the Makefile `mutation` target is a local `--dry-run`; the plan requires the nightly to run the mutation gate. No new deps.
+- Unverified: actual GitHub-runner wall-clock (< 10 min budget) and the nightly jobs — no runner available locally; YAML parse + smoke lane only (per brief).
 
 ### 10.2 DONE — tests/e2e/test_parallel_sdlc.py
 - Files: `tests/e2e/test_parallel_sdlc.py`. Commit `91fbd43` (pushed to origin/main).
