@@ -120,9 +120,13 @@ def _server_reply(factory: FakeSocketFactory, response: StatusResponse) -> None:
 
 
 def _touch_socket(bootstrap: EngineBootstrap) -> None:
-    """Create the socket file (with parents) to simulate a running daemon."""
-    bootstrap.socket_path.parent.mkdir(parents=True, exist_ok=True)
-    bootstrap.socket_path.write_text("", encoding="utf-8")
+    """Create the control socket file to simulate a running daemon.
+
+    The command vocabulary lives on the control socket (ADR-0002), so that is
+    the path the bootstrap probes for a live daemon.
+    """
+    bootstrap.control_socket_path.parent.mkdir(parents=True, exist_ok=True)
+    bootstrap.control_socket_path.write_text("", encoding="utf-8")
 
 
 def _status_response(**overrides: object) -> StatusResponse:
@@ -228,10 +232,10 @@ def test_cold_start_spawns_daemon(tmp_path: Path) -> None:
 
     def _fake_spawn(ws: Path) -> None:
         spawned.append(ws)
-        # The spawned daemon creates the socket file, then the handshake
-        # retry loop connects and succeeds.
-        bootstrap.socket_path.parent.mkdir(parents=True, exist_ok=True)
-        bootstrap.socket_path.write_text("", encoding="utf-8")
+        # The spawned daemon creates the control socket file, then the
+        # handshake retry loop connects and succeeds.
+        bootstrap.control_socket_path.parent.mkdir(parents=True, exist_ok=True)
+        bootstrap.control_socket_path.write_text("", encoding="utf-8")
 
     bootstrap = _bootstrap(tmp_path, factory, spawn=_fake_spawn)
     _server_reply(factory, _status_response())

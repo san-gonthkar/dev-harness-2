@@ -11,7 +11,18 @@ from dev_harness.contracts.errors import PathError
 
 @dataclass(frozen=True)
 class DerivedPaths:
-    """Canonical, deterministic paths for a workspace."""
+    """Canonical, deterministic paths for a workspace.
+
+    The engine daemon owns **two** endpoints (ADR-0002, V11 5.1/5.3):
+
+    * ``socket_path`` — the streaming socket carrying the envelope vocabulary
+      (state broadcast, fan-out to TUI clients).
+    * ``control_socket_path`` — the control socket carrying the command
+      vocabulary (START_SESSION, ATTACH, DETACH, STATUS, SHUTDOWN).
+
+    Each has a companion ``*.endpoint`` file, written only when the daemon
+    binds TCP (native Windows) so clients can discover the dynamic port.
+    """
 
     workspace: Path
     harness_dir: Path
@@ -19,8 +30,12 @@ class DerivedPaths:
     socket_path: Path
     lock_path: Path
     run_artifacts: Path
-    #: Where the engine daemon publishes its bound endpoint (TCP port).
+    #: Where the daemon publishes its bound streaming endpoint (TCP port).
     endpoint_file: Path
+    #: The control socket carrying the command vocabulary.
+    control_socket_path: Path
+    #: Where the daemon publishes its bound control endpoint (TCP port).
+    control_endpoint_file: Path
 
 
 def _canonicalize(workspace: str | Path) -> Path:
@@ -64,6 +79,8 @@ def derive_paths(workspace: str | Path) -> DerivedPaths:
         lock_path=harness / "workspace.lock",
         run_artifacts=harness / "runs",
         endpoint_file=harness / "engine.endpoint",
+        control_socket_path=harness / f"harness-{ns}.ctl.sock",
+        control_endpoint_file=harness / "engine.ctl.endpoint",
     )
 
 

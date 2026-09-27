@@ -1,13 +1,22 @@
-"""EngineDaemon: workspace-scoped socket daemon (V11 5.1).
+"""EngineDaemon: workspace-scoped dual-socket daemon (V11 5.1).
 
 The engine daemon is the process that hosts the graph, owns the workspace
-socket (ADR-0002: workspace-scoped, unlike the host-scoped broker), and
-serves attached clients. This task delivers the skeleton: bind the derived
-socket, own the accept loop, install signal handlers, and drain cleanly.
+endpoints (ADR-0002: workspace-scoped, unlike the host-scoped broker), and
+serves attached clients. It owns **two** sockets, each with one wire
+vocabulary:
+
+* the **streaming** socket — the envelope vocabulary (state broadcast, fan-out
+  to TUI clients), served by :class:`~dev_harness.ipc.server.IpcServer`;
+* the **control** socket — the command vocabulary (START_SESSION, ATTACH,
+  DETACH, STATUS, SHUTDOWN), served by
+  :class:`~dev_harness.ipc.control_server.ControlServer`.
+
+Keeping them separate means a client can never send a frame the server cannot
+decode. This mirrors the reference daemon in ``scripts/verify_phase_05.sh``.
 
 The command surface (5.3), fan-out (5.4), provider gateway (5.5), and state
-broadcast (5.8) plug in through the ``handler`` callable; the daemon itself
-only owns the socket lifecycle.
+broadcast (5.8) plug in through the ``handler`` and ``command_handler``
+callables; the daemon itself only owns the socket lifecycle.
 """
 
 from __future__ import annotations
@@ -21,6 +30,8 @@ from typing import Any
 
 from dev_harness.contracts.errors import HarnessError
 from dev_harness.contracts.events import Envelope
+from dev_harness.engine.commands import Command, CommandResponse
+from dev_harness.ipc.control_server import ControlServer
 from dev_harness.ipc.server import IpcServer
 from dev_harness.ipc.transport import (
     EPHEMERAL_PORT,
@@ -31,9 +42,10 @@ from dev_harness.ipc.transport import (
 )
 from dev_harness.paths import derive_paths
 
-# The engine speaks the envelope vocabulary over the same framing as the
-# broker, but on a workspace-scoped socket (ADR-0002).
+# The streaming socket speaks the envelope vocabulary (ADR-0002).
 Handler = Callable[[Envelope], Envelope | None]
+# The control socket speaks the command vocabulary (5.3).
+CommandHandlerFn = Callable[[Command], CommandResponse]
 
 
 class EngineDaemonError(HarnessError):
@@ -55,20 +67,28 @@ class EngineDaemon:
         workspace: str | Path,
         *,
         handler: Handler | None = None,
+        command_handler: CommandHandlerFn | None = None,
         socket_factory: Callable[[int, int], Any] | None = None,
         clock: Callable[[], float] = time.monotonic,
         endpoint: Endpoint | None = None,
+        control_endpoint: Endpoint | None = None,
     ) -> None:
         self.workspace = Path(workspace)
         self.paths = derive_paths(self.workspace)
         self.socket_path = self.paths.socket_path
+        self.control_socket_path = self.paths.control_socket_path
         self.handler = handler
+        self.command_handler = command_handler
         self._socket_factory = socket_factory
         self._clock = clock
         self._endpoint = endpoint
+        self._control_endpoint = control_endpoint
         self._server: IpcServer | None = None
-        #: The endpoint actually bound (resolved after :meth:`start`).
+        self._control_server: ControlServer | None = None
+        #: The streaming endpoint actually bound (resolved after :meth:`start`).
         self.endpoint: Endpoint | None = None
+        #: The control endpoint actually bound (resolved after :meth:`start`).
+        self.control_endpoint: Endpoint | None = None
         self._running = False
         self._draining = False
         self._exit_code = 0
@@ -79,27 +99,36 @@ class EngineDaemon:
     # -- lifecycle -----------------------------------------------------------
 
     def start(self) -> None:
-        """Bind the workspace endpoint and begin accepting connections.
+        """Bind both workspace endpoints and begin accepting connections.
 
         AF_UNIX is used where available. On platforms without it (native
-        Windows) the daemon binds TCP loopback on an OS-assigned port and
-        publishes the resolved endpoint to
-        ``<workspace>/.dev-harness/engine.endpoint`` so clients can find it.
+        Windows) each socket binds TCP loopback on an OS-assigned port and the
+        resolved endpoint is published to ``<workspace>/.dev-harness/`` so
+        clients can find it.
         """
-        endpoint = self._requested_endpoint()
         self._server = IpcServer(
             self.socket_path,
             handler=self.handler,
             socket_factory=self._socket_factory,
-            endpoint=endpoint,
+            endpoint=self._requested_endpoint(),
         )
         self._server.start()
         self.endpoint = self._server.endpoint
-        self._publish_endpoint()
+
+        self._control_server = ControlServer(
+            self.control_socket_path,
+            handler=self.command_handler or _unhandled_command,
+            socket_factory=self._socket_factory,
+            endpoint=self._requested_control_endpoint(),
+        )
+        self._control_server.start()
+        self.control_endpoint = self._control_server.endpoint
+
+        self._publish_endpoints()
         self._running = True
 
     def _requested_endpoint(self) -> Endpoint:
-        """The endpoint to bind: AF_UNIX where available, else TCP loopback.
+        """The streaming endpoint: AF_UNIX where available, else TCP loopback.
 
         An injected ``socket_factory`` is a test seam and implies AF_UNIX, so
         the daemon's socket lifecycle is testable on any platform.
@@ -110,16 +139,30 @@ class EngineDaemon:
             return Endpoint(kind="unix", address=str(self.socket_path))
         return Endpoint(kind="tcp", address=f"{LOOPBACK}:{EPHEMERAL_PORT}")
 
-    def _publish_endpoint(self) -> None:
-        """Write the bound endpoint to the workspace endpoint file.
+    def _requested_control_endpoint(self) -> Endpoint:
+        """The control endpoint: AF_UNIX where available, else TCP loopback."""
+        if self._control_endpoint is not None:
+            return self._control_endpoint
+        if self._socket_factory is not None or af_unix_available():
+            return Endpoint(kind="unix", address=str(self.control_socket_path))
+        return Endpoint(kind="tcp", address=f"{LOOPBACK}:{EPHEMERAL_PORT}")
 
-        Only written for a non-default transport (TCP); on POSIX the AF_UNIX
-        path is already deterministic, so no file is needed.
+    def _publish_endpoints(self) -> None:
+        """Publish each bound endpoint to its file (TCP only).
+
+        On POSIX the AF_UNIX paths are already deterministic, so no file is
+        needed; on Windows the dynamic ports must be discoverable.
         """
-        endpoint = self.endpoint
+        self._write_endpoint_file(self.endpoint, self.paths.endpoint_file)
+        self._write_endpoint_file(
+            self.control_endpoint, self.paths.control_endpoint_file
+        )
+
+    @staticmethod
+    def _write_endpoint_file(endpoint: Endpoint | None, path: Path) -> None:
+        """Write ``endpoint`` to ``path`` unless it is a deterministic unix path."""
         if endpoint is None or endpoint.kind == "unix":
             return
-        path = self.paths.endpoint_file
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(str(endpoint), encoding="utf-8")
 
@@ -143,13 +186,16 @@ class EngineDaemon:
             self._running = False
 
     def drain(self, timeout: float = 5.0) -> None:
-        """Graceful drain: stop accepting, close the socket, unlink it."""
+        """Graceful drain: stop accepting, close both sockets, unlink them."""
         self._draining = True
         self._running = False
         if self._server is not None:
             self._server.stop()
         self._server = None
-        self._remove_endpoint_file()
+        if self._control_server is not None:
+            self._control_server.stop()
+        self._control_server = None
+        self._remove_endpoint_files()
         self._draining = False
 
     def stop(self) -> None:
@@ -158,14 +204,18 @@ class EngineDaemon:
         if self._server is not None:
             self._server.stop()
         self._server = None
-        self._remove_endpoint_file()
+        if self._control_server is not None:
+            self._control_server.stop()
+        self._control_server = None
+        self._remove_endpoint_files()
 
-    def _remove_endpoint_file(self) -> None:
-        """Remove the published endpoint file, if any."""
-        try:
-            self.paths.endpoint_file.unlink(missing_ok=True)
-        except OSError:
-            pass
+    def _remove_endpoint_files(self) -> None:
+        """Remove the published endpoint files, if any."""
+        for path in (self.paths.endpoint_file, self.paths.control_endpoint_file):
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     # -- signal handling -----------------------------------------------------
 
@@ -215,25 +265,59 @@ class EngineDaemon:
         return self._signal_received
 
 
+def _unhandled_command(command: Command) -> CommandResponse:
+    """Default control handler: report that no command surface is wired.
+
+    The daemon owns the socket lifecycle; the command surface (5.3) is
+    injected. Without one, a command gets a typed error rather than a dropped
+    connection.
+    """
+    from dev_harness.engine.commands import ErrorResponse
+
+    return ErrorResponse(
+        error=f"no command handler wired for {command.command}",
+        remediation="Start the daemon with a CommandHandler (see engine.bootstrap).",
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     """``dev-harness-engine`` daemon entry point.
 
-    Binds the workspace endpoint and blocks until a signal requests shutdown.
-    ``--endpoint`` overrides the transport (e.g. ``tcp:127.0.0.1:0``).
+    Binds both workspace endpoints and blocks until a signal requests
+    shutdown. ``--endpoint``/``--control-endpoint`` override the transports
+    (e.g. ``tcp:127.0.0.1:0``).
     """
     import argparse
+
+    from dev_harness.engine.commands import CommandHandler
+    from dev_harness.engine.session import SessionManager
 
     parser = argparse.ArgumentParser(prog="dev-harness-engine-daemon")
     parser.add_argument("--workspace", default=".", help="Workspace directory")
     parser.add_argument(
         "--endpoint",
         default=None,
-        help="Transport endpoint: unix:/path/to.sock or tcp:127.0.0.1:0",
+        help="Streaming endpoint: unix:/path/to.sock or tcp:127.0.0.1:0",
+    )
+    parser.add_argument(
+        "--control-endpoint",
+        default=None,
+        dest="control_endpoint",
+        help="Control endpoint: unix:/path/to.sock or tcp:127.0.0.1:0",
     )
     args = parser.parse_args(argv)
 
     endpoint = parse_endpoint(args.endpoint) if args.endpoint else None
-    daemon = EngineDaemon(args.workspace, endpoint=endpoint)
+    control_endpoint = (
+        parse_endpoint(args.control_endpoint) if args.control_endpoint else None
+    )
+    sessions = SessionManager()
+    daemon = EngineDaemon(
+        args.workspace,
+        command_handler=CommandHandler(sessions).handle,
+        endpoint=endpoint,
+        control_endpoint=control_endpoint,
+    )
     daemon.start()
     try:
         return daemon.run()

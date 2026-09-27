@@ -127,31 +127,36 @@ class EngineBootstrap:
         self.workspace = Path(workspace)
         self.paths = derive_paths(self.workspace)
         self.socket_path = self.paths.socket_path
+        self.control_socket_path = self.paths.control_socket_path
         self._client_factory = client_factory or (lambda p: CommandClient(p))
         self._spawn = spawn or self._spawn_daemon
         self._clock = clock
 
     def resolve_endpoint(self) -> Endpoint:
-        """The endpoint to connect to.
+        """The **control** endpoint to connect to.
 
-        Prefers the daemon-published endpoint file (written when the daemon
-        binds TCP); falls back to the AF_UNIX path.
+        The command vocabulary lives on the control socket (ADR-0002). Prefers
+        the daemon-published control endpoint file (written when the daemon
+        binds TCP); falls back to the AF_UNIX control path.
         """
-        path = self.paths.endpoint_file
+        path = self.paths.control_endpoint_file
         if path.exists():
             try:
                 return parse_endpoint(path.read_text(encoding="utf-8"))
             except (OSError, TransportError):
                 pass
-        return Endpoint(kind="unix", address=str(self.socket_path))
+        return Endpoint(kind="unix", address=str(self.control_socket_path))
 
     def _is_running(self) -> bool:
         """True when a daemon appears to be listening.
 
-        On POSIX the AF_UNIX socket path is the signal; on Windows the
-        published endpoint file is.
+        On POSIX the AF_UNIX control socket path is the signal; on Windows the
+        published control endpoint file is.
         """
-        return self.socket_path.exists() or self.paths.endpoint_file.exists()
+        return (
+            self.control_socket_path.exists()
+            or self.paths.control_endpoint_file.exists()
+        )
 
     # -- handshake -----------------------------------------------------------
 
@@ -166,7 +171,7 @@ class EngineBootstrap:
         while True:
             try:
                 endpoint = self.resolve_endpoint()
-                client = self._client_factory(self.socket_path)
+                client = self._client_factory(self.control_socket_path)
                 client.endpoint = endpoint
                 try:
                     response = client.request(
