@@ -12,26 +12,30 @@ broker, and SQLite checkpoints.
 
 ## ⚠️ Read this first: platform support
 
-The full stack (broker daemon + engine daemon + TUI) communicates over **AF_UNIX
-sockets, which are POSIX-only**. On native Windows the transport refuses to start
-(`UnsupportedPlatformError`), and the broker/engine fail with
-`OSError: connect(): bad family`.
+The **engine daemon** communicates over **AF_UNIX sockets, which are POSIX-only**.
+On native Windows it refuses to start (`UnsupportedPlatformError`).
 
 **The broker now supports a TCP loopback transport** (`tcp:127.0.0.1:8765`), so
 the broker — and the live provider path — run natively on Windows. The engine
-daemon and TUI still require AF_UNIX (WSL2).
+daemon still requires AF_UNIX (WSL2).
 
 | What you want to run | Native Windows | WSL2 / Linux / macOS |
 | :--- | :---: | :---: |
 | Offline SDLC pipeline (`engine.cli run` / `plan` / `critic-drill`) | ✅ works | ✅ works |
 | Broker daemon (`dev-harness-broker`) | ✅ via `--endpoint tcp:...` | ✅ |
 | **Live provider run** (`dev-harness-live`) | ✅ via `--endpoint tcp:...` | ✅ |
+| Four-panel TUI shell (`dev-harness`) | ✅ renders | ✅ |
 | Engine daemon (`dev-harness-engine`) | ❌ | ✅ |
-| Four-panel TUI (`dev-harness`) | ❌ | ✅ |
+| TUI **live event feed** (engine → bridge) | ❌ | ✅ |
 | Test suite | ✅ (most) | ✅ |
 
 **On Windows, run the live pipeline with the TCP broker endpoint.** The engine
-daemon and TUI need WSL2.
+daemon needs WSL2.
+
+> **Note on the TUI:** the four-panel shell renders on Windows, but it is not yet
+> wired to a live engine feed — `cli.py` launches `HermesApp` without a `Bridge`,
+> so no IPC client is constructed. The bridge is exercised in tests and the
+> phase-07 verification script. A live feed needs the engine daemon (WSL2).
 
 ---
 
