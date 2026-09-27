@@ -561,3 +561,9 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - Validation: `pytest tests/e2e/test_full_sdlc.py -q` -> **2 passed**, exit 0. Smoke filter `-m "not timing and not slow and not e2e"` -> **1 passed, 1 deselected**. `ruff check`/`format` clean; `mypy --strict` clean (tests/ excluded by mypy.ini, verified anyway).
 - Tests: 2 (e2e 1, integration 1). `MockLLM` + sockets disabled (no network), no `time.sleep`, no `tui/` import, no new deps, no state string literals.
 - Unverified: full-suite coverage / 10.C graph-node assertion script (`generate_traceability.py --graph-coverage`, task 10.7) — smoke-only per brief; tracked requirement, not permission.
+
+### ORCHESTRATOR CHECKPOINT (2026-09-24, P10 in progress)
+- P7 CLOSED, P8 reviewer-ACCEPTED (human sign-off PENDING), P9 CLOSED.
+- P10: 10.1 DONE (8452e5e), 10.2 DONE (91fbd43). Remaining: 10.3, 10.4, 10.5, 10.6, 10.7, 10.8, 10.9, then 10.D (human sign-off + tag v1.0.0).
+- HEAD f26770f, pushed. Briefs in briefs/<task>.json.
+- Test lane: smoke only (permission is per-run, not carried forward).
