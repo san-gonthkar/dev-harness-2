@@ -484,6 +484,14 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - **Artifact**: `reports/phase_08_acceptance.json` verdict **ACCEPTED**, commit `e5a893f`, signed_by `reviewer-agent`, `human_signoff_required: true`. **Lane D requires a HUMAN signature.**
 
 ### P8 8.D REVIEW — ACCEPTED (2026-09-24, reviewer-agent, independent)
+
+### 10.6 DONE — tests/e2e/test_schema_conformance.py
+- Files: `tests/e2e/test_schema_conformance.py`. Commit `7e9bacf` (pushed to origin/main).
+- Deliverable: schema-conformance regression over every E2E checkpoint. Exact 10.B acceptance: (a) a real E2E (reuses the 10.1 harness `_pause_then_resume` + `_MockPersonaClient`/`MockLLM`) emits checkpoints; every row's `state_json` is `HarnessState.model_validate`-d **and** `jsonschema.validate`-d against the committed `schemas/harness_state.v7.json`; the dump round-trips field-for-field. (b) an added field is REJECTED by both the model (`extra="forbid"` -> `ValidationError`) and the schema (`additionalProperties: false` -> `jsonschema.ValidationError`), so a field can only be added by updating model + schema + fixture together.
+- Schema drift: `python -m dev_harness.contracts.schema --check` -> "schema matches committed file" (exit 0). No drift; the test asserts `schema == generate_schema()` so future drift fails loudly rather than silently rewriting.
+- Validation: `pytest tests/e2e/test_schema_conformance.py -q` -> **2 passed**, exit 0. Smoke lane `scripts/test_lane.ps1 smoke` -> **1099 passed, 7 skipped, 19 deselected**.
+- Tests: 2 (integration 1, negative 1). No `time.sleep`, no network, no `tui/` import, no new deps, no state string literals. `ruff check`/`format` clean.
+- Deviation: none. Unverified: full-suite coverage / 10.C (smoke-only per brief; tracked requirement, not permission).
 - Reviewed: P8 SDLC Pipeline Engine & Parallel Worker Pool (8.1-8.21b). Reviewer did not implement any P8 task.
 - Validation matrix (8.B): all 21 rows green (234 tests). Coverage (8.C) measured per-module: engine/ 96.6/91.8 (need 88/80); dag 100/100; worker_pool 98.8/94.4; worker_workspace 98.2/96.2; routing 100/100; classifier 100/100.
 - Rejection criteria: lost write -> PASS (0 lost, 5 commits); primary dirty -> PASS (clean before/mid/after); infinite retry -> PASS (terminal FAILED, e2e_retry_count=2); surviving mutant -> DEFERRED (mutmut needs WSL2/POSIX, plan R2); live network -> PASS (--mock, sockets disabled).
