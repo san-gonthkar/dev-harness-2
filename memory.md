@@ -62,9 +62,17 @@ Sessions are agent invocations with finite context. The orchestrator is the keep
 
 - **Phase**: P9 CLOSED (2026-09-24). P8 reviewer-ACCEPTED, human sign-off PENDING. Next: P10 — Verification & Release (human sign-off required).
 - **Lane**: All (P10)
-- **Current task**: P10 planning — read §10.A-§10.D, then dispatch 10.1.
-- **Last completed task**: P9 9.D reviewer sign-off ACCEPTED (`5bbbfc5`); 9.11 chaos drill + verify scripts (`88283be`).
-- **Next task**: plan P10 (9 tasks, 10.1-10.9), then dispatch 10.1 (full E2E).
+- **Current task**: P10 — 10.1 (full E2E) and 10.2 (parallel E2E) DONE; next 10.3.
+- **Last completed task**: 10.2 parallel SDLC E2E (`91fbd43`); 10.1 full SDLC E2E.
+- **Next task**: dispatch 10.3 (per the P10 plan).
+
+### 10.2 DONE — tests/e2e/test_parallel_sdlc.py
+- Files: `tests/e2e/test_parallel_sdlc.py`. Commit `91fbd43` (pushed to origin/main).
+- Deliverable: a 3-wide worker pool over the **real compiled SDLC graph** (`groomer -> architect -> develop -> integrate -> critic`) with three independent chunks, each bound to its own worktree (8.8) and merged into the primary branch (8.9). Exact 10.B acceptance: (a) observed peak concurrency == 3 (a `threading.Barrier(3)` in a `WorkerWorkspace` subclass makes the three concurrent binds rendezvous, so the peak is deterministic); (b) clean merge (`git status --porcelain` empty); (c) primary contains all three chunks (`merge-base --is-ancestor chunk/{id} HEAD` + file contents); (d) 0 lost writes (union of `git diff --name-only initial..chunk/{id}` == `initial..HEAD`).
+- Validation: `pytest tests/e2e/test_parallel_sdlc.py -q` -> **2 passed**, exit 0. Smoke lane `scripts/test_lane.ps1 smoke` -> **1097 passed, 7 skipped, 19 deselected**.
+- Tests: 2 (e2e 1 NIGHTLY, integration 1 PR-tier fast variant). Real temp git repo + `MockLLM`; no `time.sleep`, no network, no `tui/` import, no new deps, no state string literals. `mypy --strict` + `ruff check`/`format` clean.
+- Deviation: added a `.gitignore` (`__pycache__/`, `*.pyc`) to the fixture repo — without it each worktree's pytest run committed differing bytecode and the merge conflicted spuriously (a fixture artifact, not a product bug).
+- Unverified: full-suite coverage / 10.C graph-node coverage across 10.1+10.2 (smoke-only per brief; tracked requirement, not permission).
 
 ### 9.5 DONE — tui/responsive.py + tests/tui/test_responsive.py
 - Files: `src/dev_harness/tui/responsive.py`, `src/dev_harness/tui/app.py` (wired), `tests/tui/test_responsive.py`. Commit `c960780` (pushed to origin/main).
