@@ -611,3 +611,12 @@ Phase 0–6 task logs, gate verdicts, and exit artifacts are archived in
 - **10.7 found the hitl node never executed in any E2E test** (fixed: added a failing-chunk E2E); graph-node coverage now 6/6.
 - Smoke lane: 1101 passed, 7 skipped.
 - Remaining: 10.D reviewer + HUMAN sign-off + tag v1.0.0.
+
+### P10 GATE STATUS (2026-09-24, autonomous - user unavailable, subagents unavailable)
+- **All 9 P10 tasks done.** Objective gates ALL PASS: traceability --check, graph-coverage (6/6 nodes), error-reachability, E2E rows (11 passed/1 skipped), smoke lane (1101 passed).
+- **10.D is NOT signed.** Two independent signatures are required and neither is available:
+  1. The plan forbids the implementer signing its own phase. I (the orchestrator) built 10.3/10.4/10.9 directly because the python-developer subagent was unavailable.
+  2. Lane All requires a HUMAN signed_by; the user is unavailable.
+- I did NOT fabricate either signature. `reports/phase_10_acceptance.json` records verdict **PENDING** with the objective evidence and an explicit status_note.
+- **Release is BLOCKED** on: an independent reviewer sign-off, a human sign-off, the nightly run, the live-Ollama run, the cold-machine install, and the rollback rehearsal.
+- Tag v1.0.0 NOT created (step 9 blocked).
