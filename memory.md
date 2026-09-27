@@ -36,7 +36,7 @@ The orchestrator (`phase-orchestrator`) is the keeper of phase state and updates
 | P7 Hermes TUI Core Subsystem | closed | `scripts/verify_phase_07.sh` | reviewer-agent |
 | P8 SDLC Pipeline & Worker Pool | not started | `scripts/verify_phase_08.sh` | human required |
 | P9 Error Handling & Recovery | closed | `scripts/verify_phase_09.sh` | reviewer-agent |
-| P10 Verification & Release | not started | `scripts/verify_phase_10.sh` | human required |
+| P10 Verification & Release | blocked (tasks done; 10.D unsigned) | `scripts/verify_phase_10.sh` | human required |
 
 ---
 
