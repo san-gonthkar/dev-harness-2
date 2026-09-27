@@ -41,6 +41,7 @@ from dev_harness.contracts.llm import Message, Usage
 from dev_harness.contracts.state import Chunk, HarnessState
 from dev_harness.engine.pipeline import PipelineConfig, build_graph, initial_state
 from dev_harness.engine.worker_workspace import WorkerWorkspace
+from tests.support.graph_trace import NodeTrace
 from tests.support.mock_llm import MockLLM
 from tests.support.workspace import make_workspace
 
@@ -219,7 +220,11 @@ async def _run_parallel(
         raw_input="Implement three independent chunks.",
     )
     graph = build_graph(config)
-    run_config: RunnableConfig = {"configurable": {"thread_id": config.thread_id}}
+    trace = NodeTrace()
+    run_config: RunnableConfig = {
+        "configurable": {"thread_id": config.thread_id},
+        "callbacks": [trace],
+    }
 
     pytest_socket.disable_socket()
     try:
@@ -228,6 +233,7 @@ async def _run_parallel(
         assert graph.get_state(run_config).next == (), "the run did not finish"
     finally:
         pytest_socket.enable_socket()
+    trace.merge_into()
     return workspace, client, final
 
 

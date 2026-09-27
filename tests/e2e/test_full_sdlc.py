@@ -41,7 +41,7 @@ import pytest
 import pytest_socket
 from langchain_core.runnables import RunnableConfig
 
-from dev_harness.contracts.enums import ChunkStatus
+from dev_harness.contracts.enums import ChunkStatus, ExecutionState
 from dev_harness.contracts.llm import Message, Usage
 from dev_harness.contracts.state import Chunk, HarnessState
 from dev_harness.core.pause_seal import PauseSealer
@@ -54,6 +54,7 @@ from dev_harness.engine.pipeline import (
 from dev_harness.engine.worker_workspace import WorkerWorkspace
 from dev_harness.storage.checkpoint_binding import CheckpointBinding
 from dev_harness.storage.sqlite_saver import Scope, SqliteSaver
+from tests.support.graph_trace import NodeTrace
 from tests.support.mock_llm import MockLLM
 from tests.support.workspace import make_workspace
 
@@ -172,7 +173,11 @@ async def _pause_then_resume(
         repo, client, chunk, test_command=test_command, thread_id=thread_id
     )
     graph = build_graph(config)
-    run_config: RunnableConfig = {"configurable": {"thread_id": config.thread_id}}
+    trace = NodeTrace()
+    run_config: RunnableConfig = {
+        "configurable": {"thread_id": config.thread_id},
+        "callbacks": [trace],
+    }
     scope = Scope(project_id=config.project_id, thread_id=config.thread_id)
 
     pytest_socket.disable_socket()
@@ -200,6 +205,7 @@ async def _pause_then_resume(
     finally:
         pytest_socket.enable_socket()
 
+    trace.merge_into()
     return scope, checkpoint_id, sealed_state, halted_state, final_state
 
 
@@ -312,3 +318,48 @@ async def test_full_sdlc_pause_resume_fast(tmp_path: Path) -> None:
     _assert_resumed_from_checkpoint(client, sealed, final)
     # Every graph node ran (10.C graph-node coverage).
     assert client.roles == ["Groomer", "Architect", "Developer", "Critic"]
+
+
+@pytest.mark.integration
+async def test_full_sdlc_failing_chunk_escalates_to_hitl(tmp_path: Path) -> None:
+    """A failing chunk exhausts the e2e ceiling and runs the HITL node (10.C).
+
+    The success-path tests never reach ``hitl``; this drives the escalation so
+    every compiled graph node executes at least once across the E2E runs.
+    """
+    repo = make_workspace(tmp_path, files={"tests/test_base.py": _BASE_TEST})
+    chunk = Chunk(chunk_id="c1", title="Implement addition")
+    client = _MockPersonaClient(
+        MockLLM(seed="hitl"),
+        developer_writes={
+            "tests/test_chunk_c1.py": "def test_chunk_c1_is_red():\n    assert 1 + 1 == 3\n"
+        },
+    )
+    test_command = (
+        sys.executable,
+        "-c",
+        "import sys; print('1 failed in 0.01s'); sys.exit(1)",
+    )
+    config = _config(
+        repo, client, chunk, test_command=test_command, thread_id="sdlc-hitl"
+    )
+    graph = build_graph(config)
+    trace = NodeTrace()
+    run_config: RunnableConfig = {
+        "configurable": {"thread_id": config.thread_id},
+        "callbacks": [trace],
+    }
+
+    pytest_socket.disable_socket()
+    try:
+        final = await graph.ainvoke(initial_state(config), run_config)
+    finally:
+        pytest_socket.enable_socket()
+    trace.merge_into()
+
+    # The run terminates (no infinite loop) with the gate STOPPED.
+    assert graph.get_state(run_config).next == ()
+    assert final["tui_state"].critic_gatekeeper_status is ExecutionState.STOPPED
+    assert final["chunk_dag"][0].status is ChunkStatus.FAILED
+    # The HITL node executed.
+    assert "hitl" in trace.nodes

@@ -94,6 +94,14 @@ def parse_phase(phase: str) -> list[TaskTrace]:
                     trace.deliverable_files.append(token)
     for trace in traces.values():
         for rel in [*trace.deliverable_files, *trace.test_files]:
+            if "*" in rel or "?" in rel:
+                # A glob (e.g. `tests/fixtures/events/*.json`): satisfied when
+                # at least one match exists under either base.
+                if not any(
+                    any(base.glob(rel)) for base in PATH_BASES
+                ):
+                    trace.missing.append(rel)
+                continue
             if not any((base / rel).exists() for base in PATH_BASES):
                 trace.missing.append(rel)
     return sorted(traces.values(), key=lambda t: t.task_id)

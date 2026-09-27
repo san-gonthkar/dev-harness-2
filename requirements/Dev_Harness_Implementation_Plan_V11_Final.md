@@ -320,7 +320,7 @@ P0 Scaffolding, Contracts & Test Infrastructure
 | 1.12 | Restore with dirty-tree refusal / autostash, then `git checkout {sha}`. | `vcs/restore.py` | 1.11 | 3.0 |
 | 1.13 | Two-workspace concurrency fixture. | `tests/storage/test_multi_project_isolation.py` | 1.5, 1.8, 0.12 | 2.5 |
 | 1.14 | `scripts/verify_phase_01.sh`. | `scripts/verify_phase_01.sh` | 0.18 | 1.5 |
-| 1.15 | **Storage + restore CLI** for acceptance: `put`, `get`, `list`, `restore` subcommands wrapping 1.4/1.5/1.12. (V11: the 1.D protocol invoked these; no task built them.) | `storage/cli.py`, `vcs/cli.py` | 1.5, 1.12 | 2.5 |
+| 1.15 | **Storage + restore CLI** for acceptance: `put`, `get`, `list`, `restore` subcommands wrapping 1.4/1.5/1.12. (V11: the 1.D protocol invoked these; no task built them.) | `storage/cli.py` | 1.5, 1.12 | 2.5 |
 
 **Phase 1 total: 39.5h**
 
@@ -413,7 +413,7 @@ Mutation focus set: `guards.py` (a mutant that drops the `project_id` predicate 
 | 2.7 | Platform guard | `pytest tests/ipc/test_transport.py -q` | Simulated `win32` → error message contains "WSL2". | PR |
 | 2.8 | Contract drift | `pytest tests/ipc/test_event_contract.py -q` | All 9 fixtures parse; adding a required field without fixture update fails (mutation asserted); 9/9 members exercised. | PR |
 | 2.9 | Script executes | `bash scripts/verify_phase_02.sh` | Exit 0; acceptance JSON `ACCEPTED`. | PR |
-| 2.10 | CLI + harness | `pytest tests/ipc/test_cli.py -q` | `send-all` round-trips all 9 fixtures; `coverage-check` exits 1 on an unexercised type; echo server + recording client pair cleanly. | PR |
+| 2.10 | CLI + harness | `pytest tests/ipc/test_ipc_cli.py -q` | `send-all` round-trips all 9 fixtures; `coverage-check` exits 1 on an unexercised type; echo server + recording client pair cleanly. | PR |
 | 2.11 | ADR review gate | `test -f docs/adr/0003-snapshot-framing.md` | Decision, Rejected Alternatives, Consequences present. | PR |
 
 ### 2.C Coverage Contract
@@ -1167,7 +1167,7 @@ Critical: no LLM provider layer (→ P3); no execution engine process (→ P5); 
 | §5.1 | Local inference saturation | 4.4, 3.7 | `test_local_limiter.py`, `test_ollama_loader.py` |
 | §5.1 | Backoff + jitter | 4.5 | `test_backoff.py` |
 | §6 | Unified V7 state schema | 0.5, 0.7, 8.3 | `test_state_model.py`, `test_schema.py` |
-| §6 | `chunk_dag` + `assigned_worker_id` | 8.6, 8.7, 8.20, 8.21 | `test_dag.py`, `test_worker_pool.py`, `test_worker_checkpoint.py` |
+| §6 | `chunk_dag` + `assigned_worker_id` | 8.6, 8.7, 8.20, 8.21a, 8.21b | `test_dag.py`, `test_worker_pool.py`, `test_worker_checkpoint.py` |
 | §6 | Retry counters, e2e classification | 8.13, 8.17 | `test_routing.py`, `test_classifier.py` |
 | §6 | `rate_limiting` state fields | 4.3, 4.10 | `test_reservation.py`, `test_metrics_feed.py` |
 
