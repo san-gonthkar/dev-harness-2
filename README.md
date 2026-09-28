@@ -12,30 +12,26 @@ broker, and SQLite checkpoints.
 
 ## ⚠️ Read this first: platform support
 
-The **engine daemon** communicates over **AF_UNIX sockets, which are POSIX-only**.
-On native Windows it refuses to start (`UnsupportedPlatformError`).
-
-**The broker now supports a TCP loopback transport** (`tcp:127.0.0.1:8765`), so
-the broker — and the live provider path — run natively on Windows. The engine
-daemon still requires AF_UNIX (WSL2).
+**Everything runs natively on Windows.** The harness speaks length-prefixed
+JSON over a stream, so the transport is interchangeable: AF_UNIX where available
+(POSIX), TCP loopback (`127.0.0.1`) where it is not. On Windows each daemon
+binds an OS-assigned port and publishes it to `<workspace>/.dev-harness/`, so
+concurrent workspaces never collide.
 
 | What you want to run | Native Windows | WSL2 / Linux / macOS |
 | :--- | :---: | :---: |
-| Offline SDLC pipeline (`engine.cli run` / `plan` / `critic-drill`) | ✅ works | ✅ works |
-| Broker daemon (`dev-harness-broker`) | ✅ via `--endpoint tcp:...` | ✅ |
-| **Live provider run** (`dev-harness-live`) | ✅ via `--endpoint tcp:...` | ✅ |
+| Offline SDLC pipeline (`engine.cli run` / `plan` / `critic-drill`) | ✅ | ✅ |
+| Broker daemon (`dev-harness-broker`) | ✅ `--endpoint tcp:...` | ✅ |
+| Engine daemon (`dev-harness-engine`) | ✅ dynamic port | ✅ |
+| **Live provider run** (`dev-harness-live`) | ✅ `--endpoint tcp:...` | ✅ |
 | Four-panel TUI shell (`dev-harness`) | ✅ renders | ✅ |
-| Engine daemon (`dev-harness-engine`) | ❌ | ✅ |
-| TUI **live event feed** (engine → bridge) | ❌ | ✅ |
+| TUI **live event feed** (engine → bridge) | ⚠️ not wired yet | ⚠️ not wired yet |
 | Test suite | ✅ (most) | ✅ |
 
-**On Windows, run the live pipeline with the TCP broker endpoint.** The engine
-daemon needs WSL2.
-
-> **Note on the TUI:** the four-panel shell renders on Windows, but it is not yet
-> wired to a live engine feed — `cli.py` launches `HermesApp` without a `Bridge`,
-> so no IPC client is constructed. The bridge is exercised in tests and the
-> phase-07 verification script. A live feed needs the engine daemon (WSL2).
+> **Note on the TUI:** the four-panel shell renders, but it is not yet wired to a
+> live engine feed — `cli.py` launches `HermesApp` without a `Bridge`, so no IPC
+> client is constructed. The streaming socket and the bridge both exist and are
+> tested; connecting them is the remaining step. This is platform-independent.
 
 ---
 
@@ -50,7 +46,7 @@ pip install -e ".[dev]"       # editable + dev tools (pytest, ruff, mypy, mutmut
 
 `make install` is equivalent to the second command.
 
-This installs four console scripts:
+This installs five console scripts:
 
 | Command | Purpose |
 | :--- | :--- |
@@ -69,6 +65,48 @@ python -m venv .venv
 
 Then either activate the venv (`.venv\Scripts\Activate.ps1`) or prefix commands
 with `.venv\Scripts\python.exe`.
+
+---
+
+## 1b. Start the full stack (verified on Windows)
+
+Three steps. The broker is **host-scoped** (one per machine); the engine is
+**workspace-scoped** (one per repo).
+
+```powershell
+# 0. Configure (once, from the repo root)
+Copy-Item dev-harness.example.toml dev-harness.toml
+
+# 1. Broker — host-scoped, run in the background
+dev-harness-broker --config dev-harness.toml --endpoint tcp:127.0.0.1:8765
+
+# 2. Engine — workspace-scoped; autostarts on first connect
+dev-harness-engine --workspace C:\path\to\your\repo --self-check
+
+# 3. Verify the whole stack
+dev-harness --workspace C:\path\to\your\repo --self-check `
+    --broker-endpoint tcp:127.0.0.1:8765
+```
+
+Expected output of step 3 (exit code `0`):
+
+```
+socket: <workspace>\.dev-harness\harness-<ns>.sock
+db: <workspace>\.dev-harness\state.db
+broker: ok
+engine: thread_id=None state=READY version=0.1.0
+```
+
+- `broker: ok` — the host-scoped broker answered a HEALTH request.
+- `engine: ...` — the workspace engine answered the STATUS handshake.
+- `thread_id=None` is expected: no session exists until `START_SESSION`.
+
+On WSL2/Linux/macOS, omit `--endpoint` / `--broker-endpoint` (AF_UNIX is the
+default).
+
+> **The broker is host-scoped, not workspace-scoped.** `--broker-endpoint` is
+> required on Windows because the broker's port is fixed at `8765` while the
+> engine's ports are dynamic. Do not pass the workspace socket to the broker.
 
 ---
 
@@ -307,15 +345,14 @@ git repository.
 
 | Symptom | Cause | Fix |
 | :--- | :--- | :--- |
-| `OSError: connect(): bad family` | Running the broker/engine on native Windows | Use `--endpoint tcp:127.0.0.1:8765` for the broker; WSL2 for the engine/TUI |
-| `UnsupportedPlatformError: ... run inside WSL2` | AF_UNIX unavailable | Run inside WSL2 or on a POSIX host |
+| `broker: unavailable` | Broker daemon not running, or wrong endpoint | Start `dev-harness-broker`; pass `--broker-endpoint tcp:127.0.0.1:8765` |
+| `engine unavailable` | Engine daemon could not handshake | Run `dev-harness-engine --workspace <ws>` and retry |
+| `UnsupportedPlatformError: ... run inside WSL2` | A real AF_UNIX bind on Windows | Use the TCP endpoint, or run inside WSL2 |
 | `AuthError: no credential for OPENROUTER_API_KEY` | API key not set | Set `DEV_HARNESS_OPENROUTER_API_KEY` |
 | `AuthNotImplementedError` | `auth = "login"` in config | Use `auth = "api_key"` until the OAuth flow lands |
 | `BrokerUnavailableError: broker refused reservation` | Rate limit, saturation, or budget exceeded | Check `dev-harness-broker-cli metrics`; raise the budget or wait |
 | `ProviderNotConfiguredError` | No `[providers.<name>]` block | Add the block to `dev-harness.toml` |
 | `dev-harness` exits `2` | `--workspace` is not a git repo | `git init` the workspace or point elsewhere |
-| `broker: unavailable` | Broker daemon not running | Start `dev-harness-broker` |
-| `engine unavailable` | Engine daemon could not handshake | Run `dev-harness-engine --workspace <ws>` and retry |
 | `AlreadyRunning` on broker start | A broker is already up (host-scoped) | Use the existing instance; check `--health` |
 | `ModuleNotFoundError: No module named 'tests'` | Ran `engine.cli run` outside the repo root | Run it from the repository root |
 | `only '--mock' is supported in this build` | Missing `--mock` | Add `--mock` (no live adapters are wired) |

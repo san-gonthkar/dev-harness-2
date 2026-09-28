@@ -117,6 +117,43 @@ def test_self_check_prints_paths_and_health(
     assert "engine: thread_id=thread-1" in out
 
 
+@pytest.mark.unit
+def test_self_check_uses_host_scoped_broker_endpoint(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The broker is host-scoped: the self-check must not pass the workspace socket.
+
+    Regression: the self-check used to construct ``BrokerClient(paths.socket_path)``,
+    pointing the host-scoped broker client at the workspace socket, so it could
+    never reach a running broker.
+    """
+    _patch_repo(monkeypatch, True)
+    seen: dict[str, object] = {}
+
+    class _RecordingBroker(_FakeBroker):
+        def __init__(self, socket_path: object = None, **kwargs: object) -> None:
+            seen["socket_path"] = socket_path
+            seen["endpoint"] = kwargs.get("endpoint")
+            super().__init__(socket_path, **kwargs)
+
+    monkeypatch.setattr(cli, "BrokerClient", _RecordingBroker)
+    monkeypatch.setattr(cli, "EngineBootstrap", _FakeBootstrap)
+
+    rc = cli.main(
+        [
+            "--workspace",
+            str(tmp_path),
+            "--self-check",
+            "--broker-endpoint",
+            "tcp:127.0.0.1:8765",
+        ]
+    )
+
+    assert rc == 0
+    assert seen["socket_path"] is None
+    assert seen["endpoint"] == "tcp:127.0.0.1:8765"
+
+
 # --- negative ---------------------------------------------------------------
 
 

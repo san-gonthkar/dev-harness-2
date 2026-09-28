@@ -39,13 +39,15 @@ def _require_git_repo(workspace: str) -> None:
         )
 
 
-def _self_check(workspace: str) -> int:
+def _self_check(workspace: str, endpoint: str | None = None) -> int:
     """Print derived paths and broker/engine health; return an exit code."""
     paths = derive_paths(workspace)
     print(f"socket: {paths.socket_path}")
     print(f"db: {paths.state_db}")
 
-    broker = BrokerClient(paths.socket_path)
+    # The broker is HOST-scoped (ADR-0002), not workspace-scoped: it has its
+    # own endpoint, not the workspace socket.
+    broker = BrokerClient(endpoint=endpoint)
     try:
         reply = broker.health()
     finally:
@@ -69,12 +71,18 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Print socket/DB paths and broker/engine health, then exit",
     )
+    parser.add_argument(
+        "--broker-endpoint",
+        default=None,
+        dest="broker_endpoint",
+        help="Broker endpoint: unix:/path/to.sock or tcp:127.0.0.1:8765",
+    )
     args = parser.parse_args(argv)
 
     try:
         _require_git_repo(args.workspace)
         if args.self_check:
-            return _self_check(args.workspace)
+            return _self_check(args.workspace, args.broker_endpoint)
         from dev_harness.tui.app import HermesApp
 
         HermesApp(workspace=args.workspace).run()
