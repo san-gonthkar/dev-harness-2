@@ -86,6 +86,18 @@ class Bridge:
         """Register a handler invoked on the UI thread for ``event_type``."""
         self._handlers.setdefault(event_type, []).append(callback)
 
+    def push(self, envelope: Envelope) -> None:
+        """Marshal an externally-received envelope onto the UI thread.
+
+        Used by the live feed (7.7): the feed owns the socket, the bridge owns
+        the thread hop. Ordering is preserved because ``call_from_thread``
+        queues onto the app's message loop in call order.
+        """
+        try:
+            self.app.call_from_thread(self._apply, envelope)
+        except NoActiveAppError:
+            self._dropped += 1
+
     def start(self) -> None:
         """Spawn the single daemon reader thread (idempotent)."""
         if self._thread is not None:

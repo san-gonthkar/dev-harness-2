@@ -85,6 +85,9 @@ class EngineDaemon:
         self._control_endpoint = control_endpoint
         self._server: IpcServer | None = None
         self._control_server: ControlServer | None = None
+        #: Envelopes queued for broadcast to attached streaming clients.
+        self._broadcast: list[Envelope] = []
+        self._broadcast_lock = threading.Lock()
         #: The streaming endpoint actually bound (resolved after :meth:`start`).
         self.endpoint: Endpoint | None = None
         #: The control endpoint actually bound (resolved after :meth:`start`).
@@ -105,12 +108,17 @@ class EngineDaemon:
         Windows) each socket binds TCP loopback on an OS-assigned port and the
         resolved endpoint is published to ``<workspace>/.dev-harness/`` so
         clients can find it.
+
+        The streaming socket is a **broadcast** server: it polls
+        :attr:`broadcast_source` and pushes every envelope it yields to all
+        attached clients, which is how the TUI receives live state.
         """
         self._server = IpcServer(
             self.socket_path,
             handler=self.handler,
             socket_factory=self._socket_factory,
             endpoint=self._requested_endpoint(),
+            push_source=self._drain_broadcast,
         )
         self._server.start()
         self.endpoint = self._server.endpoint
@@ -126,6 +134,24 @@ class EngineDaemon:
 
         self._publish_endpoints()
         self._running = True
+
+    def publish(self, envelope: Envelope) -> None:
+        """Queue an envelope for broadcast to every attached client.
+
+        The engine's state broadcast (5.8) and fan-out (5.4) call this; the
+        streaming server drains the queue on its push thread.
+        """
+        with self._broadcast_lock:
+            self._broadcast.append(envelope)
+
+    def _drain_broadcast(self) -> list[Envelope]:
+        """Return and clear the pending broadcast queue (push-source callback)."""
+        with self._broadcast_lock:
+            if not self._broadcast:
+                return []
+            out = list(self._broadcast)
+            self._broadcast.clear()
+            return out
 
     def _requested_endpoint(self) -> Endpoint:
         """The streaming endpoint: AF_UNIX where available, else TCP loopback.

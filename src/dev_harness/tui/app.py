@@ -7,7 +7,7 @@ the bridge (7.7), throttle (7.8) and keybindings (7.9) attach later.
 
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from textual.app import App, ComposeResult
 from textual.events import Resize
@@ -20,6 +20,10 @@ from dev_harness.tui.panels.execution_canvas import ExecutionCanvas
 from dev_harness.tui.panels.model_registry import ModelRegistry
 from dev_harness.tui.panels.repo_manager import RepoManager
 from dev_harness.tui.responsive import visible_panels
+
+if TYPE_CHECKING:
+    from dev_harness.tui.bridge import Bridge
+    from dev_harness.tui.live_feed import LiveFeed
 
 #: CSS grid region IDs — the four panels mount here (7.2/7.3/7.5/7.6).
 REPO_MANAGER_ID = "#repo-manager"
@@ -50,6 +54,9 @@ class HermesApp(App[None]):
         self.workspace = workspace or "."
         #: PAUSE envelopes emitted by the ctrl+c binding (7.9).
         self._pause_requests: list[Envelope] = []
+        #: The live engine feed (7.7); ``None`` until mounted.
+        self.bridge: Bridge | None = None
+        self.feed: LiveFeed | None = None
 
     def compose(self) -> ComposeResult:
         """Yield the four region placeholders as direct grid children."""
@@ -59,8 +66,36 @@ class HermesApp(App[None]):
         yield CriticBar(id="critic-bar")
 
     def on_mount(self) -> None:
-        """Apply the responsive layout for the initial terminal size (9.5)."""
+        """Apply the responsive layout and attach the live engine feed (9.5, 7.7)."""
         self._apply_responsive_layout(self.size.width, self.size.height)
+        self._attach_live_feed()
+
+    def _attach_live_feed(self) -> None:
+        """Connect the bridge to the engine's streaming socket.
+
+        A missing engine is not an error: the TUI renders without live data.
+        """
+        from dev_harness.tui.bridge import Bridge
+        from dev_harness.tui.live_feed import LiveFeed
+
+        bridge = Bridge(self, source=lambda: None)
+        for selector in PANEL_REGIONS.values():
+            widget = self.query_one(selector)
+            bind = getattr(widget, "bind", None)
+            if callable(bind):
+                bind(bridge)
+        self.bridge = bridge
+        self.feed = LiveFeed(self.workspace, bridge)
+        self.feed.start()
+
+    def on_unmount(self) -> None:
+        """Stop the live feed and the bridge reader thread."""
+        if self.feed is not None:
+            self.feed.stop()
+            self.feed = None
+        if self.bridge is not None:
+            self.bridge.stop()
+            self.bridge = None
 
     def on_resize(self, event: Resize) -> None:
         """Re-apply the responsive layout whenever the terminal is resized (9.5)."""

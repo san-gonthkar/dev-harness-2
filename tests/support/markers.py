@@ -18,6 +18,7 @@ ALLOWED_MARKERS = {
     "timing",
     "slow",
     "e2e",
+    "live",
 }
 
 

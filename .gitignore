@@ -31,6 +31,8 @@ briefs/
 
 # Temporary local build/run helpers — not part of the product.
 run.bat
+run-tests.bat
+live-test.env.bat
 scripts/build.ps1
 scripts/build.sh
 scripts/start.ps1

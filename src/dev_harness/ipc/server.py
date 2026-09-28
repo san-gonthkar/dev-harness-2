@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 import stat
 import threading
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -36,6 +37,11 @@ class IpcServer:
 
     Each accepted connection is handled on its own thread; the handler
     receives each decoded Envelope and may return a reply envelope.
+
+    A ``push_source`` turns the server into a **streaming** server: it is
+    polled on a background thread and every envelope it returns is broadcast
+    to all connected clients. That is how the TUI receives live state without
+    having to ask for it.
     """
 
     def __init__(
@@ -45,6 +51,8 @@ class IpcServer:
         handler: Handler | None = None,
         socket_factory: Callable[[int, int], Any] | None = None,
         endpoint: Endpoint | None = None,
+        push_source: Callable[[], list[Envelope]] | None = None,
+        push_interval: float = 0.02,
     ) -> None:
         self.socket_path = Path(socket_path)
         self.handler = handler
@@ -61,6 +69,11 @@ class IpcServer:
         self._server: Any = None
         self._threads: list[threading.Thread] = []
         self._running = False
+        self._push_source = push_source
+        self.push_interval = push_interval
+        self._conns: list[Any] = []
+        self._conns_lock = threading.Lock()
+        self._push_thread: threading.Thread | None = None
 
     def start(self) -> None:
         """Bind the endpoint (cleaning any stale socket) and begin accepting."""
@@ -74,6 +87,33 @@ class IpcServer:
         self._running = True
         self._accept_thread = threading.Thread(target=self._accept_loop, daemon=True)
         self._accept_thread.start()
+        if self._push_source is not None:
+            self._push_thread = threading.Thread(target=self._push_loop, daemon=True)
+            self._push_thread.start()
+
+    def _push_loop(self) -> None:
+        """Broadcast every envelope the push source yields to all clients."""
+        from dev_harness.ipc.framing import encode
+
+        while self._running:
+            envelopes = self._push_source() if self._push_source else []
+            if not envelopes:
+                time.sleep(self.push_interval)
+                continue
+            with self._conns_lock:
+                conns = list(self._conns)
+            for conn in conns:
+                for env in envelopes:
+                    try:
+                        conn.sendall(encode(env))
+                    except OSError:
+                        self._drop_conn(conn)
+
+    def _drop_conn(self, conn: Any) -> None:
+        """Remove a dead connection from the broadcast set."""
+        with self._conns_lock:
+            if conn in self._conns:
+                self._conns.remove(conn)
 
     def _verify_socket_permissions(self) -> None:
         """Raise :class:`InsecureSocketError` if the socket is group/other-accessible.
@@ -101,6 +141,8 @@ class IpcServer:
             t.start()
 
     def _handle_conn(self, conn: Any) -> None:
+        with self._conns_lock:
+            self._conns.append(conn)
         try:
             with conn:
                 while self._running:
@@ -119,6 +161,8 @@ class IpcServer:
                             conn.sendall(encode(reply))
         except OSError:
             pass
+        finally:
+            self._drop_conn(conn)
 
     def stop(self) -> None:
         """Stop accepting and close the server socket."""
