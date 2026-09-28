@@ -104,12 +104,13 @@ def parse_endpoint(spec: str) -> Endpoint:
     raise TransportError(f"unknown endpoint scheme: {raw}")
 
 
-def default_endpoint(unix_path: str, *, tcp_port: int = DEFAULT_TCP_PORT) -> Endpoint:
+def default_endpoint(unix_path: str, *, tcp_port: int = EPHEMERAL_PORT) -> Endpoint:
     """The default endpoint: AF_UNIX where available, else TCP loopback.
 
-    The default TCP port is fixed so a host-scoped client can find the broker
-    without a discovery file. Pass ``tcp_port=EPHEMERAL_PORT`` for an
-    OS-assigned port (used by the workspace-scoped engine daemon).
+    ``tcp_port`` defaults to :data:`EPHEMERAL_PORT` (0), so the OS assigns a
+    free port and concurrent daemons never collide. The bound port is
+    discoverable via the daemon's published endpoint file; pass an explicit
+    port only when a fixed address is required.
     """
     if af_unix_available():
         return Endpoint(kind="unix", address=unix_path)

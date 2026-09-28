@@ -13,6 +13,10 @@ budget_usd_per_day = 5.00
 
 [broker]
 allow_unbrokered = false
+# Optional. Omit to discover the broker's endpoint automatically: the daemon
+# binds a dynamic port and publishes it. Set only to pin a fixed address,
+# e.g. endpoint = "tcp:127.0.0.1:8765".
+# endpoint = "unix:/home/you/.local/share/dev-harness/broker.sock"
 
 [providers.anthropic]
 rpm = 50

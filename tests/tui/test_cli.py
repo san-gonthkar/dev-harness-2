@@ -28,6 +28,7 @@ class _FakeBroker:
 
     def __init__(self, socket_path: object = None, **_: object) -> None:
         self.socket_path = socket_path
+        self.endpoint = "tcp:127.0.0.1:0"
         self.closed = False
 
     def health(self) -> BrokerMessage:

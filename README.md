@@ -70,22 +70,18 @@ with `.venv\Scripts\python.exe`.
 
 ## 1b. Start the full stack (verified on Windows)
 
-Three steps. The broker is **host-scoped** (one per machine); the engine is
-**workspace-scoped** (one per repo).
+**No configuration and no port numbers are required.** Both daemons bind a
+dynamic port and publish it; clients discover it automatically.
 
 ```powershell
-# 0. Configure (once, from the repo root)
-Copy-Item dev-harness.example.toml dev-harness.toml
+# 1. Broker — host-scoped (one per machine), run in the background
+dev-harness-broker
 
-# 1. Broker — host-scoped, run in the background
-dev-harness-broker --config dev-harness.toml --endpoint tcp:127.0.0.1:8765
-
-# 2. Engine — workspace-scoped; autostarts on first connect
+# 2. Engine — workspace-scoped (one per repo); autostarts on first connect
 dev-harness-engine --workspace C:\path\to\your\repo --self-check
 
 # 3. Verify the whole stack
-dev-harness --workspace C:\path\to\your\repo --self-check `
-    --broker-endpoint tcp:127.0.0.1:8765
+dev-harness --workspace C:\path\to\your\repo --self-check
 ```
 
 Expected output of step 3 (exit code `0`):
@@ -93,20 +89,44 @@ Expected output of step 3 (exit code `0`):
 ```
 socket: <workspace>\.dev-harness\harness-<ns>.sock
 db: <workspace>\.dev-harness\state.db
-broker: ok
+broker: ok (tcp:127.0.0.1:51030)
 engine: thread_id=None state=READY version=0.1.0
 ```
 
-- `broker: ok` — the host-scoped broker answered a HEALTH request.
+- `broker: ok (tcp:127.0.0.1:51030)` — the host-scoped broker answered, and the
+  port shown is the one it actually bound.
 - `engine: ...` — the workspace engine answered the STATUS handshake.
 - `thread_id=None` is expected: no session exists until `START_SESSION`.
 
-On WSL2/Linux/macOS, omit `--endpoint` / `--broker-endpoint` (AF_UNIX is the
-default).
+### How discovery works
 
-> **The broker is host-scoped, not workspace-scoped.** `--broker-endpoint` is
-> required on Windows because the broker's port is fixed at `8765` while the
-> engine's ports are dynamic. Do not pass the workspace socket to the broker.
+| Daemon | Scope | Where the endpoint is published |
+| :--- | :--- | :--- |
+| Broker | host | `~/.local/share/dev-harness/broker.endpoint` |
+| Engine (streaming) | workspace | `<workspace>/.dev-harness/engine.endpoint` |
+| Engine (control) | workspace | `<workspace>/.dev-harness/engine.ctl.endpoint` |
+
+On POSIX the AF_UNIX path is derived deterministically, so no file is written.
+Endpoint resolution order, for every client:
+
+1. an explicit `--endpoint` / `--broker-endpoint` flag;
+2. the `endpoint` value in `dev-harness.toml` (`[broker] endpoint = "..."` for the broker);
+3. the published discovery file (**fully automatic** — this is the default);
+4. the platform default (AF_UNIX, or a fixed TCP port).
+
+### Configure once, not at startup
+
+`dev-harness.toml` is **optional**. With no file, the defaults apply. To pin a
+fixed address instead of a dynamic one:
+
+```toml
+[broker]
+endpoint = "tcp:127.0.0.1:8765"   # omit to keep the dynamic default
+```
+
+> **The broker is host-scoped, not workspace-scoped.** Never pass the workspace
+> socket to the broker client — pass `--broker-endpoint` or set the config, or
+> simply let discovery handle it.
 
 ---
 
@@ -345,7 +365,7 @@ git repository.
 
 | Symptom | Cause | Fix |
 | :--- | :--- | :--- |
-| `broker: unavailable` | Broker daemon not running, or wrong endpoint | Start `dev-harness-broker`; pass `--broker-endpoint tcp:127.0.0.1:8765` |
+| `broker: unavailable` | Broker daemon not running | Start `dev-harness-broker` (endpoint is discovered automatically) |
 | `engine unavailable` | Engine daemon could not handshake | Run `dev-harness-engine --workspace <ws>` and retry |
 | `UnsupportedPlatformError: ... run inside WSL2` | A real AF_UNIX bind on Windows | Use the TCP endpoint, or run inside WSL2 |
 | `AuthError: no credential for OPENROUTER_API_KEY` | API key not set | Set `DEV_HARNESS_OPENROUTER_API_KEY` |

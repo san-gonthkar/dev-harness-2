@@ -40,19 +40,24 @@ def _require_git_repo(workspace: str) -> None:
 
 
 def _self_check(workspace: str, endpoint: str | None = None) -> int:
-    """Print derived paths and broker/engine health; return an exit code."""
+    """Print derived paths and broker/engine health; return an exit code.
+
+    The broker endpoint is resolved automatically: an explicit ``--broker-endpoint``,
+    then ``broker.endpoint`` in the config, then the daemon's published
+    discovery file. No port needs to be passed.
+    """
     paths = derive_paths(workspace)
     print(f"socket: {paths.socket_path}")
     print(f"db: {paths.state_db}")
 
     # The broker is HOST-scoped (ADR-0002), not workspace-scoped: it has its
-    # own endpoint, not the workspace socket.
+    # own endpoint, discovered from config or the published file.
     broker = BrokerClient(endpoint=endpoint)
     try:
         reply = broker.health()
     finally:
         broker.close()
-    print(f"broker: {'ok' if reply.ok else 'unavailable'}")
+    print(f"broker: {'ok' if reply.ok else 'unavailable'} ({broker.endpoint})")
 
     response = EngineBootstrap(workspace).ensure_daemon()
     print(

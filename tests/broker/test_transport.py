@@ -7,7 +7,7 @@ import socket
 import pytest
 
 from dev_harness.broker.transport import (
-    DEFAULT_TCP_PORT,
+    EPHEMERAL_PORT,
     LOOPBACK,
     Endpoint,
     TransportError,
@@ -64,14 +64,16 @@ def test_parse_rejects_non_loopback_bind() -> None:
 
 
 @pytest.mark.unit
-def test_default_endpoint_matches_platform() -> None:
+def test_default_endpoint_is_dynamic_tcp_on_windows() -> None:
+    """The default TCP endpoint uses port 0 (dynamic), not a fixed port."""
     ep = default_endpoint("/tmp/broker.sock")
     if af_unix_available():
         assert ep.kind == "unix"
         assert ep.address == "/tmp/broker.sock"
     else:
         assert ep.kind == "tcp"
-        assert ep.address == f"{LOOPBACK}:{DEFAULT_TCP_PORT}"
+        assert ep.address == f"{LOOPBACK}:{EPHEMERAL_PORT}"
+        assert ep.address.endswith(":0")
 
 
 @pytest.mark.unit

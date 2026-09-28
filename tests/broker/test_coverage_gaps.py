@@ -397,7 +397,7 @@ def test_daemon_main_health_flag(
     """daemon main() --health returns 0 and prints ok."""
     monkeypatch.setattr(
         "dev_harness.broker.daemon._health",
-        lambda socket_path, endpoint=None: 0,
+        lambda socket_path, endpoint=None, endpoint_file=None: 0,
     )
     rc = daemon_main(["--health"])
     assert rc == 0

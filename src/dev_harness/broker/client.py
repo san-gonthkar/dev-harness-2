@@ -13,17 +13,21 @@ import socket
 from pathlib import Path
 from typing import Any
 
-from dev_harness.broker.daemon import DEFAULT_SOCKET_PATH, BrokerUnavailableError
+from dev_harness.broker.daemon import (
+    DEFAULT_ENDPOINT_FILE,
+    DEFAULT_SOCKET_PATH,
+    BrokerUnavailableError,
+)
 from dev_harness.broker.protocol import BrokerMessage, encode, read_frame
 from dev_harness.broker.transport import (
+    DEFAULT_TCP_PORT,
     Endpoint,
     TransportError,
-    default_endpoint,
-    parse_endpoint,
 )
 from dev_harness.broker.transport import connect as transport_connect
 from dev_harness.config import HarnessConfig
 from dev_harness.contracts.enums import ProviderId
+from dev_harness.ipc.discovery import resolve_endpoint
 
 _AF_UNIX = getattr(socket, "AF_UNIX", 1)
 _SOCK_STREAM = getattr(socket, "SOCK_STREAM", 1)
@@ -32,9 +36,10 @@ _SOCK_STREAM = getattr(socket, "SOCK_STREAM", 1)
 class BrokerClient:
     """A fail-closed client for the host-scoped broker.
 
-    ``socket_path`` is the historical AF_UNIX path. ``endpoint`` accepts an
-    explicit ``unix:``/``tcp:`` spec; when neither is given the endpoint
-    defaults to AF_UNIX where available, else TCP loopback (native Windows).
+    Endpoint resolution order: an explicit ``endpoint`` argument, then the
+    ``broker.endpoint`` config value, then the daemon's published discovery
+    file, then the platform default. The discovery file is what makes the
+    broker's dynamic port automatic — no port needs to be passed.
     """
 
     def __init__(
@@ -45,20 +50,30 @@ class BrokerClient:
         connect_timeout: float = 2.0,
         endpoint: str | Endpoint | None = None,
         socket_factory: Any = None,
+        endpoint_file: str | Path | None = None,
     ) -> None:
         self.socket_path = Path(socket_path) if socket_path else DEFAULT_SOCKET_PATH
         self._config = config or HarnessConfig()
         self.connect_timeout = connect_timeout
         self._socket_factory = socket_factory
         self._conn: Any = None
-        if isinstance(endpoint, Endpoint):
-            self.endpoint = endpoint
-        elif isinstance(endpoint, str):
-            self.endpoint = parse_endpoint(endpoint)
-        elif socket_path is not None:
-            self.endpoint = Endpoint(kind="unix", address=str(self.socket_path))
-        else:
-            self.endpoint = default_endpoint(str(self.socket_path))
+        # Resolution order: explicit endpoint -> config -> published discovery
+        # file -> platform default. The published file is what makes the
+        # broker's dynamic port fully automatic for clients.
+        explicit: str | Endpoint | None = endpoint
+        if explicit is None and socket_path is not None:
+            explicit = Endpoint(kind="unix", address=str(self.socket_path))
+        configured = (
+            self._config.broker.endpoint if self._config.broker.endpoint else None
+        )
+        published = Path(endpoint_file) if endpoint_file else DEFAULT_ENDPOINT_FILE
+        self.endpoint = resolve_endpoint(
+            explicit=explicit,
+            configured=configured,
+            published=published,
+            unix_path=str(self.socket_path),
+            tcp_port=DEFAULT_TCP_PORT,
+        )
 
     @property
     def allow_unbrokered(self) -> bool:

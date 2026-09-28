@@ -30,19 +30,24 @@ from dev_harness.broker.policies import PolicyRegistry
 from dev_harness.broker.protocol import BrokerMessage, encode, read_frame
 from dev_harness.broker.reservation import ReservationStore
 from dev_harness.broker.transport import (
+    EPHEMERAL_PORT,
+    LOOPBACK,
     Endpoint,
-    default_endpoint,
+    bound_endpoint,
     parse_endpoint,
 )
 from dev_harness.config import HarnessConfig
 from dev_harness.contracts.enums import ProviderId
 from dev_harness.contracts.errors import HarnessError
+from dev_harness.ipc.discovery import publish_endpoint, remove_endpoint
 from dev_harness.providers.registry import ModelRegistry
 
 # Host-scoped locations (ADR-0002).
 HOST_DATA_DIR = Path.home() / ".local" / "share" / "dev-harness"
 DEFAULT_SOCKET_PATH = HOST_DATA_DIR / "broker.sock"
 DEFAULT_LOCK_PATH = HOST_DATA_DIR / "broker.lock"
+#: Where the daemon publishes its bound endpoint when it uses a dynamic port.
+DEFAULT_ENDPOINT_FILE = HOST_DATA_DIR / "broker.endpoint"
 
 _AF_UNIX = getattr(socket, "AF_UNIX", 1)
 _SOCK_STREAM = getattr(socket, "SOCK_STREAM", 1)
@@ -60,6 +65,25 @@ class BrokerUnavailableError(HarnessError):
     remediation = "Start the broker daemon or set allow_unbrokered=true."
 
 
+def _resolve_bind_endpoint(endpoint: str | Endpoint | None, unix_path: str) -> Endpoint:
+    """The endpoint the daemon should bind.
+
+    * an explicit endpoint is honoured verbatim (a named port stays fixed);
+    * ``tcp:127.0.0.1:0`` or no endpoint on a platform without AF_UNIX uses a
+      dynamic port;
+    * AF_UNIX where it is available.
+    """
+    from dev_harness.ipc.transport import af_unix_available
+
+    if isinstance(endpoint, Endpoint):
+        return endpoint
+    if isinstance(endpoint, str) and endpoint:
+        return parse_endpoint(endpoint)
+    if af_unix_available():
+        return Endpoint(kind="unix", address=unix_path)
+    return Endpoint(kind="tcp", address=f"{LOOPBACK}:{EPHEMERAL_PORT}")
+
+
 class BrokerDaemon:
     """The host-scoped rate-limit broker."""
 
@@ -72,20 +96,26 @@ class BrokerDaemon:
         clock: Callable[[], float] = time.monotonic,
         socket_factory: Callable[[int, int], Any] | None = None,
         endpoint: str | Endpoint | None = None,
+        endpoint_file: str | Path | None = None,
     ) -> None:
         self.config = config or HarnessConfig()
         self.socket_path = Path(socket_path) if socket_path else DEFAULT_SOCKET_PATH
         self.lock_path = Path(lock_path) if lock_path else DEFAULT_LOCK_PATH
+        self.endpoint_file = (
+            Path(endpoint_file) if endpoint_file else DEFAULT_ENDPOINT_FILE
+        )
         self._clock = clock
         self._socket_factory = socket_factory or socket.socket
-        if isinstance(endpoint, Endpoint):
-            self.endpoint = endpoint
-        elif isinstance(endpoint, str):
-            self.endpoint = parse_endpoint(endpoint)
-        elif socket_path is not None:
+        # A TCP bind uses port 0 (dynamic) unless a port is named explicitly in
+        # the endpoint, so concurrent runs never collide. The resolved endpoint
+        # is published to ``endpoint_file`` for clients to discover.
+        if endpoint is None and socket_path is not None:
             self.endpoint = Endpoint(kind="unix", address=str(self.socket_path))
         else:
-            self.endpoint = default_endpoint(str(self.socket_path))
+            self.endpoint = _resolve_bind_endpoint(endpoint, str(self.socket_path))
+        #: The endpoint actually bound (may differ: a dynamic port is resolved
+        #: by the OS at bind time).
+        self.bound: Endpoint | None = None
         self._policies = PolicyRegistry(self.config)
         self._registry = ModelRegistry(self.config)
         self._buckets: dict[ProviderId, TokenBucket] = {}
@@ -178,11 +208,19 @@ class BrokerDaemon:
             self._lock_handle = None
 
     def start(self) -> None:
-        """Acquire the lock and start the socket server."""
+        """Acquire the lock, bind the server, and publish the bound endpoint."""
         self.acquire_lock()
         self._running = True
         self._server = self._make_server()
         self._server.start()
+        # A dynamic port is only known after bind; publish it for discovery.
+        self.bound = getattr(self._server, "endpoint", self.endpoint)
+        publish_endpoint(self.bound, self.endpoint_file)
+
+    def close(self) -> None:
+        """Stop the server and remove the published endpoint file."""
+        self.release_lock()
+        remove_endpoint(self.endpoint_file)
 
     def _make_server(self) -> Any:
         """Build the broker socket server."""
@@ -315,6 +353,7 @@ class BrokerDaemon:
             time.sleep(0.01)
         self._reservations.reap_expired()
         self.release_lock()
+        remove_endpoint(self.endpoint_file)
 
     def stop(self) -> None:
         """Stop the daemon."""
@@ -322,6 +361,7 @@ class BrokerDaemon:
         if self._server is not None:
             self._server.stop()
         self.release_lock()
+        remove_endpoint(self.endpoint_file)
 
 
 class _BrokerSocketServer:
@@ -341,9 +381,16 @@ class _BrokerSocketServer:
         self._daemon = daemon
         self._socket_factory = socket_factory or socket.socket
         self._endpoint = endpoint or daemon.endpoint
+        #: The endpoint actually bound (a dynamic TCP port is resolved here).
+        self.bound: Endpoint = self._endpoint
         self._sock: Any = None
         self._running = False
         self._threads: list[threading.Thread] = []
+
+    @property
+    def endpoint(self) -> Endpoint:
+        """The endpoint actually bound (dynamic port resolved)."""
+        return self.bound
 
     def start(self) -> None:
         if self._endpoint.kind == "unix":
@@ -361,12 +408,15 @@ class _BrokerSocketServer:
             except OSError:
                 pass
             self._sock.listen(16)
+            self.bound = self._endpoint
         else:
             host, _, port = self._endpoint.address.rpartition(":")
             self._sock = self._socket_factory(socket.AF_INET, _SOCK_STREAM)
             self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._sock.bind((host, int(port)))
             self._sock.listen(16)
+            # Resolve the OS-assigned port so clients can be told where it is.
+            self.bound = bound_endpoint(self._sock, self._endpoint)
         self._running = True
         t = threading.Thread(target=self._accept_loop, daemon=True)
         t.start()
@@ -418,13 +468,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--endpoint",
         default=None,
-        help="Transport endpoint: unix:/path/to.sock or tcp:127.0.0.1:8765",
+        help=(
+            "Optional endpoint. Omit to bind a dynamic port and publish it "
+            "for discovery: 'unix:/path/to.sock' or 'tcp:127.0.0.1:<port>'"
+        ),
+    )
+    parser.add_argument(
+        "--endpoint-file",
+        default=None,
+        dest="endpoint_file",
+        help="Override the published endpoint file path",
     )
     parser.add_argument("--health", action="store_true", help="Check health and exit")
     args = parser.parse_args(argv)
 
     if args.health:
-        return _health(args.socket, args.endpoint)
+        return _health(args.socket, args.endpoint, args.endpoint_file)
 
     config = HarnessConfig()
     if args.config:
@@ -436,13 +495,14 @@ def main(argv: list[str] | None = None) -> int:
         socket_path=args.socket,
         lock_path=args.lock,
         endpoint=args.endpoint,
+        endpoint_file=args.endpoint_file,
     )
     try:
         daemon.start()
     except AlreadyRunningError:
         print("AlreadyRunning", file=sys.stderr)
         return 3
-    print(f"broker listening on {daemon.endpoint}", file=sys.stderr)
+    print(f"broker listening on {daemon.bound}", file=sys.stderr)
     try:
         while daemon._running:
             time.sleep(0.5)
@@ -453,12 +513,18 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _health(socket_path: str | None, endpoint: str | None = None) -> int:
-    """Check broker health via the IPC endpoint."""
+def _health(
+    socket_path: str | None,
+    endpoint: str | None = None,
+    endpoint_file: str | None = None,
+) -> int:
+    """Check broker health via the resolved endpoint."""
     try:
         from dev_harness.broker.client import BrokerClient
 
-        client = BrokerClient(socket_path, endpoint=endpoint)
+        client = BrokerClient(
+            socket_path, endpoint=endpoint, endpoint_file=endpoint_file
+        )
         client.health()
         client.close()
         print(json.dumps({"status": "ok"}))

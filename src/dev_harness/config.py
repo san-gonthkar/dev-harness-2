@@ -42,6 +42,10 @@ class BrokerConfig(BaseModel):
 
     socket_path: str | None = None
     allow_unbrokered: bool = False
+    #: Broker endpoint: ``unix:/path/to.sock`` or ``tcp:127.0.0.1:8765``.
+    #: When unset the client discovers the daemon's published endpoint, so the
+    #: port (dynamic by default) never has to be passed on the command line.
+    endpoint: str | None = None
 
 
 class HarnessConfig(BaseModel):
