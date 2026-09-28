@@ -224,6 +224,30 @@ def test_version_mismatch_is_harness_error() -> None:
 
 
 @pytest.mark.unit
+def test_stale_control_endpoint_is_discarded(tmp_path: Path) -> None:
+    """A published control endpoint nothing listens on is ignored.
+
+    Regression: a daemon killed hard (taskkill /F) leaves its endpoint file
+    behind. ``resolve_endpoint`` must not return the dead port, and
+    ``_is_running`` must not treat the stale file as a live daemon (which
+    would skip the spawn and then fail to connect).
+    """
+    from dev_harness.ipc.discovery import publish_endpoint
+    from dev_harness.ipc.transport import Endpoint
+
+    bootstrap = EngineBootstrap(tmp_path)
+    bootstrap.paths.control_endpoint_file.parent.mkdir(parents=True, exist_ok=True)
+    publish_endpoint(
+        Endpoint(kind="tcp", address="127.0.0.1:1"),
+        bootstrap.paths.control_endpoint_file,
+    )
+
+    resolved = bootstrap.resolve_endpoint()
+    assert resolved != Endpoint(kind="tcp", address="127.0.0.1:1")
+    assert bootstrap._is_running() is False
+
+
+@pytest.mark.unit
 def test_cold_start_spawns_daemon(tmp_path: Path) -> None:
     """ensure_daemon spawns the daemon when the socket is absent."""
     spawned: list[Path] = []

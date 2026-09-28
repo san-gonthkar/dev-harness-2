@@ -532,3 +532,7 @@ def _health(
     except (OSError, ValueError, HarnessError):
         print(json.dumps({"status": "unavailable"}))
         return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

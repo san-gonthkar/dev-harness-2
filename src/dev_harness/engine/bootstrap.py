@@ -32,10 +32,10 @@ from dev_harness.engine.commands import (
     encode_command,
     read_response_frame,
 )
+from dev_harness.ipc.discovery import endpoint_is_alive, read_endpoint
 from dev_harness.ipc.transport import (
     Endpoint,
     TransportError,
-    parse_endpoint,
 )
 from dev_harness.ipc.transport import connect as transport_connect
 from dev_harness.paths import derive_paths
@@ -138,25 +138,27 @@ class EngineBootstrap:
         The command vocabulary lives on the control socket (ADR-0002). Prefers
         the daemon-published control endpoint file (written when the daemon
         binds TCP); falls back to the AF_UNIX control path.
+
+        A published endpoint that nothing is listening on is discarded: a
+        daemon killed hard never cleans up, so its file goes stale and would
+        otherwise strand clients on a dead port.
         """
         path = self.paths.control_endpoint_file
-        if path.exists():
-            try:
-                return parse_endpoint(path.read_text(encoding="utf-8"))
-            except (OSError, TransportError):
-                pass
+        discovered = read_endpoint(path)
+        if discovered is not None and endpoint_is_alive(discovered):
+            return discovered
         return Endpoint(kind="unix", address=str(self.control_socket_path))
 
     def _is_running(self) -> bool:
-        """True when a daemon appears to be listening.
+        """True when a daemon is actually listening.
 
-        On POSIX the AF_UNIX control socket path is the signal; on Windows the
-        published control endpoint file is.
+        A stale published file must not count as running, or ``ensure_daemon``
+        would skip the spawn and then fail to connect.
         """
-        return (
-            self.control_socket_path.exists()
-            or self.paths.control_endpoint_file.exists()
-        )
+        if self.control_socket_path.exists():
+            return True
+        discovered = read_endpoint(self.paths.control_endpoint_file)
+        return discovered is not None and endpoint_is_alive(discovered)
 
     # -- handshake -----------------------------------------------------------
 
@@ -253,3 +255,7 @@ def main(argv: list[str] | None = None) -> int:
             f"state={response.state.value} version={response.version}"
         )
     return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

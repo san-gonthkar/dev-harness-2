@@ -185,3 +185,7 @@ def main(argv: list[str] | None = None) -> int:
     except BrokerUnavailableError as exc:
         print(f"BrokerUnavailableError: {exc}", file=sys.stderr)
         return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
