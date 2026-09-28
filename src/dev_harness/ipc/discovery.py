@@ -56,6 +56,62 @@ def remove_endpoint(path: Path) -> None:
         pass
 
 
+def endpoint_is_alive(endpoint: Endpoint, timeout: float = 0.5) -> bool:
+    """True when something is accepting connections at ``endpoint``.
+
+    A daemon that is killed hard (SIGKILL / ``taskkill /F``) never runs its
+    cleanup, so its published endpoint file goes **stale**: clients would keep
+    resolving a dead port. Probing before use turns that stale file into a
+    cache miss instead of a confusing connection error.
+    """
+    import socket
+
+    if endpoint.kind == "unix":
+        import os
+
+        return os.path.exists(endpoint.address)
+    host, _, port = endpoint.address.rpartition(":")
+    try:
+        with socket.create_connection((host, int(port)), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def resolve_live_endpoint(
+    *,
+    explicit: str | Endpoint | None,
+    configured: str | None,
+    published: Path,
+    unix_path: str,
+    tcp_port: int,
+    timeout: float = 0.5,
+) -> Endpoint:
+    """Resolve an endpoint, ignoring a **stale** published one.
+
+    Same precedence as :func:`resolve_endpoint`, but a published endpoint that
+    nothing is listening on is discarded — so a hard-killed daemon cannot
+    strand clients on a dead port. An explicit or configured endpoint is always
+    honoured as given (the caller asked for it by name).
+    """
+    if explicit or configured:
+        return resolve_endpoint(
+            explicit=explicit,
+            configured=configured,
+            published=published,
+            unix_path=unix_path,
+            tcp_port=tcp_port,
+        )
+    discovered = read_endpoint(published)
+    if discovered is not None and endpoint_is_alive(discovered, timeout):
+        return discovered
+    from dev_harness.ipc.transport import af_unix_available
+
+    if af_unix_available():
+        return Endpoint(kind="unix", address=unix_path)
+    return Endpoint(kind="tcp", address=f"127.0.0.1:{tcp_port}")
+
+
 def resolve_endpoint(
     *,
     explicit: str | Endpoint | None,

@@ -12,10 +12,12 @@ from pathlib import Path
 import pytest
 
 from dev_harness.ipc.discovery import (
+    endpoint_is_alive,
     publish_endpoint,
     read_endpoint,
     remove_endpoint,
     resolve_endpoint,
+    resolve_live_endpoint,
 )
 from dev_harness.ipc.transport import EPHEMERAL_PORT, LOOPBACK, Endpoint
 
@@ -169,3 +171,96 @@ def test_resolve_port_zero_is_not_passed_to_client(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_ephemeral_port_constant_is_zero() -> None:
     assert EPHEMERAL_PORT == 0
+
+
+# --- staleness --------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_endpoint_is_alive_false_for_dead_port() -> None:
+    """A port nothing listens on is not alive."""
+    # Port 1 is privileged and almost never listening; connect fails fast.
+    assert endpoint_is_alive(Endpoint(kind="tcp", address="127.0.0.1:1")) is False
+
+
+@pytest.mark.unit
+def test_endpoint_is_alive_true_for_live_server() -> None:
+    """A bound-and-listening socket is alive."""
+    import socket
+
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        server.bind(("127.0.0.1", 0))
+        server.listen(1)
+        host, port = server.getsockname()[:2]
+        assert endpoint_is_alive(Endpoint(kind="tcp", address=f"{host}:{port}")) is True
+    finally:
+        server.close()
+
+
+@pytest.mark.unit
+def test_endpoint_is_alive_unix_checks_the_path(tmp_path: Path) -> None:
+    """A unix endpoint is alive exactly when its path exists."""
+    absent = tmp_path / "absent.sock"
+    assert endpoint_is_alive(Endpoint(kind="unix", address=str(absent))) is False
+    absent.write_text("", encoding="utf-8")
+    assert endpoint_is_alive(Endpoint(kind="unix", address=str(absent))) is True
+
+
+@pytest.mark.integration
+def test_resolve_live_endpoint_discards_stale_file(tmp_path: Path) -> None:
+    """A published file pointing at a dead port is ignored.
+
+    Regression: a daemon killed hard (SIGKILL / taskkill /F) never cleans up,
+    so its file goes stale. Clients must not chase the dead port.
+    """
+    path = tmp_path / "broker.endpoint"
+    publish_endpoint(Endpoint(kind="tcp", address="127.0.0.1:1"), path)
+    resolved = resolve_live_endpoint(
+        explicit=None,
+        configured=None,
+        published=path,
+        unix_path="/tmp/x.sock",
+        tcp_port=8765,
+    )
+    assert resolved != Endpoint(kind="tcp", address="127.0.0.1:1")
+    if resolved.kind == "tcp":
+        assert resolved.address == "127.0.0.1:8765"
+
+
+@pytest.mark.integration
+def test_resolve_live_endpoint_uses_a_live_file(tmp_path: Path) -> None:
+    """A published file that IS listening is used."""
+    import socket
+
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        server.bind(("127.0.0.1", 0))
+        server.listen(1)
+        host, port = server.getsockname()[:2]
+        live = Endpoint(kind="tcp", address=f"{host}:{port}")
+        path = tmp_path / "broker.endpoint"
+        publish_endpoint(live, path)
+        resolved = resolve_live_endpoint(
+            explicit=None,
+            configured=None,
+            published=path,
+            unix_path="/tmp/x.sock",
+            tcp_port=8765,
+        )
+        assert resolved == live
+    finally:
+        server.close()
+
+
+@pytest.mark.unit
+def test_resolve_live_endpoint_honours_explicit_even_if_dead(tmp_path: Path) -> None:
+    """An explicit endpoint is used as given — the caller named it."""
+    resolved = resolve_live_endpoint(
+        explicit="tcp:127.0.0.1:1",
+        configured=None,
+        published=tmp_path / "absent",
+        unix_path="/tmp/x.sock",
+        tcp_port=8765,
+    )
+    assert resolved == Endpoint(kind="tcp", address="127.0.0.1:1")

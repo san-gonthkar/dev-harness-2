@@ -27,7 +27,7 @@ from dev_harness.broker.transport import (
 from dev_harness.broker.transport import connect as transport_connect
 from dev_harness.config import HarnessConfig
 from dev_harness.contracts.enums import ProviderId
-from dev_harness.ipc.discovery import resolve_endpoint
+from dev_harness.ipc.discovery import resolve_live_endpoint
 
 _AF_UNIX = getattr(socket, "AF_UNIX", 1)
 _SOCK_STREAM = getattr(socket, "SOCK_STREAM", 1)
@@ -67,7 +67,9 @@ class BrokerClient:
             self._config.broker.endpoint if self._config.broker.endpoint else None
         )
         published = Path(endpoint_file) if endpoint_file else DEFAULT_ENDPOINT_FILE
-        self.endpoint = resolve_endpoint(
+        # ``resolve_live_endpoint`` discards a stale discovery file (a daemon
+        # killed hard leaves one behind), so clients never chase a dead port.
+        self.endpoint = resolve_live_endpoint(
             explicit=explicit,
             configured=configured,
             published=published,

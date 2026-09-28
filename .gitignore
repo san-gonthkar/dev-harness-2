@@ -28,3 +28,10 @@ venv/
 !.github/workflows/
 !.github/copilot-instructions.md
 briefs/
+
+# Temporary local build/run helpers — not part of the product.
+run.bat
+scripts/build.ps1
+scripts/build.sh
+scripts/start.ps1
+scripts/start.sh
